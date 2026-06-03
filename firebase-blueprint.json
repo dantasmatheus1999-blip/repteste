@@ -1,0 +1,425 @@
+{
+  "entities": {
+    "User": {
+      "title": "Perfil de Usuário",
+      "description": "Dados do perfil do usuário no sistema.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["player", "master", "admin"] },
+        "plan": { "type": "string", "enum": ["free", "premium"] },
+        "onboardingCompleted": { "type": "boolean" },
+        "preferences": { "type": "object" },
+        "stats": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "Class": {
+      "title": "Classe de Tormenta 20",
+      "description": "Definição de uma classe de personagem para Tormenta 20 Jogo do Ano.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome da classe" },
+        "slug": { "type": "string", "description": "Identificador único" },
+        "role": { "type": "string", "description": "Papel da classe no grupo" },
+        "primaryAttributes": { "type": "array", "items": { "type": "string" }, "description": "Atributos recomendados" },
+        "hpPerLevel": { "type": "integer", "description": "PV ganhos por nível" },
+        "skills": { "type": "array", "items": { "type": "string" }, "description": "Perícias treinadas iniciais" },
+        "proficiencies": { "type": "array", "items": { "type": "string" }, "description": "Proficiências da classe" },
+        "abilities": { "type": "array", "items": { "type": "object" }, "description": "Habilidades de classe" },
+        "powers": { "type": "array", "items": { "type": "object" }, "description": "Poderes de classe" },
+        "progression": { "type": "array", "items": { "type": "object" }, "description": "Tabela de progressão" }
+      },
+      "required": ["name", "slug", "role"]
+    },
+    "Character": {
+      "title": "Personagem",
+      "description": "Ficha de personagem do jogador.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "ID do usuário proprietário" },
+        "name": { "type": "string" },
+        "classId": { "type": "string" },
+        "level": { "type": "integer" },
+        "attributes": { "type": "object" },
+        "attrBonus": { "type": "object" },
+        "currentPV": { "type": "integer" },
+        "currentPM": { "type": "integer" },
+        "skills": { "type": "object" },
+        "attacks": { "type": "array" },
+        "inventory": { "type": "array" },
+        "spells": { "type": "array" },
+        "abilities": { "type": "array" },
+        "notes": { "type": "string" },
+        "money": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "classId", "level"]
+    },
+    "Race": {
+      "title": "Raça de Tormenta 20",
+      "description": "Definição de uma raça de personagem para Tormenta 20 Jogo do Ano.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "system": { "type": "string" },
+        "edition": { "type": "string" },
+        "attributeModifiers": { "type": "array", "items": { "type": "object" } },
+        "racialAbilities": { "type": "array", "items": { "type": "object" } },
+        "playstyle": { "type": "array", "items": { "type": "string" } },
+        "synergies": { "type": "object" },
+        "summary": { "type": "string" },
+        "iconName": { "type": "string" }
+      },
+      "required": ["name", "slug"]
+    },
+    "Origin": {
+      "title": "Origem de Tormenta 20",
+      "description": "Definição de uma origem de personagem para Tormenta 20 Jogo do Ano.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "system": { "type": "string" },
+        "edition": { "type": "string" },
+        "summary": { "type": "string" },
+        "startingItems": { "type": "array", "items": { "type": "string" } },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "availablePowers": { "type": "array", "items": { "type": "string" } },
+        "originPowers": { "type": "array", "items": { "type": "object" } },
+        "description": { "type": "string" },
+        "iconName": { "type": "string" }
+      },
+      "required": ["name", "slug"]
+    },
+    "Deity": {
+      "title": "Divindade de Tormenta 20",
+      "description": "Definição de uma divindade para Tormenta 20 Jogo do Ano.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "system": { "type": "string" },
+        "edition": { "type": "string" },
+        "summary": { "type": "string" },
+        "beliefsAndGoals": { "type": "string" },
+        "sacredSymbol": { "type": "string" },
+        "channelDivinity": { "type": "string" },
+        "favoredWeapon": { "type": "string" },
+        "devotees": { "type": "string" },
+        "obligationsAndRestrictions": { "type": "array", "items": { "type": "string" } },
+        "grantedPowers": { "type": "array", "items": { "type": "object" } },
+        "description": { "type": "string" },
+        "iconName": { "type": "string" }
+      },
+      "required": ["name", "slug"]
+    },
+    "Campaign": {
+      "title": "Campanha",
+      "description": "Gerenciamento de campanha pelo mestre.",
+      "type": "object",
+      "properties": {
+        "masterId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "system": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "paused", "finished"] },
+        "imageUrl": { "type": "string" },
+        "playerIds": { "type": "array", "items": { "type": "string" } },
+        "characterIds": { "type": "array", "items": { "type": "string" } },
+        "generalNotes": { "type": "string" },
+        "importantEvents": { "type": "string" },
+        "rewardsLoot": { "type": "string" },
+        "masterObservations": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["masterId", "name", "status"]
+    },
+    "Session": {
+      "title": "Sessão de Jogo",
+      "description": "Registro de uma sessão de jogo em uma campanha.",
+      "type": "object",
+      "properties": {
+        "campaignId": { "type": "string" },
+        "number": { "type": "integer" },
+        "name": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "summary": { "type": "string" },
+        "importantEvents": { "type": "string" },
+        "playerDecisions": { "type": "string" },
+        "npcIds": { "type": "array", "items": { "type": "string" } },
+        "locationIds": { "type": "array", "items": { "type": "string" } },
+        "combatsOccurred": { "type": "string" },
+        "hooksForNextSession": { "type": "string" },
+        "secretObservations": { "type": "string" },
+        "isCompleted": { "type": "boolean" }
+      },
+      "required": ["campaignId", "number", "name"]
+    },
+    "NPC": {
+      "title": "NPC",
+      "description": "Personagem não-jogador gerenciado pelo mestre.",
+      "type": "object",
+      "properties": {
+        "campaignId": { "type": "string" },
+        "name": { "type": "string" },
+        "race": { "type": "string" },
+        "role": { "type": "string" },
+        "classArchetype": { "type": "string" },
+        "level": { "type": "integer" },
+        "visualDescription": { "type": "string" },
+        "personality": { "type": "string" },
+        "motivation": { "type": "string" },
+        "secret": { "type": "string" },
+        "status": { "type": "string" },
+        "currentLocationId": { "type": "string" },
+        "masterNotes": { "type": "string" },
+        "isFavorite": { "type": "boolean" },
+        "isImportant": { "type": "boolean" },
+        "visualPrompt": { "type": "string" }
+      },
+      "required": ["name", "role"]
+    },
+    "Location": {
+      "title": "Local",
+      "description": "Local geográfico ou ponto de interesse em uma campanha.",
+      "type": "object",
+      "properties": {
+        "campaignId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "npcIds": { "type": "array", "items": { "type": "string" } },
+        "events": { "type": "string" },
+        "perils": { "type": "string" },
+        "rewards": { "type": "string" },
+        "masterObservations": { "type": "string" }
+      },
+      "required": ["campaignId", "name", "type"]
+    },
+    "Encounter": {
+      "title": "Encontro",
+      "description": "Gerenciamento de combate ou encontro em tempo real.",
+      "type": "object",
+      "properties": {
+        "campaignId": { "type": "string" },
+        "name": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "object" } },
+        "currentTurn": { "type": "integer" },
+        "isActive": { "type": "boolean" },
+        "history": { "type": "string" },
+        "observations": { "type": "string" }
+      },
+      "required": ["campaignId", "name"]
+    },
+    "MasterNote": {
+      "title": "Nota do Mestre",
+      "description": "Nota privada do mestre.",
+      "type": "object",
+      "properties": {
+        "masterId": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "sessionId": { "type": "string" },
+        "npcId": { "type": "string" },
+        "locationId": { "type": "string" },
+        "enounterId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "isPinned": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["masterId", "title", "content"]
+    },
+    "Room": {
+      "title": "Sala de Jogo",
+      "description": "Sala para sessões de RPG em tempo real.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome da mesa" },
+        "code": { "type": "string", "description": "Código único de 6 caracteres" },
+        "masterId": { "type": "string", "description": "ID do usuário mestre" },
+        "masterName": { "type": "string", "description": "Nome do mestre" },
+        "status": { "type": "string", "enum": ["waiting", "active", "closed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "code", "masterId", "masterName", "status"]
+    },
+    "Participant": {
+      "title": "Participante da Sala",
+      "description": "Usuário presente em uma sala.",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["master", "player"] },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["roomId", "userId", "name", "role"]
+    },
+    "Creature": {
+      "title": "Criatura do Bestiário",
+      "description": "Ficha de criatura ou monstro para o mestre.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "level": { "type": "integer" },
+        "size": { "type": "string" },
+        "hp": { "type": "integer" },
+        "mp": { "type": "integer" },
+        "defense": { "type": "integer" },
+        "initiative": { "type": "integer" },
+        "speed": { "type": "string" },
+        "attributes": { "type": "object" },
+        "attacks": { "type": "array" },
+        "abilities": { "type": "array" },
+        "resistances": { "type": "string" },
+        "vulnerabilities": { "type": "string" },
+        "tags": { "type": "array" },
+        "createdAt": { "type": "integer" },
+        "updatedAt": { "type": "integer" }
+      },
+      "required": ["userId", "name", "type", "level"]
+    },
+    "Token": {
+      "title": "Token de Mapa",
+      "description": "Representação de um personagem ou criatura no mapa tático.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "x": { "type": "number" },
+        "z": { "type": "number" },
+        "type": { "type": "string", "enum": ["player", "npc", "inimigo"] },
+        "ownerId": { "type": "string" },
+        "color": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["name", "x", "z", "type", "ownerId"]
+    },
+    "LibraryAsset": {
+      "title": "Ativo da Biblioteca",
+      "description": "Modelo 3D disponível na biblioteca do editor.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["floor", "wall", "item", "door", "hero", "enemy"] },
+        "fileUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "defaultScale": { "type": "array", "items": { "type": "number" } },
+        "defaultRotation": { "type": "array", "items": { "type": "number" } }
+      },
+      "required": ["name", "category", "fileUrl"]
+    },
+    "MapScene": {
+      "title": "Cena de Mapa",
+      "description": "Configuração completa de um mapa 3D imersivo.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "models": { "type": "array", "items": { "type": "object" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "ownerId", "models"]
+    }
+  },
+  "firestore": {
+    "/library_assets/{assetId}": {
+      "schema": "LibraryAsset",
+      "description": "Biblioteca de modelos 3D para o editor."
+    },
+    "/bestiary/{creatureId}": {
+      "schema": "Creature",
+      "description": "Coleção central de criaturas do bestiário."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Perfis de usuários do sistema."
+    },
+    "/classes/{classId}": {
+      "schema": "Class",
+      "description": "Coleção de classes disponíveis no sistema."
+    },
+    "/characters/{charId}": {
+      "schema": "Character",
+      "description": "Personagens criados pelos usuários."
+    },
+    "/races/{raceId}": {
+      "schema": "Race",
+      "description": "Coleção de raças disponíveis no sistema."
+    },
+    "/origins/{originId}": {
+      "schema": "Origin",
+      "description": "Coleção de origens disponíveis no sistema."
+    },
+    "/deities/{deityId}": {
+      "schema": "Deity",
+      "description": "Coleção de divindades disponíveis no sistema."
+    },
+    "/campaigns/{campaignId}": {
+      "schema": "Campaign",
+      "description": "Campanhas criadas pelos mestres."
+    },
+    "/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "Sessões de jogo vinculadas a campanhas."
+    },
+    "/npcs/{npcId}": {
+      "schema": "NPC",
+      "description": "NPCs vinculados a campanhas."
+    },
+    "/locations/{locationId}": {
+      "schema": "Location",
+      "description": "Locais vinculados a campanhas."
+    },
+    "/encounters/{encounterId}": {
+      "schema": "Encounter",
+      "description": "Encontros de combate vinculados a campanhas."
+    },
+    "/master_notes/{noteId}": {
+      "schema": "MasterNote",
+      "description": "Notas privadas dos mestres."
+    },
+    "/master_rolls/{rollId}": {
+      "schema": "object",
+      "description": "Histórico de rolagens do mestre."
+    },
+    "/campaign_players/{playerId}": {
+      "schema": "object",
+      "description": "Jogadores vinculados a campanhas."
+    },
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Salas de jogo ativas."
+    },
+    "/rooms/{roomId}/participants/{participantId}": {
+      "schema": "Participant",
+      "description": "Participantes de uma sala específica."
+    },
+    "/rooms/{roomId}/rolls/{rollId}": {
+      "schema": "object",
+      "description": "Rolagens de dados de uma sala específica."
+    },
+    "/rooms/{roomId}/tokens/{tokenId}": {
+      "schema": "Token",
+      "description": "Tokens presentes no mapa tático de uma sala."
+    },
+    "/map_scenes/{sceneId}": {
+      "schema": "MapScene",
+      "description": "Cenas de mapas 3D criadas pelos usuários."
+    }
+  }
+}

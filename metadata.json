@@ -1,0 +1,5 @@
+{
+  "name": "Mythos Companion - RPG Session Manager",
+  "description": "Gerenciador de sessões de RPG com mapa tático 2.5D, controle de tokens em tempo real e grimório do mestre para Tormenta 20.",
+  "requestFramePermissions": []
+}

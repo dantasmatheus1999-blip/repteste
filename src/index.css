@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=MedievalSharp&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-cinzel: "Cinzel", serif;
+  --font-medieval: "MedievalSharp", cursive;
+  --font-serif: "Playfair Display", serif;
+
+  --color-mythos-bg: #050505;
+  --color-mythos-card: #0d0d11;
+  --color-mythos-text: #d1d1d6;
+  --color-gold: #c5a059;
+  --color-gold-light: #e9d5a3;
+  --color-gold-dark: #846a32;
+  --color-arcane: #6366f1;
+  --color-magic: #4da3ff;
+  --color-health: #991b1b;
+  --color-mana: #1e40af;
+  --color-stamina: #065f46;
+}
+
+@layer base {
+  body {
+    @apply bg-mythos-bg text-mythos-text font-sans antialiased selection:bg-gold/30 selection:text-gold-light;
+    background-image: 
+      radial-gradient(circle at 50% -20%, rgba(197, 160, 89, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 0% 100%, rgba(99, 102, 241, 0.03) 0%, transparent 40%),
+      radial-gradient(circle at 100% 100%, rgba(197, 160, 89, 0.03) 0%, transparent 40%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-cinzel tracking-[0.15em] uppercase;
+  }
+}
+
+@layer components {
+  .text-gold-gradient {
+    @apply bg-gradient-to-b from-gold-light via-gold to-gold-dark bg-clip-text text-transparent;
+  }
+
+  .glass-card {
+    @apply bg-mythos-card/80 backdrop-blur-xl border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)];
+  }
+
+  .premium-border {
+    @apply border border-gold/20 relative;
+  }
+
+  .premium-border::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none border border-gold/5 m-[2px];
+  }
+
+  .arcane-glow {
+    @apply shadow-[0_0_30px_rgba(99,102,241,0.15)];
+  }
+
+  .gold-glow {
+    @apply shadow-[0_0_40px_rgba(197,160,89,0.1)];
+  }
+
+  .mythos-input {
+    @apply bg-black/40 border-2 border-gold/10 rounded-xl py-4 px-6 text-gold placeholder:text-gold/20 focus:outline-none focus:border-gold/40 focus:bg-black/60 transition-all font-cinzel;
+  }
+
+  .btn-premium {
+    @apply relative overflow-hidden font-cinzel tracking-[0.2em] uppercase text-xs font-black px-8 py-4 rounded-xl transition-all duration-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3;
+    background: linear-gradient(135deg, #1a1a1e 0%, #0d0d11 100%);
+    border: 1px solid rgba(197, 160, 89, 0.3);
+    color: #c5a059;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  }
+
+  .btn-premium:hover:not(:disabled) {
+    border-color: rgba(197, 160, 89, 0.6);
+    background: linear-gradient(135deg, #25252a 0%, #141418 100%);
+    box-shadow: 0 15px 30px rgba(197, 160, 89, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .btn-premium-gold {
+    background: linear-gradient(135deg, #c5a059 0%, #846a32 100%);
+    color: #050507;
+    border: none;
+    box-shadow: 0 10px 30px rgba(197, 160, 89, 0.2);
+  }
+
+  .btn-premium-gold:hover:not(:disabled) {
+    background: linear-gradient(135deg, #e9d5a3 0%, #c5a059 100%);
+    box-shadow: 0 15px 40px rgba(197, 160, 89, 0.4);
+    transform: translateY(-2px);
+  }
+}
+
+/* Animations */
+@keyframes arcane-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.animate-arcane {
+  animation: arcane-pulse 4s ease-in-out infinite;
+}
+
+@keyframes mist {
+  0% { transform: translateX(-10%) translateY(0); opacity: 0.1; }
+  50% { transform: translateX(10%) translateY(-5%); opacity: 0.2; }
+  100% { transform: translateX(-10%) translateY(0); opacity: 0.1; }
+}
+
+.animate-mist {
+  animation: mist 20s ease-in-out infinite;
+}
+
+/* --- MOBILE BOTTOM NAVIGATION HELPER STYLES --- */
+.pb-safe-bottom {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom) + 2.5rem) !important;
+}
+
+@media (min-width: 768px) {
+  .pb-safe-bottom {
+    padding-bottom: 2.5rem !important;
+  }
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom) !important;
+}

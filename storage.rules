@@ -1,0 +1,24 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+        (request.auth.token.email == "dantasmatheus1999@outlook.com.br");
+    }
+
+    match /npcs/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Library assets
+    match /library/{category}/{allPaths=**} {
+      // Everyone authenticated can read the library models
+      allow read: if request.auth != null;
+      // Only admins can upload/delete library models
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,9 @@
+[
+  {
+    "origin": [
+      "https://ais-dev-br6k76cewsgtdl7c4lu2j7-136005633681.us-west1.run.app"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+    "maxAgeSeconds": 3600
+  }
+]
