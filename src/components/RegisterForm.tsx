@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User as UserIcon, ScrollText, AlertCircle, Loader2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useLoading } from '../context/LoadingContext';
+import { Mail, Lock, User as UserIcon, ScrollText, AlertCircle, Loader2, Crown, Sword } from 'lucide-react';
+import { useAuth, AppUserRole } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { AvatarUploader } from './AvatarUploader';
 
@@ -15,12 +14,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onToggle 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<'master' | 'player'>('player');
   const [avatar, setAvatar] = useState<File | null>(null);
   const [terms, setTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
-  const { withLoading } = useLoading();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,14 +39,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onToggle 
     setLoading(true);
 
     try {
-      await withLoading(
-        register(name, email, password, avatar || undefined),
-        "Inscrevendo sua alma no Codex..."
-      );
+      await register(name, email, password, avatar || undefined, role);
       if (onSuccess) {
         onSuccess();
       } else {
-        navigate('/select-profile');
+        navigate('/');
       }
     } catch (err: any) {
       console.error(err);
@@ -159,6 +155,40 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onToggle 
                   className="mythos-input w-full pl-11 pr-5 h-[52px] py-0 text-sm font-sans text-gold/90"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Tipo de Perfil: Mestre ou Jogador */}
+          <div className="space-y-1.5 pt-1">
+            <label className="text-[9px] text-gold/50 uppercase font-bold tracking-[0.2em] ml-1">
+              Papel no REALMOR
+            </label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setRole('player')}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-xs font-cinzel font-bold tracking-wider transition-all cursor-pointer ${
+                  role === 'player'
+                    ? 'bg-magic/20 border-magic/70 text-magic shadow-[0_0_15px_rgba(77,163,255,0.2)]'
+                    : 'bg-black/40 border-gold/20 text-gold/50 hover:text-gold hover:border-gold/40'
+                }`}
+              >
+                <Sword size={14} />
+                <span>JOGADOR</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRole('master')}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-xs font-cinzel font-bold tracking-wider transition-all cursor-pointer ${
+                  role === 'master'
+                    ? 'bg-gold/20 border-gold/70 text-gold shadow-[0_0_15px_rgba(212,175,55,0.2)]'
+                    : 'bg-black/40 border-gold/20 text-gold/50 hover:text-gold hover:border-gold/40'
+                }`}
+              >
+                <Crown size={14} />
+                <span>MESTRE</span>
+              </button>
             </div>
           </div>
         </div>

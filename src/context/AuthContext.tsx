@@ -14,15 +14,17 @@ import {
 import { db, doc, setDoc, getDoc, serverTimestamp, OperationType, handleFirestoreError } from '../firebase/firestore';
 import { storage, ref, uploadBytes, getDownloadURL } from '../firebase/storage';
 
-interface UserProfile {
+export type AppUserRole = "player" | "master" | "admin";
+
+export interface UserProfile {
   uid: string;
   name: string;
   email: string;
   photoURL: string;
   createdAt: any;
   updatedAt: any;
-  role: "player";
-  plan: "free";
+  role: AppUserRole;
+  plan: "free" | "premium";
   onboardingCompleted: boolean;
   preferences: {
     language: "pt-BR"
@@ -37,7 +39,7 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
-  register: (name: string, email: string, password: string, avatar?: File) => Promise<void>;
+  register: (name: string, email: string, password: string, avatar?: File, role?: AppUserRole) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -77,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const createUserProfile = async (uid: string, name: string, email: string, photoURL: string = '') => {
+  const createUserProfile = async (uid: string, name: string, email: string, photoURL: string = '', role: AppUserRole = "player") => {
     const profileData: UserProfile = {
       uid,
       name,
@@ -85,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       photoURL,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      role: "player",
+      role,
       plan: "free",
       onboardingCompleted: false,
       preferences: {
@@ -112,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return await getDownloadURL(storageRef);
   };
 
-  const register = async (name: string, email: string, password: string, avatar?: File) => {
+  const register = async (name: string, email: string, password: string, avatar?: File, role: AppUserRole = "player") => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       let photoURL = '';
@@ -122,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       await updateProfile(result.user, { displayName: name, photoURL });
-      await createUserProfile(result.user.uid, name, email, photoURL);
+      await createUserProfile(result.user.uid, name, email, photoURL, role);
     } catch (error: any) {
       console.error('Registration error:', error);
       throw error;

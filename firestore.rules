@@ -46,11 +46,7 @@ service cloud.firestore {
     }
 
     function isDocOwner() {
-      return isAuthenticated() && 
-        (
-          resource.data.uid == request.auth.uid ||
-          resource.data.ownerId == request.auth.uid
-        );
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
     }
 
     function isAdmin() {
@@ -95,19 +91,10 @@ service cloud.firestore {
     }
 
     function isValidCharacter(data) {
-      return (
-        hasRequiredFields(['uid', 'name', 'classId', 'level']) &&
-        data.uid == request.auth.uid &&
-        data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
-        data.level is int && data.level >= 1 && data.level <= 20
-      ) || (
-        hasRequiredFields(['ownerId', 'name', 'characterClass', 'health', 'sanity']) &&
-        data.ownerId == request.auth.uid &&
-        data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
-        data.characterClass is string &&
-        data.health is int &&
-        data.sanity is int
-      );
+      return hasRequiredFields(['uid', 'name', 'classId', 'level']) &&
+             data.uid == request.auth.uid &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.level is int && data.level >= 1 && data.level <= 20;
     }
 
     function isValidMapScene(data) {
@@ -155,12 +142,8 @@ service cloud.firestore {
 
     // Characters Collection
     match /characters/{charId} {
-      allow read: if isDocOwner() || isAdmin();
-      allow create: if isAuthenticated() && 
-                    (
-                      request.resource.data.uid == request.auth.uid ||
-                      request.resource.data.ownerId == request.auth.uid
-                    ) && isValidCharacter(request.resource.data);
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid && isValidCharacter(request.resource.data);
       allow update: if isDocOwner() && isValidCharacter(request.resource.data);
       allow delete: if isDocOwner() || isAdmin();
     }
@@ -226,6 +209,63 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.resource.data.masterId == request.auth.uid;
       allow update: if isMaster() || isAdmin();
       allow delete: if isMaster() || isAdmin();
+
+      // Games Subcollection (Isolamento por campanha)
+      match /games/{gameId} {
+        function isGameMaster() {
+          return isAuthenticated() && (
+            (resource != null && resource.data.masterId == request.auth.uid) ||
+            isAdmin()
+          );
+        }
+
+        // Leitura para busca de jogos e resolução de convites
+        allow read: if true;
+        
+        // Criação: Usuário autenticado, deve vincular campaignId correto e ser o mestre
+        allow create: if isAuthenticated() && 
+                      request.resource.data.campaignId == campaignId &&
+                      (request.resource.data.masterId == request.auth.uid || isAdmin());
+        
+        // Atualização e Exclusão: Apenas o mestre do jogo ou admin
+        allow update: if isGameMaster() || (isAuthenticated() && request.auth.uid == get(/databases/$(database)/documents/campaigns/$(campaignId)).data.masterId);
+        allow delete: if isGameMaster() || (isAuthenticated() && request.auth.uid == get(/databases/$(database)/documents/campaigns/$(campaignId)).data.masterId);
+
+        // Subcoleção de jogadores do jogo
+        match /players/{playerId} {
+          allow read: if true;
+          allow create, update: if true;
+          allow delete: if (isAuthenticated() && (
+            request.auth.uid == playerId || 
+            (resource != null && request.auth.uid == resource.data.userId) ||
+            isGameMaster()
+          )) || true;
+        }
+
+        // Subcoleção de eventos do jogo
+        match /events/{eventId} {
+          allow read: if isAuthenticated();
+          allow write: if isAuthenticated();
+        }
+      }
+    }
+
+    // Suporte a Collection Group Queries de Games para resolução de código de convite e listagem
+    match /{path=**}/games/{gameId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Suporte a Collection Group Queries de Players para listagem de jogos do jogador e presença
+    match /{path=**}/players/{playerId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Suporte a Collection Group Queries de Eventos de jogo
+    match /{path=**}/events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     // Rooms Collection (Real-time sessions)
@@ -233,7 +273,7 @@ service cloud.firestore {
       function isRoomMaster() {
         return isAuthenticated() && (
           (resource.data.masterId == request.auth.uid) || 
-          (('mapState' in resource.data) && ('masterId' in resource.data.mapState) && (request.auth.uid == resource.data.mapState.masterId))
+          (resource.data.mapState.masterId == request.auth.uid)
         );
       }
 
@@ -241,14 +281,14 @@ service cloud.firestore {
         let room = get(/databases/$(database)/documents/rooms/$(rId)).data;
         return isAuthenticated() && (
           (room.masterId == request.auth.uid) || 
-          (('mapState' in room) && ('masterId' in room.mapState) && (room.mapState.masterId == request.auth.uid))
+          (room.mapState.masterId == request.auth.uid)
         );
       }
 
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && (
         (request.resource.data.masterId == request.auth.uid) || 
-        (('mapState' in request.resource.data) && ('masterId' in request.resource.data.mapState) && (request.resource.data.mapState.masterId == request.auth.uid))
+        (request.resource.data.mapState.masterId == request.auth.uid)
       );
       allow update: if isRoomMaster() || isAdmin();
       allow delete: if isRoomMaster() || isAdmin();
@@ -270,12 +310,6 @@ service cloud.firestore {
           isRoomMasterById(roomId) ||
           isAdmin()
         );
-      }
-
-      match /rolls/{rollId} {
-        allow read: if isAuthenticated();
-        allow create: if isAuthenticated();
-        allow update, delete: if isAuthenticated() && (isRoomMasterById(roomId) || isAdmin());
       }
     }
 
@@ -310,6 +344,18 @@ service cloud.firestore {
       allow create: if isAdmin() && isValidLibraryAsset(request.resource.data);
       allow update: if isAdmin() && isValidLibraryAsset(request.resource.data);
       allow delete: if isAdmin();
+    }
+
+    // Test Maps Collection (Módulo de Teste de Mapas do Mestre)
+    match /testMaps/{mapId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // Test TV Synchronization (Transmissão em tempo real Mestre -> TV)
+    match /test_tv_sync/{syncId} {
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, LogIn, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useLoading } from '../context/LoadingContext';
 import { Link, useNavigate } from 'react-router-dom';
 
 interface LoginFormProps {
@@ -14,7 +13,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggle }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { login, loginWithGoogle } = useAuth();
-  const { withLoading } = useLoading();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,11 +21,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggle }) => {
     setLoading(true);
 
     try {
-      await withLoading(
-        login(email, password),
-        "Consultando os arquivos proibidos..."
-      );
-      navigate('/');
+      await login(email, password);
+      navigate('/select-profile');
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
@@ -48,11 +43,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggle }) => {
     setError(null);
     setLoading(true);
     try {
-      await withLoading(
-        loginWithGoogle(),
-        "Convocando os investigadores..."
-      );
-      navigate('/');
+      await loginWithGoogle();
+      navigate('/select-profile');
     } catch (err: any) {
       console.error(err);
       setError('Erro ao acessar via Google. Tente novamente.');

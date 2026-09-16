@@ -239,6 +239,45 @@
       },
       "required": ["masterId", "title", "content"]
     },
+    "Game": {
+      "title": "Jogo da Campanha",
+      "description": "Mesa de RPG vinculada a uma campanha permanente.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "system": { "type": "string" },
+        "coverUrl": { "type": "string" },
+        "masterId": { "type": "string" },
+        "inviteCode": { "type": "string" },
+        "status": { "type": "string", "enum": ["lobby", "active", "paused", "finished"] },
+        "maxPlayers": { "type": "integer" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "startedAt": { "type": "number" },
+        "finishedAt": { "type": "number" }
+      },
+      "required": ["id", "campaignId", "name", "system", "masterId", "inviteCode", "status", "maxPlayers"]
+    },
+    "GamePlayer": {
+      "title": "Jogador da Mesa",
+      "description": "Jogador ou mestre participante de uma mesa de jogo.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "gameId": { "type": "string" },
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "characterId": { "type": "string" },
+        "role": { "type": "string", "enum": ["master", "player"] },
+        "status": { "type": "string", "enum": ["online", "offline", "waiting"] },
+        "joinedAt": { "type": "object" },
+        "lastSeenAt": { "type": "object" }
+      },
+      "required": ["id", "gameId", "displayName", "role", "status"]
+    },
     "Room": {
       "title": "Sala de Jogo",
       "description": "Sala para sessões de RPG em tempo real.",
@@ -334,6 +373,37 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "ownerId", "models"]
+    },
+    "TestMap": {
+      "title": "Mapa de Teste",
+      "description": "Dados do mapa de teste do mestre para VTT e TV.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "grid": { "type": "object" },
+        "fogData": { "type": "string" },
+        "markers": { "type": "array" }
+      },
+      "required": ["name", "imageUrl"]
+    },
+    "TestTvSync": {
+      "title": "Sincronização com TV",
+      "description": "Estado transmitido para o modo TV em tempo real.",
+      "type": "object",
+      "properties": {
+        "mapId": { "type": "string" },
+        "mapName": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "grid": { "type": "object" },
+        "fogData": { "type": "string" },
+        "markers": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "tvLastSeen": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -373,6 +443,14 @@
       "schema": "Campaign",
       "description": "Campanhas criadas pelos mestres."
     },
+    "/campaigns/{campaignId}/games/{gameId}": {
+      "schema": "Game",
+      "description": "Jogos e mesas vinculados a uma campanha."
+    },
+    "/campaigns/{campaignId}/games/{gameId}/players/{playerId}": {
+      "schema": "GamePlayer",
+      "description": "Subcoleção de jogadores participantes da mesa de jogo."
+    },
     "/sessions/{sessionId}": {
       "schema": "Session",
       "description": "Sessões de jogo vinculadas a campanhas."
@@ -409,10 +487,6 @@
       "schema": "Participant",
       "description": "Participantes de uma sala específica."
     },
-    "/rooms/{roomId}/rolls/{rollId}": {
-      "schema": "object",
-      "description": "Rolagens de dados de uma sala específica."
-    },
     "/rooms/{roomId}/tokens/{tokenId}": {
       "schema": "Token",
       "description": "Tokens presentes no mapa tático de uma sala."
@@ -420,6 +494,14 @@
     "/map_scenes/{sceneId}": {
       "schema": "MapScene",
       "description": "Cenas de mapas 3D criadas pelos usuários."
+    },
+    "/testMaps/{mapId}": {
+      "schema": "TestMap",
+      "description": "Mapas de teste criados pelo Mestre."
+    },
+    "/test_tv_sync/{syncId}": {
+      "schema": "TestTvSync",
+      "description": "Estado de sincronização em tempo real entre o Mestre e a TV."
     }
   }
 }

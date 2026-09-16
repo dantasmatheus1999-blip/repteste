@@ -1,39 +1,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile, UserRole } from '../context/ProfileContext';
-import { useLoading } from '../context/LoadingContext';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Crown, Sword, ChevronRight } from 'lucide-react';
 
 export const ProfileSelection = () => {
   const { selectProfile } = useProfile();
-  const { withLoading, setLoaderTheme } = useLoading();
   const navigate = useNavigate();
 
-  const handleSelect = async (role: UserRole) => {
-    // Dynamically set loader theme to represent the realm they're entering!
-    if (role === 'MASTER') {
-      setLoaderTheme('occult');
-      await withLoading(
-        new Promise<void>(resolve => {
-          selectProfile(role);
-          setTimeout(resolve, 800);
-        }),
-        "Canalizando a sabedoria cósmica do Mestre..."
-      );
-      navigate('/mestre');
-    } else {
-      setLoaderTheme('compass');
-      await withLoading(
-        new Promise<void>(resolve => {
-          selectProfile(role);
-          setTimeout(resolve, 800);
-        }),
-        "Invocando a astúcia do Investigador..."
-      );
-      navigate('/jogador');
-    }
+  const handleSelect = (role: UserRole) => {
+    selectProfile(role);
+    navigate('/');
   };
 
   return (
@@ -59,23 +37,29 @@ export const ProfileSelection = () => {
                 <Crown size={16} className="sm:w-10 sm:h-10" />
               </div>
               
-              <div className="space-y-1 sm:space-y-3">
-                <h2 className="text-sm sm:text-3xl lg:text-4xl font-cinzel text-gold-gradient font-black tracking-wider sm:tracking-normal">Mestre</h2>
-                <p className="text-gold/50 text-[9px] sm:text-sm font-sans sm:font-medium leading-tight sm:leading-relaxed max-w-[130px] sm:max-w-none mx-auto">
-                  <span className="sm:hidden">Crie campanhas e controle aventuras.</span>
-                  <span className="hidden sm:inline">Crie campanhas, gerencie sessões, controle NPCs e narre histórias épicas para seus jogadores.</span>
+              <div className="space-y-1.5 sm:space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-base sm:text-2xl">⚔️</span>
+                  <h2 className="text-sm sm:text-3xl lg:text-4xl font-cinzel text-gold-gradient font-black tracking-wider sm:tracking-normal uppercase">Mestre</h2>
+                </div>
+                <p className="text-gold font-cinzel font-bold text-xs sm:text-base tracking-wide">
+                  "Criar e comandar aventuras"
+                </p>
+                <p className="text-gold/60 text-[9px] sm:text-sm font-sans sm:font-medium leading-tight sm:leading-relaxed max-w-[130px] sm:max-w-none mx-auto">
+                  <span className="sm:hidden">Crie campanhas e comande mesas épicas.</span>
+                  <span className="hidden sm:inline">Crie jogos, gerencie campanhas, controle NPCs e narre histórias épicas para seus jogadores.</span>
                 </p>
               </div>
 
               <ul className="hidden sm:flex text-[10px] sm:text-xs text-gold/40 space-y-2 sm:space-y-3 text-left w-full font-medium">
-                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-gold" /> Grimório de Campanhas</li>
-                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-gold" /> Bestiário e NPCs</li>
-                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-gold" /> Controle de Combate</li>
+                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-gold" /> Grimório do Mestre</li>
+                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-gold" /> Gerenciamento de Campanhas & Jogos</li>
+                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-gold" /> Mesa do Mestre & Combate</li>
               </ul>
 
-              <Button variant="primary" className="w-full mt-auto h-7 sm:h-10 py-0 text-[10px] sm:text-xs">
-                <span className="sm:hidden font-black">Entrar</span>
-                <span className="hidden sm:inline">Assumir o Trono</span>
+              <Button variant="primary" className="w-full mt-auto h-8 sm:h-11 py-0 text-[10px] sm:text-xs font-cinzel font-bold tracking-wider">
+                <span className="sm:hidden">Abrir Grimório</span>
+                <span className="hidden sm:inline">Abrir Grimório do Mestre</span>
               </Button>
             </div>
           </div>
@@ -94,23 +78,29 @@ export const ProfileSelection = () => {
                 <Sword size={16} className="sm:w-10 sm:h-10" />
               </div>
 
-              <div className="space-y-1 sm:space-y-3">
-                <h2 className="text-sm sm:text-3xl lg:text-4xl font-cinzel text-magic font-black tracking-wider sm:tracking-normal" style={{ textShadow: '0 0 10px rgba(77, 163, 255, 0.2)' }}>Jogador</h2>
-                <p className="text-magic/50 text-[9px] sm:text-sm font-sans sm:font-medium leading-tight sm:leading-relaxed max-w-[130px] sm:max-w-none mx-auto">
-                  <span className="sm:hidden">Gerencie personagens e acompanhe jornadas.</span>
-                  <span className="hidden sm:inline">Crie seus heróis, gerencie suas fichas, inventário e magias enquanto evolui em suas aventuras.</span>
+              <div className="space-y-1.5 sm:space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-base sm:text-2xl">🧙</span>
+                  <h2 className="text-sm sm:text-3xl lg:text-4xl font-cinzel text-magic font-black tracking-wider sm:tracking-normal uppercase" style={{ textShadow: '0 0 10px rgba(77, 163, 255, 0.2)' }}>Jogador</h2>
+                </div>
+                <p className="text-magic font-cinzel font-bold text-xs sm:text-base tracking-wide">
+                  "Participar de aventuras"
+                </p>
+                <p className="text-magic/60 text-[9px] sm:text-sm font-sans sm:font-medium leading-tight sm:leading-relaxed max-w-[130px] sm:max-w-none mx-auto">
+                  <span className="sm:hidden">Entre em mesas e jogue aventuras.</span>
+                  <span className="hidden sm:inline">Entre em jogos por código, gerencie seus personagens e viva jornadas memoráveis.</span>
                 </p>
               </div>
 
               <ul className="hidden sm:flex text-[10px] sm:text-xs text-magic/40 space-y-2 sm:space-y-3 text-left w-full font-medium">
-                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-magic" /> Fichas de Heróis</li>
-                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-magic" /> Gestão de Inventário</li>
-                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-magic" /> Diário do Aventureiro</li>
+                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-magic" /> Grimório do Jogador</li>
+                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-magic" /> Entrar em Jogos por Código</li>
+                <li className="flex items-center gap-2 sm:gap-3"><ChevronRight size={12} className="text-magic" /> Fichas de Heróis & Diário</li>
               </ul>
 
-              <Button variant="primary" className="w-full mt-auto h-7 sm:h-10 py-0 text-[10px] sm:text-xs bg-magic hover:bg-blue-400 border-blue-800 text-mythos-bg">
-                <span className="sm:hidden font-black">Entrar</span>
-                <span className="hidden sm:inline">Iniciar Jornada</span>
+              <Button variant="primary" className="w-full mt-auto h-8 sm:h-11 py-0 text-[10px] sm:text-xs bg-magic hover:bg-blue-400 border-blue-800 text-mythos-bg font-cinzel font-bold tracking-wider">
+                <span className="sm:hidden">Abrir Grimório</span>
+                <span className="hidden sm:inline">Abrir Grimório do Jogador</span>
               </Button>
             </div>
           </div>

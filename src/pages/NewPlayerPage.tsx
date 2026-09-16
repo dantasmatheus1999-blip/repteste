@@ -861,11 +861,17 @@ export const NewPlayerPage: React.FC = () => {
 
         lastSavedJsonRef.current = currentJson;
         setAutoSaveStatus('saved');
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota limit exceeded')) {
+          localStorage.setItem(`realmor_global_char_${selectedGlobalChar.id}`, currentJson);
+          lastSavedJsonRef.current = currentJson;
+          setAutoSaveStatus('saved');
+          return;
+        }
         console.error('Error in global character autosave:', err);
         setAutoSaveStatus('dirty');
       }
-    }, 1500);
+    }, 2500);
 
     return () => clearTimeout(debounceTimer);
   }, [cocSheet, characterName, characterClass, health, sanity, skills, backstory, selectedGlobalChar, activeSessionRoomId, user]);
@@ -1102,11 +1108,17 @@ export const NewPlayerPage: React.FC = () => {
 
         lastSavedJsonRef.current = currentJson;
         setAutoSaveStatus('saved');
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota limit exceeded')) {
+          localStorage.setItem(`realmor_room_char_${activeSessionRoomId}_${user.uid}`, currentJson);
+          lastSavedJsonRef.current = currentJson;
+          setAutoSaveStatus('saved');
+          return;
+        }
         console.error('Error in auto-saving character sheet:', err);
         setAutoSaveStatus('dirty');
       }
-    }, 1500); // 1.5 seconds
+    }, 2500); // 2.5 seconds
 
     return () => clearTimeout(debounceTimer);
   }, [cocSheet, characterName, characterClass, health, sanity, activeSessionRoomId, user]);
@@ -1117,17 +1129,17 @@ export const NewPlayerPage: React.FC = () => {
     setSavingSheet(true);
     setAutoSaveStatus('saving');
 
-    try {
-      const currentJson = JSON.stringify({
-        characterName,
-        characterClass,
-        health,
-        sanity,
-        skills,
-        backstory,
-        cocSheet
-      });
+    const currentJson = JSON.stringify({
+      characterName,
+      characterClass,
+      health,
+      sanity,
+      skills,
+      backstory,
+      cocSheet
+    });
 
+    try {
       if (activeSessionRoomId) {
         const participantRef = doc(db, 'rooms', activeSessionRoomId, 'participants', user.uid);
         await setDoc(participantRef, {
@@ -1168,6 +1180,14 @@ export const NewPlayerPage: React.FC = () => {
       setAutoSaveStatus('saved');
       showToast('Dossiê do investigador sincro-gravado com sucesso!', 'success');
     } catch (err: any) {
+      if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota limit exceeded')) {
+        const key = activeSessionRoomId ? `realmor_room_char_${activeSessionRoomId}_${user.uid}` : `realmor_global_char_${selectedGlobalChar?.id}`;
+        localStorage.setItem(key, currentJson);
+        lastSavedJsonRef.current = currentJson;
+        setAutoSaveStatus('saved');
+        showToast('Dossiê preservado localmente no dispositivo com sucesso.', 'success');
+        return;
+      }
       console.error(err);
       showToast('Não foi possível gravar o dossiê: ' + err.message, 'error');
       setAutoSaveStatus('dirty');
