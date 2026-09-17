@@ -3,12 +3,19 @@ export interface GridSettings {
   size: number; // in pixels at 100% zoom (e.g. 50px)
   color: string;
   opacity: number;
+  thickness?: number; // line stroke width in pixels (e.g. 1 to 5, default 1.2)
+  scaleMeters?: number; // scale per grid cell (default 1.5m / 3m)
 }
 
+export type FogMode = 'hide' | 'reveal';
+export type FogShape = 'rect' | 'freehand';
+
 export interface FogSettings {
-  density: number; // 0.6 to 1.0 (default 0.95)
-  feather: number; // 5 to 40 px (default 20)
+  density: number; // 0.15 to 1.0 (default 0.95)
+  feather: number; // 4 to 45 px (default 20)
   type: 'dense' | 'dark' | 'spectral';
+  mode?: FogMode;
+  shape?: FogShape;
 }
 
 export interface MapMarker {
@@ -20,29 +27,99 @@ export interface MapMarker {
   icon: 'pin' | 'sword' | 'skull' | 'shield' | 'star' | 'chest';
 }
 
+export interface MapDrawing {
+  id: string;
+  points: { x: number; y: number }[]; // native coordinates (1920x1080)
+  color: string;
+  width: number;
+  opacity: number;
+}
+
+export type ShapeType = 'rect' | 'circle' | 'line' | 'arrow';
+
+export interface MapShape {
+  id: string;
+  type: ShapeType;
+  start: { x: number; y: number }; // native coords (1920x1080)
+  end: { x: number; y: number }; // native coords (1920x1080)
+  color: string;
+  fillColor?: string;
+  strokeWidth: number;
+  opacity: number;
+  label?: string;
+}
+
+export interface SelectedObject {
+  id: string;
+  type: 'marker' | 'drawing' | 'shape';
+}
+
+export interface MapFolder {
+  id: string;
+  name: string;
+  description?: string;
+  icon: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TestMap {
   id: string;
   name: string;
   imageUrl: string;
+  folderId?: string;
   createdAt: string;
   updatedAt: string;
   grid?: GridSettings;
   fogData?: string; // base64 PNG data URL of fog mask (1920x1080 native)
   fogSettings?: FogSettings;
   markers?: MapMarker[];
+  drawings?: MapDrawing[];
+  shapes?: MapShape[];
+}
+
+export type SplitLayoutCount = 1 | 2 | 3 | 4;
+
+export interface QuadrantMapState {
+  quadrantId: number; // 0, 1, 2, 3
+  mapId: string | null;
+  zoom: number;
+  pan: { x: number; y: number };
+  resetViewTrigger?: number;
 }
 
 export type ToolType = 
   | 'select'
   | 'pan'
-  | 'zoom-in'
-  | 'zoom-out'
-  | 'grid'
+  | 'split'
+  | 'measure'
+  | 'marker'
+  | 'fog'
   | 'fog-paint'
   | 'fog-reveal'
-  | 'marker'
+  | 'grid'
+  | 'draw'
+  | 'shape'
+  | 'eraser'
   | 'image'
   | 'delete';
+
+export interface TvSyncQuadrantItem {
+  mapId: string;
+  mapName: string;
+  imageUrl: string;
+  grid?: GridSettings;
+  fogData?: string;
+  fogSettings?: FogSettings;
+  markers?: MapMarker[];
+  drawings?: MapDrawing[];
+  shapes?: MapShape[];
+  viewport: {
+    zoom: number;
+    panX: number;
+    panY: number;
+  };
+}
 
 export interface TvSyncState {
   mapId: string;
@@ -52,11 +129,16 @@ export interface TvSyncState {
   fogData: string;
   fogSettings?: FogSettings;
   markers: MapMarker[];
+  drawings?: MapDrawing[];
+  shapes?: MapShape[];
   viewport: {
     zoom: number;
     panX: number;
     panY: number;
   };
+  // Suporte a tela dividida
+  splitCount?: SplitLayoutCount;
+  quadrants?: TvSyncQuadrantItem[];
   updatedAt: string;
   tvLastSeen?: string;
 }

@@ -1,26 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { subscribeTvSync, sendTvHeartbeat } from './mapService';
-import { TvSyncState } from './types';
+import { subscribeTvSync } from './mapService';
+import { TvSyncState, TvSyncQuadrantItem } from './types';
+import { calculateAutomaticGrid } from './gridUtils';
 import { MapCanvas } from './MapCanvas';
-import { Tv, Sparkles, Maximize2, Minimize2, Radio } from 'lucide-react';
+import { Tv, Sparkles, Maximize2, Minimize2, Radio, Compass } from 'lucide-react';
 
 export const TvMapView: React.FC = () => {
   const [tvState, setTvState] = useState<TvSyncState | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isIdle, setIsIdle] = useState(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Escuta as transmissões do Mestre em tempo real (Estritamente Leitura via onSnapshot)
   useEffect(() => {
     const unsubscribe = subscribeTvSync((state) => {
-      if (state && state.imageUrl) {
+      if (state && (state.imageUrl || (state.quadrants && state.quadrants.length > 0))) {
         setTvState(state);
-        if (state.viewport) {
-          setZoom(state.viewport.zoom ?? 1);
-          setPan({ x: state.viewport.panX ?? 0, y: state.viewport.panY ?? 0 });
-        }
       }
     });
 
@@ -48,6 +43,24 @@ export const TvMapView: React.FC = () => {
     }
   };
 
+  const splitCount = tvState?.splitCount || 1;
+  const quadrants: TvSyncQuadrantItem[] = tvState?.quadrants && tvState.quadrants.length > 0
+    ? tvState.quadrants.slice(0, splitCount)
+    : tvState?.imageUrl
+    ? [{
+        mapId: tvState.mapId,
+        mapName: tvState.mapName,
+        imageUrl: tvState.imageUrl,
+        grid: tvState.grid,
+        fogData: tvState.fogData,
+        fogSettings: tvState.fogSettings,
+        markers: tvState.markers || [],
+        drawings: tvState.drawings || [],
+        shapes: tvState.shapes || [],
+        viewport: tvState.viewport || { zoom: 1, panX: 0, panY: 0 }
+      }]
+    : [];
+
   return (
     <div 
       id="tv-mapa-teste-container"
@@ -57,7 +70,7 @@ export const TvMapView: React.FC = () => {
       }`}
     >
       {/* Se ainda não recebeu nenhum mapa transmitido */}
-      {!tvState || !tvState.imageUrl ? (
+      {!tvState || (!tvState.imageUrl && quadrants.length === 0) ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6">
           <div className="w-24 h-24 rounded-full border border-amber-600/30 bg-stone-950 flex items-center justify-center text-amber-400 shadow-[0_0_40px_rgba(245,158,11,0.15)] relative animate-pulse">
             <Tv size={42} />
@@ -82,30 +95,43 @@ export const TvMapView: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* Mapa sincronizado com Névoa de Guerra e Marcadores */
-        <div className="flex-1 relative w-full h-full">
-          <MapCanvas
-            imageUrl={tvState.imageUrl}
-            activeTool="select"
-            gridSettings={tvState.grid || { enabled: true, size: 50, color: 'rgba(217, 119, 6, 0.35)', opacity: 0.35 }}
-            fogSettings={tvState.fogSettings}
-            fogData={tvState.fogData}
-            onFogChange={() => {}}
-            markers={tvState.markers || []}
-            selectedMarkerId={null}
-            onSelectMarker={() => {}}
-            onUpdateMarkerPosition={() => {}}
-            onAddMarker={() => {}}
-            zoom={zoom}
-            setZoom={setZoom}
-            pan={pan}
-            setPan={setPan}
-            onResetView={() => {
-              setZoom(1);
-              setPan({ x: 0, y: 0 });
-            }}
-            isReadOnly={true}
-          />
+        /* Renderização dos Mapas na TV (1, 2, 3 ou 4 Mapas) */
+        <div className="flex-1 relative w-full h-full overflow-hidden bg-black">
+          {splitCount === 1 ? (
+            /* 1 MAPA (Tela Inteira) */
+            <TvQuadrantCanvas item={quadrants[0] || tvState} />
+          ) : splitCount === 2 ? (
+            /* 2 MAPAS (Lado a Lado) */
+            <div className="w-full h-full grid grid-cols-2 gap-1.5 bg-stone-950 p-1">
+              {quadrants.map((quad, idx) => (
+                <div key={quad.mapId || idx} className="relative w-full h-full overflow-hidden rounded bg-black border border-amber-950/60 shadow-lg">
+                  <TvQuadrantCanvas item={quad} />
+                </div>
+              ))}
+            </div>
+          ) : splitCount === 3 ? (
+            /* 3 MAPAS (Composição Equilibrada: 2 à esquerda empilhados, 1 à direita ocupando toda altura) */
+            <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-1.5 bg-stone-950 p-1">
+              <div className="relative w-full h-full overflow-hidden rounded bg-black border border-amber-950/60 shadow-lg">
+                {quadrants[0] && <TvQuadrantCanvas item={quadrants[0]} />}
+              </div>
+              <div className="relative w-full h-full overflow-hidden rounded bg-black border border-amber-950/60 shadow-lg row-span-2">
+                {quadrants[1] && <TvQuadrantCanvas item={quadrants[1]} />}
+              </div>
+              <div className="relative w-full h-full overflow-hidden rounded bg-black border border-amber-950/60 shadow-lg">
+                {quadrants[2] && <TvQuadrantCanvas item={quadrants[2]} />}
+              </div>
+            </div>
+          ) : (
+            /* 4 MAPAS (Grade 2x2) */
+            <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-1.5 bg-stone-950 p-1">
+              {quadrants.map((quad, idx) => (
+                <div key={quad.mapId || idx} className="relative w-full h-full overflow-hidden rounded bg-black border border-amber-950/60 shadow-lg">
+                  <TvQuadrantCanvas item={quad} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -138,6 +164,75 @@ export const TvMapView: React.FC = () => {
           {tvState?.mapName ? `✦ ${tvState.mapName}` : 'REALMOR VTT'}
         </span>
       </div>
+    </div>
+  );
+};
+
+// Subcomponente de Canvas Isolado para cada Quadrante da TV
+const TvQuadrantCanvas: React.FC<{ item: any }> = ({ item }) => {
+  const [zoom, setZoom] = useState(item.viewport?.zoom ?? 1);
+  const [pan, setPan] = useState({ x: item.viewport?.panX ?? 0, y: item.viewport?.panY ?? 0 });
+
+  useEffect(() => {
+    if (item.viewport) {
+      setZoom(item.viewport.zoom ?? 1);
+      setPan({ x: item.viewport.panX ?? 0, y: item.viewport.panY ?? 0 });
+    }
+  }, [item.viewport?.zoom, item.viewport?.panX, item.viewport?.panY]);
+
+  if (!item.imageUrl) {
+    return (
+      <div 
+        className="w-full h-full flex flex-col items-center justify-center p-4 text-center select-none"
+        style={{
+          backgroundImage: 'radial-gradient(ellipse at center, rgba(30, 24, 18, 0.7) 0%, rgba(10, 9, 8, 0.98) 100%)'
+        }}
+      >
+        <div className="w-12 h-12 rounded-xl bg-amber-950/30 border border-amber-900/40 flex items-center justify-center text-amber-500/60 mb-2">
+          <Compass size={22} className="stroke-[1.5]" />
+        </div>
+        <span className="font-cinzel text-xs font-bold text-amber-400/60 tracking-wider">
+          🗺️ DESTINO NÃO REVELADO
+        </span>
+        <span className="font-cinzel text-[10px] text-stone-500 italic mt-0.5">
+          Aguardando visão do Mestre...
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full relative overflow-hidden">
+      <MapCanvas
+        imageUrl={item.imageUrl}
+        activeTool="select"
+        gridSettings={item.grid || calculateAutomaticGrid()}
+        fogSettings={item.fogSettings}
+        fogData={item.fogData}
+        onFogChange={() => {}}
+        markers={item.markers || []}
+        selectedMarkerId={null}
+        onSelectMarker={() => {}}
+        onUpdateMarkerPosition={() => {}}
+        onAddMarker={() => {}}
+        drawings={item.drawings || []}
+        shapes={item.shapes || []}
+        zoom={zoom}
+        setZoom={setZoom}
+        pan={pan}
+        setPan={setPan}
+        onResetView={() => {
+          setZoom(1);
+          setPan({ x: 0, y: 0 });
+        }}
+        isReadOnly={true}
+      />
+      {/* Identificador sutil do nome do mapa no quadrante */}
+      {item.mapName && (
+        <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded bg-stone-950/70 border border-amber-900/40 text-[10px] font-cinzel text-amber-300 font-bold pointer-events-none opacity-60">
+          {item.mapName}
+        </div>
+      )}
     </div>
   );
 };

@@ -195,7 +195,10 @@ export const BestiaryPage: React.FC = () => {
               <div className="h-[1px] flex-1 bg-gradient-to-r from-gold/20 to-transparent ml-6" />
             </div>
             
-            <MonsterGeneratorCard onSave={handleSaveMonster} />
+            <MonsterGeneratorCard 
+              onSave={handleSaveMonster} 
+              onClose={() => setActiveTab('list')}
+            />
           </motion.div>
         ) : (
           <motion.div

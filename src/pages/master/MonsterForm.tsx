@@ -99,11 +99,28 @@ const DAMAGE_TYPES = [
   'Corte', 'Perfuração', 'Impacto', 'Fogo', 'Frio', 'Eletricidade', 'Ácido', 'Trevas', 'Luz', 'Essência', 'Veneno', 'Mental', 'Magia'
 ];
 
-export const MonsterForm: React.FC = () => {
+export interface MonsterFormProps {
+  customCampaignId?: string;
+  customMonsterId?: string;
+  onSaveSuccess?: () => void;
+  onCancel?: () => void;
+  isEmbedded?: boolean;
+}
+
+export const MonsterForm: React.FC<MonsterFormProps> = ({
+  customCampaignId,
+  customMonsterId,
+  onSaveSuccess,
+  onCancel,
+  isEmbedded
+}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { campaignId, monsterId } = useParams<{ campaignId: string; monsterId: string }>();
-  const isEditing = monsterId && monsterId !== 'new';
+  const params = useParams<{ campaignId: string; monsterId: string }>();
+  
+  const campaignId = customCampaignId !== undefined ? customCampaignId : params.campaignId;
+  const monsterId = customMonsterId !== undefined ? customMonsterId : params.monsterId;
+  const isEditing = Boolean(monsterId && monsterId !== 'new');
 
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
@@ -559,13 +576,25 @@ export const MonsterForm: React.FC = () => {
 
       setSuccess(true);
       setTimeout(() => {
-        navigate(campaignId ? `/master/campaigns/${campaignId}/monsters` : '/master/monsters');
-      }, 1500);
+        if (onSaveSuccess) {
+          onSaveSuccess();
+        } else {
+          navigate(campaignId ? `/master/campaigns/${campaignId}/monsters` : '/master/monsters');
+        }
+      }, 1000);
     } catch (err) {
       console.error('Error saving monster:', err);
       setError('Erro ao salvar a criatura. Tente novamente.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGoBack = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      navigate(-1);
     }
   };
 
@@ -579,12 +608,12 @@ export const MonsterForm: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-32 animate-in fade-in duration-700">
+    <div className={`mx-auto animate-in fade-in duration-700 ${isEmbedded ? 'max-w-full px-2 py-2 pb-16' : 'max-w-6xl px-4 pb-32'}`}>
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b border-gold/10 pb-8">
         <div className="space-y-2">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={handleGoBack}
             className="group flex items-center gap-2 text-gold/40 hover:text-gold transition-all text-[10px] uppercase tracking-[0.3em] font-black mb-4"
           >
             <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Voltar
@@ -626,7 +655,7 @@ export const MonsterForm: React.FC = () => {
           </Button>
           <Button 
             variant="ghost" 
-            onClick={() => navigate(-1)}
+            onClick={handleGoBack}
             className="flex-1 md:flex-none"
           >
             Cancelar

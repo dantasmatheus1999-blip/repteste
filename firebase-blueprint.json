@@ -382,6 +382,7 @@
         "id": { "type": "string" },
         "name": { "type": "string" },
         "imageUrl": { "type": "string" },
+        "folderId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
         "grid": { "type": "object" },
@@ -389,6 +390,20 @@
         "markers": { "type": "array" }
       },
       "required": ["name", "imageUrl"]
+    },
+    "MapFolder": {
+      "title": "Pasta de Mapas",
+      "description": "Pasta para organização de mapas no editor.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "icon"]
     },
     "TestTvSync": {
       "title": "Sincronização com TV",
@@ -498,6 +513,10 @@
     "/testMaps/{mapId}": {
       "schema": "TestMap",
       "description": "Mapas de teste criados pelo Mestre."
+    },
+    "/mapFolders/{folderId}": {
+      "schema": "MapFolder",
+      "description": "Pastas de organização de mapas de teste do Mestre."
     },
     "/test_tv_sync/{syncId}": {
       "schema": "TestTvSync",

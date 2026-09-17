@@ -1,12 +1,27 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { ToolType, GridSettings, FogSettings, MapMarker } from './types';
+import React, { useRef, useEffect, useState, useCallback, useMemo, useId } from 'react';
+import { 
+  ToolType, 
+  GridSettings, 
+  FogSettings, 
+  FogMode, 
+  FogShape, 
+  MapMarker, 
+  MapDrawing, 
+  MapShape, 
+  ShapeType, 
+  SelectedObject 
+} from './types';
 import { MapMarkers } from './MapMarkers';
+import { MapVectorLayers } from './MapVectorLayers';
 import { 
   NATIVE_MAP_WIDTH, 
   NATIVE_MAP_HEIGHT, 
   DEFAULT_FOG_SETTINGS, 
+  Point,
   applyOrganicFogRect, 
   revealOrganicFogRect, 
+  applyOrganicFogPolygon,
+  revealOrganicFogPolygon,
   coverEntireMapFog, 
   clearEntireMapFog 
 } from './fogUtils';
@@ -19,11 +34,30 @@ interface MapCanvasProps {
   fogSettings?: FogSettings;
   fogData?: string;
   onFogChange: (newFogData: string) => void;
+  // Marcadores
   markers: MapMarker[];
   selectedMarkerId: string | null;
   onSelectMarker: (markerId: string | null) => void;
   onUpdateMarkerPosition: (markerId: string, x: number, y: number) => void;
   onAddMarker: (x: number, y: number) => void;
+  // Desenhos e Formas
+  drawings?: MapDrawing[];
+  shapes?: MapShape[];
+  selectedObject?: SelectedObject | null;
+  onSelectObject?: (obj: SelectedObject | null) => void;
+  onDeleteObject?: (obj: SelectedObject) => void;
+  onAddDrawing?: (drawing: Omit<MapDrawing, 'id'>) => void;
+  onAddShape?: (shape: Omit<MapShape, 'id'>) => void;
+  onUpdateShape?: (shapeId: string, updates: Partial<MapShape>) => void;
+  onUpdateDrawing?: (drawingId: string, updates: Partial<MapDrawing>) => void;
+  // Configurações de Desenho / Formas / Medição
+  activeShapeType?: ShapeType;
+  shapeStrokeColor?: string;
+  shapeStrokeWidth?: number;
+  drawColor?: string;
+  drawWidth?: number;
+  scaleMeters?: number;
+  // Viewport
   zoom: number;
   setZoom: React.Dispatch<React.SetStateAction<number>>;
   pan: { x: number; y: number };
@@ -52,6 +86,21 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   onSelectMarker,
   onUpdateMarkerPosition,
   onAddMarker,
+  drawings = [],
+  shapes = [],
+  selectedObject,
+  onSelectObject,
+  onDeleteObject,
+  onAddDrawing,
+  onAddShape,
+  onUpdateShape,
+  onUpdateDrawing,
+  activeShapeType = 'rect',
+  shapeStrokeColor = '#f59e0b',
+  shapeStrokeWidth = 3,
+  drawColor = '#f59e0b',
+  drawWidth = 4,
+  scaleMeters = 3,
   zoom,
   setZoom,
   pan,
@@ -70,9 +119,27 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const [panStart, setPanStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
-  // Seleção Retangular de Névoa (Ocultar ou Revelar)
+  const autoId = useId();
+  const gridPatternId = useMemo(() => `tactical-grid-pattern-${autoId.replace(/[^a-zA-Z0-9_-]/g, '')}`, [autoId]);
+
+  // 1. Névoa: Retângulo e Livre (Lasso)
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
-  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+  const [freehandPoints, setFreehandPoints] = useState<Point[]>([]);
+  const [isDrawingFreehand, setIsDrawingFreehand] = useState(false);
+
+  // 2. Régua de Medição (Temporária)
+  const [measurePoints, setMeasurePoints] = useState<{ start: Point; current: Point } | null>(null);
+
+  // 3. Desenho Livre Ativo
+  const [activeDrawingPoints, setActiveDrawingPoints] = useState<Point[]>([]);
+  const [isDrawingActive, setIsDrawingActive] = useState(false);
+
+  // 4. Criação de Forma Geométrica Ativa
+  const [activeShapePreview, setActiveShapePreview] = useState<{ start: Point; current: Point } | null>(null);
+
+  const isFogActive = activeTool === 'fog' || activeTool === 'fog-paint' || activeTool === 'fog-reveal';
+  const currentFogMode: FogMode = fogSettings.mode || (activeTool === 'fog-reveal' ? 'reveal' : 'hide');
+  const currentFogShape: FogShape = fogSettings.shape || 'rect';
 
   // Monitorar tecla de espaço para atalho de Pan rápido
   useEffect(() => {
@@ -94,8 +161,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     };
   }, []);
 
-  // Conversão de coordenadas da tela para as coordenadas nativas 1920x1080 (16:9) do mapa
-  const getMapCoordinates = useCallback((clientX: number, clientY: number) => {
+  // Coordenadas da tela para as coordenadas nativas 1920x1080 (16:9) do mapa
+  const getMapCoordinates = useCallback((clientX: number, clientY: number): Point => {
     if (!stageRef.current) return { x: 0, y: 0 };
     const rect = stageRef.current.getBoundingClientRect();
     const currentScale = rect.width / NATIVE_MAP_WIDTH;
@@ -110,14 +177,26 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     };
   }, []);
 
+  const setZoomRef = useRef(setZoom);
+  const setPanRef = useRef(setPan);
+  const zoomRef = useRef(zoom);
+  const panRef = useRef(pan);
+  const isReadOnlyRef = useRef(isReadOnly);
+
+  setZoomRef.current = setZoom;
+  setPanRef.current = setPan;
+  zoomRef.current = zoom;
+  panRef.current = pan;
+  isReadOnlyRef.current = isReadOnly;
+
   // Enquadramento automático no espaço disponível respeitando rigorosamente 16:9
   const autoFit16by9 = useCallback(() => {
+    if (isReadOnlyRef.current) return;
     if (!containerRef.current) return;
     const cw = containerRef.current.clientWidth;
     const ch = containerRef.current.clientHeight;
     if (cw <= 0 || ch <= 0) return;
 
-    // Margem de 96% para máximo aproveitamento do espaço mantendo conforto visual
     const margin = 0.96;
     const scaleW = (cw * margin) / NATIVE_MAP_WIDTH;
     const scaleH = (ch * margin) / NATIVE_MAP_HEIGHT;
@@ -126,32 +205,68 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     const targetPanX = (cw - NATIVE_MAP_WIDTH * targetZoom) / 2;
     const targetPanY = (ch - NATIVE_MAP_HEIGHT * targetZoom) / 2;
 
-    setZoom(targetZoom);
-    setPan({ x: targetPanX, y: targetPanY });
-  }, [setZoom, setPan]);
+    const currentZoom = zoomRef.current;
+    const currentPan = panRef.current;
 
-  // Ao carregar a imagem pela primeira vez
+    const isZoomEqual = Math.abs(currentZoom - targetZoom) < 0.001;
+    const isPanEqual = Math.abs(currentPan.x - targetPanX) < 0.5 && Math.abs(currentPan.y - targetPanY) < 0.5;
+
+    // Se já estiver rigorosamente enquadrado, não dispara atualizações
+    if (isZoomEqual && isPanEqual) {
+      return;
+    }
+
+    if (!isZoomEqual) {
+      setZoomRef.current(targetZoom);
+    }
+    if (!isPanEqual) {
+      setPanRef.current({ x: targetPanX, y: targetPanY });
+    }
+  }, []);
+
+  const hasCustomInitialViewRef = useRef(zoom !== 1 || pan.x !== 0 || pan.y !== 0);
+
   const handleImageLoad = () => {
     setIsImageLoaded(true);
-    autoFit16by9();
+    if (!isReadOnly) {
+      // Se não havia viewport customizado restaurado, ajusta automaticamente 16:9
+      if (!hasCustomInitialViewRef.current) {
+        autoFit16by9();
+      }
+    }
   };
 
-  // Re-centralizar sempre que o botão de reset for acionado externamente
+  const lastResetTriggerRef = useRef(resetViewTrigger);
   useEffect(() => {
-    if (resetViewTrigger && resetViewTrigger > 0) {
+    if (resetViewTrigger && resetViewTrigger !== lastResetTriggerRef.current) {
+      lastResetTriggerRef.current = resetViewTrigger;
+      hasCustomInitialViewRef.current = false;
       autoFit16by9();
     }
   }, [resetViewTrigger, autoFit16by9]);
 
-  // Observador de redimensionamento do contêiner para recalcular espaço sem deformar o mapa 16:9
   useEffect(() => {
-    if (!containerRef.current) return;
-    const observer = new ResizeObserver(() => {
-      autoFit16by9();
+    if (!containerRef.current || isReadOnly) return;
+    let prevWidth = 0;
+    let prevHeight = 0;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0 && (Math.abs(width - prevWidth) > 4 || Math.abs(height - prevHeight) > 4)) {
+          const isInitialTick = prevWidth === 0 && prevHeight === 0;
+          prevWidth = width;
+          prevHeight = height;
+          if (isInitialTick && hasCustomInitialViewRef.current) {
+            // Preserva zoom/pan restaurados no primeiro layout
+            continue;
+          }
+          autoFit16by9();
+        }
+      }
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, [autoFit16by9]);
+  }, [autoFit16by9, isReadOnly]);
 
   // Sincronizar / Carregar a camada da Névoa de Guerra no Canvas 1920x1080
   useEffect(() => {
@@ -224,7 +339,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const handlePointerDown = (e: React.PointerEvent) => {
     if (isReadOnly) return;
 
-    // Pan via botão do meio, ferramenta Pan ou Barra de Espaço
+    // 1. Pan via botão do meio, ferramenta Pan ou Barra de Espaço
     if (e.button === 1 || activeTool === 'pan' || isSpacePressed) {
       setIsPanning(true);
       setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
@@ -233,37 +348,66 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
     if (e.button !== 0) return;
 
-    // Ferramenta Marcador: adiciona novo marcador
-    if (activeTool === 'marker') {
-      const { x, y } = getMapCoordinates(e.clientX, e.clientY);
-      const percentX = Math.round((x / NATIVE_MAP_WIDTH) * 1000) / 10;
-      const percentY = Math.round((y / NATIVE_MAP_HEIGHT) * 1000) / 10;
-      onAddMarker(percentX, percentY);
-      return;
-    }
+    const mapPos = getMapCoordinates(e.clientX, e.clientY);
 
-    // Ferramentas de Névoa (Ocultar ou Revelar com Seleção Retangular)
-    if (activeTool === 'fog-paint' || activeTool === 'fog-reveal') {
-      const mapPos = getMapCoordinates(e.clientX, e.clientY);
-      setSelectionBox({
-        startX: mapPos.x,
-        startY: mapPos.y,
-        currentX: mapPos.x,
-        currentY: mapPos.y
+    // 2. Ferramenta Medir (Régua)
+    if (activeTool === 'measure') {
+      setMeasurePoints({
+        start: mapPos,
+        current: mapPos
       });
       return;
     }
 
-    // Ferramenta Selecionar: desseleciona se clicou no mapa
+    // 4. Ferramenta Marcador
+    if (activeTool === 'marker') {
+      const percentX = Math.round((mapPos.x / NATIVE_MAP_WIDTH) * 1000) / 10;
+      const percentY = Math.round((mapPos.y / NATIVE_MAP_HEIGHT) * 1000) / 10;
+      onAddMarker(percentX, percentY);
+      return;
+    }
+
+    // 5. Ferramenta Desenhar Livre
+    if (activeTool === 'draw') {
+      setIsDrawingActive(true);
+      setActiveDrawingPoints([mapPos]);
+      return;
+    }
+
+    // 6. Ferramenta Formas Geométricas
+    if (activeTool === 'shape') {
+      setActiveShapePreview({
+        start: mapPos,
+        current: mapPos
+      });
+      return;
+    }
+
+    // 7. Ferramentas de Névoa (Ocultar ou Revelar)
+    if (isFogActive) {
+      if (currentFogShape === 'freehand') {
+        setIsDrawingFreehand(true);
+        setFreehandPoints([mapPos]);
+      } else {
+        setSelectionBox({
+          startX: mapPos.x,
+          startY: mapPos.y,
+          currentX: mapPos.x,
+          currentY: mapPos.y
+        });
+      }
+      return;
+    }
+
+    // 8. Ferramenta Selecionar: desseleciona se clicou no fundo do mapa
     if (activeTool === 'select') {
       onSelectMarker(null);
+      onSelectObject(null);
     }
   };
 
   // Movimento do ponteiro
   const handlePointerMove = (e: React.PointerEvent) => {
-    setCursorPos({ x: e.clientX, y: e.clientY });
-
     if (isPanning) {
       setPan({
         x: e.clientX - panStart.x,
@@ -272,14 +416,53 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       return;
     }
 
-    // Atualiza a caixa de seleção retangular em tempo real
+    const mapPos = getMapCoordinates(e.clientX, e.clientY);
+
+    // Atualiza Régua de Medição
+    if (measurePoints) {
+      setMeasurePoints(prev => prev ? { ...prev, current: mapPos } : null);
+    }
+
+    // Atualiza Desenho Livre
+    if (isDrawingActive) {
+      setActiveDrawingPoints(prev => {
+        if (prev.length === 0) return [mapPos];
+        const last = prev[prev.length - 1];
+        const dx = mapPos.x - last.x;
+        const dy = mapPos.y - last.y;
+        if (dx * dx + dy * dy >= 9) { // amostragem a cada ~3px
+          return [...prev, mapPos];
+        }
+        return prev;
+      });
+    }
+
+    // Atualiza Preview de Forma
+    if (activeShapePreview) {
+      setActiveShapePreview(prev => prev ? { ...prev, current: mapPos } : null);
+    }
+
+    // Atualiza Caixa de Névoa Retangular
     if (selectionBox) {
-      const mapPos = getMapCoordinates(e.clientX, e.clientY);
       setSelectionBox(prev => prev ? {
         ...prev,
         currentX: mapPos.x,
         currentY: mapPos.y
       } : null);
+    }
+
+    // Atualiza Seleção Livre de Névoa (Lasso)
+    if (isDrawingFreehand) {
+      setFreehandPoints(prev => {
+        if (prev.length === 0) return [mapPos];
+        const last = prev[prev.length - 1];
+        const dx = mapPos.x - last.x;
+        const dy = mapPos.y - last.y;
+        if (dx * dx + dy * dy >= 16) {
+          return [...prev, mapPos];
+        }
+        return prev;
+      });
     }
   };
 
@@ -289,29 +472,77 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       setIsPanning(false);
     }
 
-    // Aplica ou revela a névoa na área retangular selecionada
+    // Finalizar Desenho Livre
+    if (isDrawingActive) {
+      setIsDrawingActive(false);
+      if (activeDrawingPoints.length >= 2) {
+        onAddDrawing?.({
+          points: activeDrawingPoints,
+          color: drawColor,
+          width: drawWidth,
+          opacity: 1
+        });
+      }
+      setActiveDrawingPoints([]);
+    }
+
+    // Finalizar Criação de Forma
+    if (activeShapePreview) {
+      const { start, current } = activeShapePreview;
+      const dist = Math.hypot(current.x - start.x, current.y - start.y);
+      if (dist >= 6) {
+        onAddShape?.({
+          type: activeShapeType,
+          start,
+          end: current,
+          color: shapeStrokeColor,
+          fillColor: activeShapeType === 'circle' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.15)',
+          strokeWidth: shapeStrokeWidth,
+          opacity: 1
+        });
+      }
+      setActiveShapePreview(null);
+    }
+
+    // Finalizar Névoa Retangular
     if (selectionBox) {
       const left = Math.min(selectionBox.startX, selectionBox.currentX);
       const top = Math.min(selectionBox.startY, selectionBox.currentY);
       const width = Math.abs(selectionBox.currentX - selectionBox.startX);
       const height = Math.abs(selectionBox.currentY - selectionBox.startY);
 
-      // Só aplica se houve um arrasto mínimo de 4px para evitar cliques acidentais
       if (width >= 4 && height >= 4 && fogCanvasRef.current) {
         const canvas = fogCanvasRef.current;
         const ctx = canvas.getContext('2d');
         if (ctx) {
           const rect = { x: left, y: top, width, height };
-          if (activeTool === 'fog-paint') {
-            applyOrganicFogRect(ctx, rect, fogSettings);
-          } else if (activeTool === 'fog-reveal') {
+          if (currentFogMode === 'reveal') {
             revealOrganicFogRect(ctx, rect, fogSettings);
+          } else {
+            applyOrganicFogRect(ctx, rect, fogSettings);
           }
           onFogChange(canvas.toDataURL());
         }
       }
-
       setSelectionBox(null);
+    }
+
+    // Finalizar Névoa Livre (Lasso)
+    if (isDrawingFreehand) {
+      setIsDrawingFreehand(false);
+      if (freehandPoints.length >= 3 && fogCanvasRef.current) {
+        const canvas = fogCanvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          if (currentFogMode === 'reveal') {
+            revealOrganicFogPolygon(ctx, freehandPoints, fogSettings);
+          } else {
+            applyOrganicFogPolygon(ctx, freehandPoints, fogSettings);
+          }
+          onFogChange(canvas.toDataURL());
+        }
+      }
+      setFreehandPoints([]);
     }
   };
 
@@ -320,11 +551,14 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     if (isPanning) return 'cursor-grabbing';
     switch (activeTool) {
       case 'pan': return 'cursor-grab';
+      case 'measure': return 'cursor-crosshair';
       case 'marker': return 'cursor-crosshair';
+      case 'draw': return 'cursor-crosshair';
+      case 'shape': return 'cursor-crosshair';
+      case 'eraser': return 'cursor-not-allowed';
+      case 'fog':
       case 'fog-paint':
       case 'fog-reveal': return 'cursor-crosshair';
-      case 'zoom-in': return 'cursor-zoom-in';
-      case 'zoom-out': return 'cursor-zoom-out';
       default: return 'cursor-default';
     }
   };
@@ -337,6 +571,45 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     height: Math.abs(selectionBox.currentY - selectionBox.startY)
   } : null;
 
+  // Caminho SVG para a seleção livre (Lasso) da névoa
+  const freehandSvgPath = useMemo(() => {
+    if (freehandPoints.length < 2) return '';
+    return freehandPoints.reduce((acc, pt, idx) => {
+      return idx === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`;
+    }, '');
+  }, [freehandPoints]);
+
+  // Caminho SVG para o desenho livre ativo
+  const activeDrawSvgPath = useMemo(() => {
+    if (activeDrawingPoints.length < 2) return '';
+    return activeDrawingPoints.reduce((acc, pt, idx) => {
+      return idx === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`;
+    }, '');
+  }, [activeDrawingPoints]);
+
+  // Cálculo da Régua Tática Tormenta 20
+  const measureCalculation = useMemo(() => {
+    if (!measurePoints) return null;
+    const { start, current } = measurePoints;
+    const distPx = Math.hypot(current.x - start.x, current.y - start.y);
+    const cellSize = gridSettings.size || 50;
+    const squares = Math.round((distPx / cellSize) * 10) / 10;
+    const effectiveScale = scaleMeters || gridSettings.scaleMeters || 3;
+    const meters = Math.round(squares * effectiveScale * 10) / 10;
+    const midX = (start.x + current.x) / 2;
+    const midY = (start.y + current.y) / 2;
+
+    return {
+      distPx,
+      squares,
+      meters,
+      midX,
+      midY,
+      start,
+      current
+    };
+  }, [measurePoints, gridSettings.size, gridSettings.scaleMeters, scaleMeters]);
+
   return (
     <div 
       ref={containerRef}
@@ -347,7 +620,6 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       onPointerUp={handlePointerUp}
       onPointerLeave={() => {
         handlePointerUp();
-        setCursorPos(null);
       }}
       className={`relative w-full h-full overflow-hidden bg-stone-950 select-none ${getCursorClass()}`}
       style={{
@@ -383,7 +655,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           referrerPolicy="no-referrer"
         />
 
-        {/* 2. Camada da Grade Tática (Tied rigorosamente ao sistema de coordenadas 16:9) */}
+        {/* 2. Camada da Grade Tática */}
         {gridSettings.enabled && (
           <svg 
             className="absolute inset-0 w-full h-full pointer-events-none z-10"
@@ -393,38 +665,186 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           >
             <defs>
               <pattern
-                id="tactical-grid-pattern-16-9"
-                width={gridSettings.size}
-                height={gridSettings.size}
+                id={gridPatternId}
+                width={Math.max(10, gridSettings.size || 50)}
+                height={Math.max(10, gridSettings.size || 50)}
                 patternUnits="userSpaceOnUse"
               >
                 <path
-                  d={`M ${gridSettings.size} 0 L 0 0 0 ${gridSettings.size}`}
+                  d={`M ${Math.max(10, gridSettings.size || 50)} 0 L 0 0 0 ${Math.max(10, gridSettings.size || 50)}`}
                   fill="none"
-                  stroke={gridSettings.color || 'rgb(217, 119, 6)'}
-                  strokeWidth="1.2"
+                  stroke={gridSettings.color || '#FFFFFF'}
+                  strokeWidth={gridSettings.thickness ?? 1.2}
                 />
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#tactical-grid-pattern-16-9)" />
+            <rect width="100%" height="100%" fill={`url(#${gridPatternId})`} />
           </svg>
         )}
 
-        {/* 3. Camada da Névoa de Guerra Orgânica (Canvas 1920x1080) */}
+        {/* 3. Camada Vetorial: Desenhos e Formas Geométricas */}
+        <MapVectorLayers
+          drawings={drawings}
+          shapes={shapes}
+          selectedObject={selectedObject}
+          onSelectObject={onSelectObject}
+          onDeleteObject={onDeleteObject}
+          onUpdateShape={onUpdateShape}
+          onUpdateDrawing={onUpdateDrawing}
+          activeTool={activeTool}
+          isReadOnly={isReadOnly}
+        />
+
+        {/* 4. Preview do Desenho Livre em Tempo Real */}
+        {activeDrawSvgPath && (
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none z-19 overflow-visible"
+            width={NATIVE_MAP_WIDTH}
+            height={NATIVE_MAP_HEIGHT}
+          >
+            <path
+              d={activeDrawSvgPath}
+              fill="none"
+              stroke={drawColor}
+              strokeWidth={drawWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+
+        {/* 5. Preview da Forma Geométrica em Tempo Real */}
+        {activeShapePreview && (
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none z-19 overflow-visible"
+            width={NATIVE_MAP_WIDTH}
+            height={NATIVE_MAP_HEIGHT}
+          >
+            {activeShapeType === 'rect' && (
+              <rect
+                x={Math.min(activeShapePreview.start.x, activeShapePreview.current.x)}
+                y={Math.min(activeShapePreview.start.y, activeShapePreview.current.y)}
+                width={Math.abs(activeShapePreview.current.x - activeShapePreview.start.x)}
+                height={Math.abs(activeShapePreview.current.y - activeShapePreview.start.y)}
+                fill="rgba(245, 158, 11, 0.2)"
+                stroke={shapeStrokeColor}
+                strokeWidth={shapeStrokeWidth}
+                strokeDasharray="4 2"
+                rx="4"
+              />
+            )}
+            {activeShapeType === 'circle' && (
+              <ellipse
+                cx={(activeShapePreview.start.x + activeShapePreview.current.x) / 2}
+                cy={(activeShapePreview.start.y + activeShapePreview.current.y) / 2}
+                rx={Math.abs(activeShapePreview.current.x - activeShapePreview.start.x) / 2}
+                ry={Math.abs(activeShapePreview.current.y - activeShapePreview.start.y) / 2}
+                fill="rgba(239, 68, 68, 0.25)"
+                stroke={shapeStrokeColor}
+                strokeWidth={shapeStrokeWidth}
+                strokeDasharray="4 2"
+              />
+            )}
+            {activeShapeType === 'line' && (
+              <line
+                x1={activeShapePreview.start.x}
+                y1={activeShapePreview.start.y}
+                x2={activeShapePreview.current.x}
+                y2={activeShapePreview.current.y}
+                stroke={shapeStrokeColor}
+                strokeWidth={shapeStrokeWidth}
+                strokeLinecap="round"
+                strokeDasharray="4 2"
+              />
+            )}
+            {activeShapeType === 'arrow' && (
+              <line
+                x1={activeShapePreview.start.x}
+                y1={activeShapePreview.start.y}
+                x2={activeShapePreview.current.x}
+                y2={activeShapePreview.current.y}
+                stroke={shapeStrokeColor}
+                strokeWidth={shapeStrokeWidth}
+                strokeLinecap="round"
+                strokeDasharray="4 2"
+              />
+            )}
+          </svg>
+        )}
+
+        {/* 6. Régua de Medição Tática (Tormenta 20) */}
+        {measureCalculation && (
+          <div className="absolute inset-0 pointer-events-none z-24">
+            <svg
+              className="absolute inset-0 w-full h-full overflow-visible"
+              width={NATIVE_MAP_WIDTH}
+              height={NATIVE_MAP_HEIGHT}
+            >
+              {/* Linha da Régua */}
+              <line
+                x1={measureCalculation.start.x}
+                y1={measureCalculation.start.y}
+                x2={measureCalculation.current.x}
+                y2={measureCalculation.current.y}
+                stroke="#f59e0b"
+                strokeWidth="3.5"
+                strokeDasharray="8 4"
+                strokeLinecap="round"
+              />
+              {/* Ponto A */}
+              <circle
+                cx={measureCalculation.start.x}
+                cy={measureCalculation.start.y}
+                r="6"
+                fill="#f59e0b"
+                stroke="#000"
+                strokeWidth="2"
+              />
+              {/* Ponto B */}
+              <circle
+                cx={measureCalculation.current.x}
+                cy={measureCalculation.current.y}
+                r="6"
+                fill="#38bdf8"
+                stroke="#000"
+                strokeWidth="2"
+              />
+            </svg>
+
+            {/* Badge Flutuante de Distância */}
+            <div
+              style={{
+                left: measureCalculation.midX,
+                top: measureCalculation.midY,
+                transform: 'translate(-50%, -50%)'
+              }}
+              className="absolute px-3 py-1.5 rounded-lg bg-stone-950/95 border border-amber-500/80 shadow-[0_0_20px_rgba(0,0,0,0.9)] flex flex-col items-center gap-0.5 pointer-events-none text-center"
+            >
+              <div className="text-amber-300 font-cinzel font-black text-sm tracking-wider flex items-center gap-1.5">
+                <span>📏 {measureCalculation.meters}m</span>
+              </div>
+              <div className="text-[10px] font-mono font-bold text-cyan-300 tracking-wide">
+                {measureCalculation.squares} quadrados
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 7. Camada da Névoa de Guerra Orgânica (Canvas 1920x1080) */}
         <canvas
           ref={fogCanvasRef}
           className="absolute inset-0 w-full h-full pointer-events-none z-15"
           style={{ opacity: isReadOnly ? (fogSettings.density ?? 1) : (fogSettings.density ?? 0.95) }}
         />
 
-        {/* 4. Caixa de Seleção Retangular Ativa (Ao arrastar no mapa) */}
+        {/* 8. Caixa de Seleção Retangular de Névoa */}
         {boxRect && (
           <div
             id="fog-active-selection-box"
             className={`absolute pointer-events-none z-25 border-2 transition-none ${
-              activeTool === 'fog-paint'
-                ? 'border-amber-400/90 bg-stone-950/75 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
-                : 'border-cyan-400/90 bg-cyan-950/30 shadow-[0_0_20px_rgba(34,211,238,0.4)]'
+              currentFogMode === 'reveal'
+                ? 'border-cyan-400/95 bg-cyan-950/30 shadow-[0_0_20px_rgba(34,211,238,0.4)]'
+                : 'border-amber-400/95 bg-stone-950/75 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
             }`}
             style={{
               left: boxRect.left,
@@ -434,19 +854,74 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
               borderStyle: 'dashed'
             }}
           >
-            <div className="absolute top-1 left-1.5 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono font-bold text-amber-300">
+            <div className={`absolute top-1 left-1.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+              currentFogMode === 'reveal'
+                ? 'bg-cyan-950/90 text-cyan-300 border border-cyan-500/40'
+                : 'bg-stone-900/90 text-amber-300 border border-amber-500/40'
+            }`}>
               {Math.round(boxRect.width)} × {Math.round(boxRect.height)} px
             </div>
           </div>
         )}
 
-        {/* 5. Camada de Marcadores */}
+        {/* 9. Pré-visualização da Seleção Livre (Lasso) de Névoa */}
+        {freehandPoints.length >= 2 && (
+          <svg
+            id="fog-active-freehand-overlay"
+            className="absolute inset-0 w-full h-full pointer-events-none z-25 overflow-visible"
+            width={NATIVE_MAP_WIDTH}
+            height={NATIVE_MAP_HEIGHT}
+            viewBox={`0 0 ${NATIVE_MAP_WIDTH} ${NATIVE_MAP_HEIGHT}`}
+          >
+            <path
+              d={`${freehandSvgPath} Z`}
+              fill={currentFogMode === 'reveal' ? 'rgba(34, 211, 238, 0.22)' : 'rgba(12, 10, 8, 0.55)'}
+              stroke={currentFogMode === 'reveal' ? 'rgb(34, 211, 238)' : 'rgb(245, 158, 11)'}
+              strokeWidth="2.5"
+              strokeDasharray="6 4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+            <line
+              x1={freehandPoints[freehandPoints.length - 1].x}
+              y1={freehandPoints[freehandPoints.length - 1].y}
+              x2={freehandPoints[0].x}
+              y2={freehandPoints[0].y}
+              stroke={currentFogMode === 'reveal' ? 'rgba(34, 211, 238, 0.6)' : 'rgba(245, 158, 11, 0.6)'}
+              strokeWidth="1.5"
+              strokeDasharray="3 3"
+            />
+            <circle
+              cx={freehandPoints[0].x}
+              cy={freehandPoints[0].y}
+              r="4.5"
+              fill={currentFogMode === 'reveal' ? '#22d3ee' : '#f59e0b'}
+              stroke="#000000"
+              strokeWidth="1.5"
+            />
+            <circle
+              cx={freehandPoints[freehandPoints.length - 1].x}
+              cy={freehandPoints[freehandPoints.length - 1].y}
+              r="3.5"
+              fill="#ffffff"
+              stroke={currentFogMode === 'reveal' ? '#22d3ee' : '#f59e0b'}
+              strokeWidth="1.5"
+            />
+          </svg>
+        )}
+
+        {/* 10. Camada de Marcadores */}
         <MapMarkers
           markers={markers}
           selectedMarkerId={selectedMarkerId}
-          onSelectMarker={onSelectMarker}
+          onSelectMarker={(id) => {
+            onSelectMarker(id);
+            if (id) {
+              onSelectObject({ id, type: 'marker' });
+            }
+          }}
           onUpdateMarkerPosition={onUpdateMarkerPosition}
-          isInteractive={!isReadOnly && activeTool === 'select'}
+          isInteractive={!isReadOnly && (activeTool === 'select' || activeTool === 'marker')}
         />
       </div>
 

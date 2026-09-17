@@ -28,6 +28,7 @@ import { EditGameModal } from '../../components/games/EditGameModal';
 import { JoinGameFlowModal } from '../../components/games/JoinGameFlowModal';
 import { getClassEmoji } from '../../utils/characterUtils';
 import { useAuth } from '../../context/AuthContext';
+import { MapEditor } from '../../components/map/MapEditor';
 
 type TabType = 'overview' | 'players' | 'settings';
 
@@ -282,6 +283,150 @@ export const GameBasicPage: React.FC = () => {
 
   // Emojis de classe/herói temáticos para lista de jogadores
   const heroIcons = ['🧙', '🧝', '🛡️', '🏹', '⚔️', '🗡️', '🔮', '📜', '🐺', '🐉'];
+
+  // =========================================================================
+  // MESA DO MESTRE: QUANDO O MESTRE INICIA A AVENTURA (STATUS = ACTIVE / PAUSED)
+  // A TELA DE MAPAS PASSA A SER A TELA PRINCIPAL (COCKPIT DA AVENTURA)
+  // =========================================================================
+  if (isMaster && (game.status === 'active' || game.status === 'paused')) {
+    return (
+      <div className="fixed inset-0 w-screen h-screen z-40 overflow-hidden flex flex-col bg-stone-950 select-none">
+        <MapEditor
+          campaignId={campaignId}
+          gameId={gameId}
+          game={game}
+          isMaster={true}
+          onExitAdventure={() => navigate(`/master/campaigns/${campaignId}`)}
+          onOpenLobbyModal={() => setIsPreparationModalOpen(true)}
+        />
+
+        {/* Modal Flutuante com Detalhes do Lobby & Informações da Sessão */}
+        {isPreparationModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200 font-cinzel">
+            <div 
+              className="w-full max-w-xl rounded-2xl border border-amber-700/60 bg-gradient-to-b from-[#1c1611] via-[#14100c] to-[#0c0907] p-5 sm:p-6 shadow-[0_25px_60px_rgba(0,0,0,0.95)] space-y-4 max-h-[85vh] flex flex-col relative"
+              style={{
+                boxShadow: 'inset 0 1px 0 rgba(212,175,55,0.2), 0 25px 60px rgba(0,0,0,0.95)'
+              }}
+            >
+              {/* Cantoneiras decorativas */}
+              <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t-2 border-l-2 border-amber-500/50 pointer-events-none" />
+              <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t-2 border-r-2 border-amber-500/50 pointer-events-none" />
+              <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-amber-500/50 pointer-events-none" />
+              <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-amber-500/50 pointer-events-none" />
+
+              <div className="flex items-center justify-between pb-3 border-b border-amber-900/40">
+                <div className="flex items-center gap-2 text-amber-300">
+                  <Scroll size={18} />
+                  <h3 className="font-bold text-sm uppercase tracking-wider">
+                    Informações da Sala & Código de Convite
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPreparationModalOpen(false)}
+                  className="w-8 h-8 rounded-lg bg-stone-900 hover:bg-stone-850 text-stone-400 hover:text-stone-200 flex items-center justify-center cursor-pointer border border-stone-800"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                {/* Código de Convite */}
+                <div className="p-3.5 rounded-xl bg-stone-900/70 border border-amber-900/40 flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">
+                      Código de Acesso dos Jogadores
+                    </span>
+                    <span className="font-mono text-base font-black text-amber-200 tracking-wider">
+                      {game.inviteCode || game.id}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyOnlyCode}
+                      className="px-3 py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-600/50 text-amber-200 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow"
+                    >
+                      <Copy size={13} />
+                      <span>{copiedCode ? 'COPIADO!' : 'COPIAR CÓDIGO'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCopyInvite}
+                      className="px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-850 border border-amber-900/50 text-stone-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                      title="Copiar link direto de convite"
+                    >
+                      <Share2 size={13} />
+                      <span>LINK</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Resumo da Aventura */}
+                <div className="p-3.5 rounded-xl bg-stone-900/40 border border-stone-800 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-300 uppercase">{game.name}</span>
+                    <span className="text-[10px] text-stone-400 font-mono">{game.system}</span>
+                  </div>
+                  {game.description && (
+                    <p className="text-xs text-stone-300 font-serif leading-relaxed line-clamp-3">
+                      {game.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Lista Rápida dos Jogadores na Sala */}
+                <div>
+                  <h4 className="text-xs font-bold text-stone-300 uppercase tracking-wider mb-2">
+                    Aventureiros na Sala ({adventurers.length})
+                  </h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {adventurers.length === 0 ? (
+                      <p className="text-xs text-stone-500 font-serif italic py-3 text-center">
+                        Nenhum jogador conectado nesta sala ainda.
+                      </p>
+                    ) : (
+                      adventurers.map((p, idx) => (
+                        <div key={p.id} className="p-2.5 rounded-lg bg-stone-900/60 border border-amber-950/80 flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-base">{heroIcons[idx % heroIcons.length]}</span>
+                            <div>
+                              <p className="font-bold text-xs text-amber-200">{p.displayName}</p>
+                              <p className="text-[10px] text-stone-400 font-serif">
+                                {p.characterName || 'Sem herói vinculado'} {p.characterClass ? `• ${p.characterClass}` : ''} {p.characterLevel ? `(Nv. ${p.characterLevel})` : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                            isPlayerOnline(p) 
+                              ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40' 
+                              : 'bg-stone-900 text-stone-500 border border-stone-800'
+                          }`}>
+                            {isPlayerOnline(p) ? '● ONLINE' : '● OFFLINE'}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-amber-900/30 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsPreparationModalOpen(false)}
+                  className="px-5 py-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-600/50 text-amber-200 text-xs font-bold uppercase tracking-wider cursor-pointer shadow"
+                >
+                  [ RETORNAR AO COCKPIT ]
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-16 pt-2 px-3 sm:px-6 max-w-5xl mx-auto space-y-5 animate-in fade-in duration-300">

@@ -6,8 +6,15 @@ export const NATIVE_MAP_HEIGHT = 1080;
 export const DEFAULT_FOG_SETTINGS: FogSettings = {
   density: 0.95,
   feather: 20,
-  type: 'dense'
+  type: 'dense',
+  mode: 'hide',
+  shape: 'rect'
 };
+
+export interface Point {
+  x: number;
+  y: number;
+}
 
 interface Rect {
   x: number;
@@ -248,4 +255,175 @@ export function clearEntireMapFog(
   height: number = NATIVE_MAP_HEIGHT
 ) {
   ctx.clearRect(0, 0, width, height);
+}
+
+/**
+ * Aplica névoa orgânica e densa em uma região poligonal/livre (Lasso) desenhada pelo Mestre.
+ * Preenche integralmente a área interna do contorno com névoa mística e suaviza as bordas.
+ */
+export function applyOrganicFogPolygon(
+  ctx: CanvasRenderingContext2D,
+  points: Point[],
+  settings: FogSettings = DEFAULT_FOG_SETTINGS
+) {
+  if (!points || points.length < 3) return;
+
+  const palette = getFogPalette(settings.type);
+  const feather = Math.max(4, Math.min(settings.feather || 20, 45));
+  const density = Math.max(0.15, Math.min(settings.density || 0.95, 1));
+
+  // Determinar bounding box do polígono para espalhar nuvens internas
+  let minX = points[0].x;
+  let maxX = points[0].x;
+  let minY = points[0].y;
+  let maxY = points[0].y;
+  for (let i = 1; i < points.length; i++) {
+    const pt = points[i];
+    if (pt.x < minX) minX = pt.x;
+    if (pt.x > maxX) maxX = pt.x;
+    if (pt.y < minY) minY = pt.y;
+    if (pt.y > maxY) maxY = pt.y;
+  }
+  const polyW = maxX - minX;
+  const polyH = maxY - minY;
+  if (polyW < 2 || polyH < 2) return;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+
+  // 1. Preenchimento sólido do polígono com a cor central
+  ctx.fillStyle = palette.core;
+  ctx.globalAlpha = density;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // 2. Tufos orgânicos ao longo de todo o perímetro desenhado
+  const step = Math.max(12, feather * 0.85);
+  for (let i = 0; i < points.length; i++) {
+    const p1 = points[i];
+    const p2 = points[(i + 1) % points.length];
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const steps = Math.max(1, Math.ceil(dist / step));
+
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const px = p1.x + dx * t;
+      const py = p1.y + dy * t;
+
+      const radius = feather * (1.1 + Math.random() * 0.7);
+      const offsetX = (Math.random() - 0.5) * feather * 0.4;
+      const offsetY = (Math.random() - 0.5) * feather * 0.4;
+      const cx = px + offsetX;
+      const cy = py + offsetY;
+
+      const radGrad = ctx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius);
+      radGrad.addColorStop(0, palette.smoke1);
+      radGrad.addColorStop(0.5, palette.smoke2);
+      radGrad.addColorStop(1, 'transparent');
+
+      ctx.fillStyle = radGrad;
+      ctx.globalAlpha = density * 0.92;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 3. Textura interna orgânica contida perfeitamente dentro do polígono via clipping
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.closePath();
+  ctx.clip();
+
+  const cols = Math.max(1, Math.ceil(polyW / 70));
+  const rows = Math.max(1, Math.ceil(polyH / 70));
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      const cx = minX + (c + 0.5) * (polyW / cols) + (Math.random() - 0.5) * 16;
+      const cy = minY + (r + 0.5) * (polyH / rows) + (Math.random() - 0.5) * 16;
+      const radius = 35 + Math.random() * 25;
+
+      const cloudGrad = ctx.createRadialGradient(cx, cy, 5, cx, cy, radius);
+      cloudGrad.addColorStop(0, palette.core);
+      cloudGrad.addColorStop(0.7, palette.smoke1);
+      cloudGrad.addColorStop(1, 'rgba(10, 8, 6, 0.4)');
+
+      ctx.fillStyle = cloudGrad;
+      ctx.globalAlpha = density * 0.6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/**
+ * Revela a névoa em uma região poligonal/livre (Lasso) desenhada pelo Mestre,
+ * limpando completamente o interior e suavizando as bordas.
+ */
+export function revealOrganicFogPolygon(
+  ctx: CanvasRenderingContext2D,
+  points: Point[],
+  settings: FogSettings = DEFAULT_FOG_SETTINGS
+) {
+  if (!points || points.length < 3) return;
+
+  const feather = Math.max(4, Math.min(settings.feather || 20, 45));
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+
+  // 1. Recorte do núcleo central do polígono com 100% de clareza
+  ctx.fillStyle = '#000000';
+  ctx.globalAlpha = 1.0;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // 2. Suavização das bordas ao longo de todo o perímetro
+  const step = Math.max(14, feather * 0.85);
+  for (let i = 0; i < points.length; i++) {
+    const p1 = points[i];
+    const p2 = points[(i + 1) % points.length];
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const steps = Math.max(1, Math.ceil(dist / step));
+
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const px = p1.x + dx * t;
+      const py = p1.y + dy * t;
+
+      const radius = feather * 1.1;
+      const grad = ctx.createRadialGradient(px, py, radius * 0.15, px, py, radius);
+      grad.addColorStop(0, '#000000');
+      grad.addColorStop(1, 'transparent');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
 }

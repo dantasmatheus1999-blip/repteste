@@ -66,7 +66,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
                      location.pathname.startsWith('/master/maps') || 
                      location.pathname === '/maps';
 
-  if (location.pathname === '/select-profile' || location.pathname === '/characters/sheet') {
+  if (location.pathname === '/select-profile' || location.pathname === '/characters/sheet' || isMapRoute) {
     return <>{children}</>;
   }
 

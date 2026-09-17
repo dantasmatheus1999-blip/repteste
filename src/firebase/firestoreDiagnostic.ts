@@ -5,10 +5,24 @@
 
 export type OperationType = 'READ' | 'WRITE' | 'DELETE' | 'LISTENER';
 export type DiagnosticCategory = 'MAP' | 'MARKER' | 'FOG' | 'GRID' | 'TV' | 'LOBBY' | 'CHARACTER' | 'OTHER';
+export type DiagnosticMode = 'master' | 'player' | 'tv' | 'auth' | 'app';
+
+export interface AppInstanceInfo {
+  instanceId: string;
+  appVersion: string;
+  buildId: string;
+  startedAt: string;
+  mode: DiagnosticMode;
+  pathname: string;
+}
 
 export interface DiagnosticEntry {
   id: number;
   type: OperationType;
+  instanceId: string;
+  version: string;
+  mode: DiagnosticMode;
+  pathname: string;
   collection: string;
   document: string;
   caller: string;
@@ -19,6 +33,12 @@ export interface DiagnosticEntry {
 }
 
 export interface DiagnosticStats {
+  instanceId: string;
+  appVersion: string;
+  buildId: string;
+  startedAt: string;
+  mode: DiagnosticMode;
+  pathname: string;
   writes: number;
   reads: number;
   listeners: number;
@@ -26,11 +46,75 @@ export interface DiagnosticStats {
   activeListeners: number;
   writesPerMinute: number;
   readsPerMinute: number;
-  activityLevel: 'IDLE' | 'ACTIVITY' | 'HIGH';
+  writesLastSecond: number;
+  isWriteStorm: boolean;
+  activityLevel: 'IDLE' | 'ACTIVITY' | 'HIGH' | 'STORM';
   categories: Record<DiagnosticCategory, number>;
 }
 
+const APP_VERSION = 'dev';
+const BUILD_ID = '2026-09-16-01';
+
+function generateInstanceId(): string {
+  if (typeof window === 'undefined') return 'server-inst';
+  try {
+    const existing = sessionStorage.getItem('REALMOR_DIAGNOSTIC_INSTANCE_ID');
+    if (existing && existing.length >= 8) {
+      return existing;
+    }
+    // Gerar um identificador único de aba (8 caracteres hex aleatórios + sufixo aleatório)
+    const randomHex = Math.random().toString(16).substring(2, 10);
+    const timeSegment = (Date.now() % 10000).toString(16);
+    const newId = `${randomHex}-${timeSegment}`;
+    sessionStorage.setItem('REALMOR_DIAGNOSTIC_INSTANCE_ID', newId);
+    return newId;
+  } catch {
+    return Math.random().toString(16).substring(2, 10);
+  }
+}
+
+function getSessionStartTime(): string {
+  if (typeof window === 'undefined') return new Date().toISOString();
+  try {
+    const existing = sessionStorage.getItem('REALMOR_DIAGNOSTIC_STARTED_AT');
+    if (existing) return existing;
+    const nowIso = new Date().toISOString();
+    sessionStorage.setItem('REALMOR_DIAGNOSTIC_STARTED_AT', nowIso);
+    return nowIso;
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
+export function detectAppMode(): { mode: DiagnosticMode; pathname: string } {
+  if (typeof window === 'undefined') {
+    return { mode: 'app', pathname: '/' };
+  }
+  const pathname = window.location.pathname || '/';
+  if (pathname.startsWith('/tv')) {
+    return { mode: 'tv', pathname };
+  }
+  if (pathname.startsWith('/player') || pathname.startsWith('/characters') || pathname.startsWith('/fichas')) {
+    return { mode: 'player', pathname };
+  }
+  if (
+    pathname.startsWith('/master') ||
+    pathname.startsWith('/maps') ||
+    pathname.startsWith('/map') ||
+    pathname.startsWith('/tactical') ||
+    pathname.startsWith('/campanhas')
+  ) {
+    return { mode: 'master', pathname };
+  }
+  if (pathname.startsWith('/login') || pathname.startsWith('/auth')) {
+    return { mode: 'auth', pathname };
+  }
+  return { mode: 'app', pathname };
+}
+
 class FirestoreDiagnosticTracker {
+  private instanceId = generateInstanceId();
+  private startedAt = getSessionStartTime();
   private writeCounter = 0;
   private readCounter = 0;
   private listenerCounter = 0;
@@ -51,16 +135,42 @@ class FirestoreDiagnosticTracker {
   private logs: DiagnosticEntry[] = [];
   private listeners: Array<(stats: DiagnosticStats, logs: DiagnosticEntry[]) => void> = [];
   private operationTimestamps: Array<{ type: OperationType; time: number }> = [];
+  private writeTimestamps: number[] = [];
 
   constructor() {
-    // Limpeza de timestamps antigos a cada 5s para cálculo de taxa por minuto
+    // Log inicial de boot da instância no console
+    const { mode, pathname } = detectAppMode();
+    console.log(
+      `%c[Firestore DIAGNOSTIC] Instância Ativa Inicializada\n` +
+      `INSTANCE_ID: ${this.instanceId}\n` +
+      `BUILD_ID: ${BUILD_ID} (${APP_VERSION})\n` +
+      `MODE: ${mode}\n` +
+      `PATH: ${pathname}\n` +
+      `STARTED_AT: ${this.startedAt}`,
+      'color: #06b6d4; font-weight: bold;'
+    );
+
+    // Limpeza de timestamps antigos a cada 2s para cálculo de taxa por minuto/segundo
     if (typeof window !== 'undefined') {
       setInterval(() => {
         const now = Date.now();
         this.operationTimestamps = this.operationTimestamps.filter(op => now - op.time < 60000);
+        this.writeTimestamps = this.writeTimestamps.filter(t => now - t < 5000);
         this.notify();
-      }, 3000);
+      }, 2000);
     }
+  }
+
+  public getInstanceInfo(): AppInstanceInfo {
+    const { mode, pathname } = detectAppMode();
+    return {
+      instanceId: this.instanceId,
+      appVersion: APP_VERSION,
+      buildId: BUILD_ID,
+      startedAt: this.startedAt,
+      mode,
+      pathname,
+    };
   }
 
   public subscribe(callback: (stats: DiagnosticStats, logs: DiagnosticEntry[]) => void) {
@@ -83,20 +193,34 @@ class FirestoreDiagnosticTracker {
 
   public getStats(): DiagnosticStats {
     const now = Date.now();
+    const { mode, pathname } = detectAppMode();
+
     const lastMinuteOps = this.operationTimestamps.filter(op => now - op.time < 60000);
     const writesPerMinute = lastMinuteOps.filter(op => op.type === 'WRITE').length;
     const readsPerMinute = lastMinuteOps.filter(op => op.type === 'READ').length;
 
-    // Mede atividade nos últimos 2000ms
+    // Mede writes no último segundo (1000ms)
+    const writesLastSecond = this.writeTimestamps.filter(t => now - t <= 1000).length;
+    const isWriteStorm = writesLastSecond >= 10;
+
+    // Mede atividade geral nos últimos 2000ms
     const recentOps = this.operationTimestamps.filter(op => now - op.time < 2000).length;
-    let activityLevel: 'IDLE' | 'ACTIVITY' | 'HIGH' = 'IDLE';
-    if (recentOps >= 4) {
+    let activityLevel: 'IDLE' | 'ACTIVITY' | 'HIGH' | 'STORM' = 'IDLE';
+    if (isWriteStorm) {
+      activityLevel = 'STORM';
+    } else if (recentOps >= 4) {
       activityLevel = 'HIGH';
     } else if (recentOps > 0) {
       activityLevel = 'ACTIVITY';
     }
 
     return {
+      instanceId: this.instanceId,
+      appVersion: APP_VERSION,
+      buildId: BUILD_ID,
+      startedAt: this.startedAt,
+      mode,
+      pathname,
       writes: this.writeCounter,
       reads: this.readCounter,
       listeners: this.listenerCounter,
@@ -104,6 +228,8 @@ class FirestoreDiagnosticTracker {
       activeListeners: this.activeListenersCount,
       writesPerMinute,
       readsPerMinute,
+      writesLastSecond,
+      isWriteStorm,
       activityLevel,
       categories: { ...this.categoryCounts },
     };
@@ -121,6 +247,7 @@ class FirestoreDiagnosticTracker {
     this.activeListenersCount = 0;
     this.logs = [];
     this.operationTimestamps = [];
+    this.writeTimestamps = [];
     this.categoryCounts = {
       MAP: 0,
       MARKER: 0,
@@ -163,16 +290,22 @@ class FirestoreDiagnosticTracker {
       fractionalSecondDigits: 3,
     });
 
+    const { mode, pathname } = detectAppMode();
     const caller = info.caller || detectCaller();
     const reason = info.reason || 'manual or debounced update';
     const category = this.categorize(info.collection, reason, caller);
 
     this.categoryCounts[category]++;
     this.operationTimestamps.push({ type: 'WRITE', time: now });
+    this.writeTimestamps.push(now);
 
     const entry: DiagnosticEntry = {
       id: this.writeCounter,
       type: 'WRITE',
+      instanceId: this.instanceId,
+      version: BUILD_ID,
+      mode,
+      pathname,
       collection: info.collection,
       document: info.document,
       caller,
@@ -185,9 +318,13 @@ class FirestoreDiagnosticTracker {
     this.logs.unshift(entry);
     if (this.logs.length > 500) this.logs.pop();
 
-    // Log exigido rigorosamente no console:
+    // Log detalhado com identificação de instância e origem
     console.log(
       `%c[Firestore WRITE #${this.writeCounter}]\n` +
+      `instance: ${this.instanceId}\n` +
+      `version: ${BUILD_ID}\n` +
+      `mode: ${mode}\n` +
+      `pathname: ${pathname}\n` +
       `collection: ${info.collection}\n` +
       `document: ${info.document}\n` +
       `reason: ${reason}\n` +
@@ -195,6 +332,23 @@ class FirestoreDiagnosticTracker {
       `timestamp: ${timeFormatted}`,
       'color: #ef4444; font-weight: bold;'
     );
+
+    // Alerta de Write Storm (>= 10 writes em 1 segundo)
+    const recentWritesIn1s = this.writeTimestamps.filter(t => now - t <= 1000).length;
+    if (recentWritesIn1s >= 10) {
+      const writesLastMinute = this.operationTimestamps.filter(op => op.type === 'WRITE' && now - op.time < 60000).length;
+      console.warn(
+        `%c🔴 [Firestore WRITE STORM DETECTADO!]\n` +
+        `instance: ${this.instanceId}\n` +
+        `version: ${BUILD_ID}\n` +
+        `mode: ${mode}\n` +
+        `pathname: ${pathname}\n` +
+        `writesLastSecond: ${recentWritesIn1s}\n` +
+        `writesLastMinute: ${writesLastMinute}\n` +
+        `timestamp: ${timeFormatted}`,
+        'background: #991b1b; color: #ffffff; font-weight: bold; font-size: 13px; padding: 4px;'
+      );
+    }
 
     this.notify();
   }
@@ -214,6 +368,7 @@ class FirestoreDiagnosticTracker {
       fractionalSecondDigits: 3,
     });
 
+    const { mode, pathname } = detectAppMode();
     const caller = info.caller || detectCaller();
     const reason = info.reason || 'fetch or query';
     const category = this.categorize(info.collection, reason, caller);
@@ -223,6 +378,10 @@ class FirestoreDiagnosticTracker {
     const entry: DiagnosticEntry = {
       id: this.readCounter,
       type: 'READ',
+      instanceId: this.instanceId,
+      version: BUILD_ID,
+      mode,
+      pathname,
       collection: info.collection,
       document: info.document,
       caller,
@@ -253,6 +412,7 @@ class FirestoreDiagnosticTracker {
       fractionalSecondDigits: 3,
     });
 
+    const { mode, pathname } = detectAppMode();
     const caller = info.caller || detectCaller();
     const reason = info.reason || 'delete action';
     const category = this.categorize(info.collection, reason, caller);
@@ -260,6 +420,10 @@ class FirestoreDiagnosticTracker {
     const entry: DiagnosticEntry = {
       id: this.deleteCounter,
       type: 'DELETE',
+      instanceId: this.instanceId,
+      version: BUILD_ID,
+      mode,
+      pathname,
       collection: info.collection,
       document: info.document,
       caller,
@@ -274,6 +438,10 @@ class FirestoreDiagnosticTracker {
 
     console.log(
       `%c[Firestore DELETE #${this.deleteCounter}]\n` +
+      `instance: ${this.instanceId}\n` +
+      `version: ${BUILD_ID}\n` +
+      `mode: ${mode}\n` +
+      `pathname: ${pathname}\n` +
       `collection: ${info.collection}\n` +
       `document: ${info.document}\n` +
       `caller: ${caller}\n` +
@@ -290,10 +458,15 @@ class FirestoreDiagnosticTracker {
   }) {
     this.listenerCounter++;
     this.activeListenersCount++;
+    const { mode, pathname } = detectAppMode();
     const caller = info.caller || detectCaller();
 
     console.log(
       `%c[Firestore LISTENER OPEN]\n` +
+      `instance: ${this.instanceId}\n` +
+      `version: ${BUILD_ID}\n` +
+      `mode: ${mode}\n` +
+      `pathname: ${pathname}\n` +
       `collection: ${info.collection}\n` +
       `caller: ${caller}`,
       'color: #3b82f6; font-weight: bold;'
@@ -307,10 +480,15 @@ class FirestoreDiagnosticTracker {
     caller?: string;
   }) {
     this.activeListenersCount = Math.max(0, this.activeListenersCount - 1);
+    const { mode, pathname } = detectAppMode();
     const caller = info.caller || detectCaller();
 
     console.log(
       `%c[Firestore LISTENER CLOSE]\n` +
+      `instance: ${this.instanceId}\n` +
+      `version: ${BUILD_ID}\n` +
+      `mode: ${mode}\n` +
+      `pathname: ${pathname}\n` +
       `collection: ${info.collection}\n` +
       `caller: ${caller}`,
       'color: #6b7280; font-weight: bold;'
@@ -384,3 +562,4 @@ export function extractTargetInfo(target: any): { collection: string; document: 
 }
 
 export const firestoreTracker = new FirestoreDiagnosticTracker();
+

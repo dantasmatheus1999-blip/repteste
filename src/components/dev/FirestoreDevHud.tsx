@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { firestoreTracker, DiagnosticStats, DiagnosticEntry } from '../../firebase/firestoreDiagnostic';
-import { Activity, Trash2, Download, ChevronUp, ChevronDown, Database, ShieldAlert } from 'lucide-react';
+import { Activity, Trash2, Download, ChevronUp, ChevronDown, Database, ShieldAlert, AlertTriangle } from 'lucide-react';
 
 export const FirestoreDevHud: React.FC = () => {
   const [stats, setStats] = useState<DiagnosticStats>(firestoreTracker.getStats());
   const [logs, setLogs] = useState<DiagnosticEntry[]>(firestoreTracker.getLogs());
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
-  const [showLogList, setShowLogList] = useState<boolean>(false);
 
   useEffect(() => {
     const unsub = firestoreTracker.subscribe((newStats, newLogs) => {
@@ -26,12 +25,19 @@ export const FirestoreDevHud: React.FC = () => {
     let content = `=== REALMOR - AUDITORIA FORENSE FIRESTORE ===\n`;
     content += `Data/Hora da Exportação: ${new Date().toLocaleString('pt-BR')}\n`;
     content += `--------------------------------------------\n`;
+    content += `DADOS DA INSTÂNCIA:\n`;
+    content += `INSTANCE ID: ${stats.instanceId}\n`;
+    content += `BUILD ID: ${stats.buildId} (${stats.appVersion})\n`;
+    content += `MODE: ${stats.mode.toUpperCase()}\n`;
+    content += `PATHNAME: ${stats.pathname}\n`;
+    content += `SESSION STARTED AT: ${stats.startedAt}\n`;
+    content += `--------------------------------------------\n`;
     content += `TOTAIS:\n`;
     content += `WRITES: ${stats.writes}\n`;
     content += `READS: ${stats.reads}\n`;
     content += `LISTENERS: ${stats.listeners} (Ativos: ${stats.activeListeners})\n`;
     content += `DELETES: ${stats.deletes}\n`;
-    content += `Taxas atuais: ${stats.writesPerMinute} writes/min | ${stats.readsPerMinute} reads/min\n\n`;
+    content += `Taxas atuais: ${stats.writesPerMinute} writes/min | ${stats.readsPerMinute} reads/min | ${stats.writesLastSecond} writes/sec\n\n`;
     content += `CATEGORIAS:\n`;
     content += `MAP: ${stats.categories.MAP}\n`;
     content += `MARKER: ${stats.categories.MARKER}\n`;
@@ -44,33 +50,25 @@ export const FirestoreDevHud: React.FC = () => {
     content += `================ REGISTRO COMPLETO DE OPERAÇÕES ================\n\n`;
 
     currentLogs.forEach((l) => {
-      if (l.type === 'WRITE') {
-        content += `[Firestore WRITE #${l.id}]\n`;
-        content += `collection: ${l.collection}\n`;
-        content += `document: ${l.document}\n`;
+      content += `[Firestore ${l.type} #${l.id}]\n`;
+      content += `instance: ${l.instanceId}\n`;
+      content += `version: ${l.version}\n`;
+      content += `mode: ${l.mode}\n`;
+      content += `pathname: ${l.pathname}\n`;
+      content += `collection: ${l.collection}\n`;
+      content += `document: ${l.document}\n`;
+      if (l.type === 'WRITE' && l.reason) {
         content += `reason: ${l.reason}\n`;
-        content += `caller: ${l.caller}\n`;
-        content += `timestamp: ${l.timestamp}\n\n`;
-      } else if (l.type === 'DELETE') {
-        content += `[Firestore DELETE #${l.id}]\n`;
-        content += `collection: ${l.collection}\n`;
-        content += `document: ${l.document}\n`;
-        content += `caller: ${l.caller}\n`;
-        content += `timestamp: ${l.timestamp}\n\n`;
-      } else {
-        content += `[Firestore ${l.type} #${l.id}]\n`;
-        content += `collection: ${l.collection}\n`;
-        content += `document: ${l.document}\n`;
-        content += `caller: ${l.caller}\n`;
-        content += `timestamp: ${l.timestamp}\n\n`;
       }
+      content += `caller: ${l.caller}\n`;
+      content += `timestamp: ${l.timestamp}\n\n`;
     });
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `firestore-audit-log-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+    a.download = `firestore-audit-${stats.instanceId}-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -79,6 +77,15 @@ export const FirestoreDevHud: React.FC = () => {
 
   // Indicador de Atividade
   const renderIndicator = () => {
+    if (stats.isWriteStorm || stats.activityLevel === 'STORM') {
+      return (
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-900 border border-red-400 text-white font-mono text-[11px] font-bold animate-pulse shadow-[0_0_12px_#ef4444]">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-400 shadow-[0_0_10px_#ffffff]" />
+          🔴 POSSÍVEL WRITE STORM
+        </div>
+      );
+    }
+
     switch (stats.activityLevel) {
       case 'HIGH':
         return (
@@ -108,8 +115,8 @@ export const FirestoreDevHud: React.FC = () => {
   return (
     <aside 
       aria-label="Painel de Diagnóstico Firestore DEV"
-      className="fixed bottom-3 right-3 z-50 select-none font-mono text-xs shadow-2xl transition-all duration-200"
-      style={{ maxWidth: '380px' }}
+      className="hidden"
+      style={{ display: 'none' }}
     >
       <div className="bg-neutral-950/95 border border-gold/40 rounded-lg backdrop-blur-md overflow-hidden text-neutral-200 shadow-[0_0_20px_rgba(0,0,0,0.8)]">
         {/* Header do HUD */}
@@ -138,9 +145,46 @@ export const FirestoreDevHud: React.FC = () => {
           </div>
         </div>
 
+        {/* Alerta de Tempestade de Gravações */}
+        {stats.isWriteStorm && (
+          <div className="px-3 py-2 bg-red-950 border-b border-red-600/80 text-red-200 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5 animate-bounce" />
+            <div className="text-[11px] leading-tight">
+              <span className="font-bold text-red-300">ALERTA WRITE STORM:</span> Taxa de {stats.writesLastSecond} writes/seg detectada nesta aba!
+            </div>
+          </div>
+        )}
+
         {/* Conteúdo Expandido */}
         {isExpanded && (
           <div className="p-3 space-y-2.5">
+            {/* Bloco 0: Identificação da Instância Atual */}
+            <div className="bg-neutral-900/70 p-2 rounded border border-neutral-800/90 space-y-1 text-[11px]">
+              <div className="text-[10px] uppercase font-bold text-cyan-400/90 tracking-wider flex items-center justify-between">
+                <span>INSTÂNCIA ATUAL</span>
+                <span className="px-1.5 py-0.2 bg-cyan-950/80 border border-cyan-700/50 text-cyan-300 rounded text-[9px] font-bold">
+                  {stats.mode.toUpperCase()}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-2 text-[10px] text-neutral-300">
+                <div>
+                  <span className="text-neutral-500">INSTANCE:</span>{' '}
+                  <span className="font-mono text-cyan-300 font-semibold">{stats.instanceId}</span>
+                </div>
+                <div>
+                  <span className="text-neutral-500">BUILD:</span>{' '}
+                  <span className="font-mono text-neutral-300">{stats.buildId}</span>
+                </div>
+                <div className="col-span-2 truncate">
+                  <span className="text-neutral-500">PATH:</span>{' '}
+                  <span className="font-mono text-neutral-300">{stats.pathname}</span>
+                </div>
+                <div className="col-span-2 text-[9px] text-neutral-500 truncate">
+                  START: {new Date(stats.startedAt).toLocaleTimeString('pt-BR')} ({new Date(stats.startedAt).toLocaleDateString('pt-BR')})
+                </div>
+              </div>
+            </div>
+
             {/* Bloco 1: Totais Gerais */}
             <div className="grid grid-cols-4 gap-1.5 bg-neutral-900/60 p-2 rounded border border-neutral-800 text-center">
               <div>
@@ -266,3 +310,4 @@ export const FirestoreDevHud: React.FC = () => {
   );
 };
 export default FirestoreDevHud;
+
