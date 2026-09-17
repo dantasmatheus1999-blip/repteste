@@ -127,6 +127,10 @@ export interface MonsterAction {
   observations?: string;
 }
 
+export type CombatRole = 'solo' | 'lacaio' | 'especial';
+export type CombatStyle = 'marcial' | 'atirador' | 'conjurador' | 'tatico';
+export type RealmorScale = 'normal' | 'elite' | 'chefe';
+
 export interface MonsterAbility {
   name: string;
   description: string;
@@ -139,6 +143,31 @@ export interface MonsterAbility {
   observations?: string;
 }
 
+export interface MonsterSpellEntry {
+  id: string;
+  name: string;
+  circle: number;
+  costPM: number;
+  type: 'arcana' | 'divina' | 'universal' | 'simulada';
+  school: string;
+  execution: string;
+  range: string;
+  targetOrArea: string;
+  duration: string;
+  resistance?: string;
+  description: string;
+  dcFormatted?: string;
+}
+
+export interface BossResourceEntry {
+  title: string;
+  category: 'acao_lendaria' | 'reacao' | 'segunda_fase' | 'resiliencia' | 'recarga';
+  tag: string;
+  description: string;
+  trigger?: string;
+  frequency?: string;
+}
+
 export interface NPC {
   id: string;
   masterId: string;
@@ -146,6 +175,9 @@ export interface NPC {
   name: string;
   race: string;
   role: string;
+  combatRole?: 'solo' | 'lacaio' | 'especial';
+  combatStyle?: 'marcial' | 'atirador' | 'conjurador' | 'tatico';
+  realmorScale?: 'normal' | 'elite' | 'chefe';
   description: string;
   personality: string;
   ideals: string;
@@ -166,6 +198,7 @@ export interface NPC {
   environment?: string;
   organization?: string;
   tags?: string[];
+  senses?: string;
   initiative?: number;
   speed?: string;
   perception?: number;
@@ -191,9 +224,21 @@ export interface NPC {
   };
   actions?: MonsterAction[];
   abilities?: MonsterAbility[];
+  spells?: MonsterSpellEntry[];
+  bossResources?: BossResourceEntry[];
+  specialActions?: string[];
+  manaPoints?: number;
+  saveDC?: number;
+  fortitude?: number;
+  reflexes?: number;
+  will?: number;
+  targetDamage?: number;
+  tableReference?: any;
+  auditLog?: any;
+  validation?: any;
   tactics?: string;
   combatProfile?: { name: string; description: string };
-  synergy?: { name: string; effect: string };
+  synergy?: { name: string; description?: string; effect: string };
   synergies?: {
     name: string;
     condition?: string;

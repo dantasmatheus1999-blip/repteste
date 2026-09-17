@@ -9,7 +9,8 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:monsters": "tsx scripts/run_exhaustive_t20_suite.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

@@ -42,20 +42,8 @@ export const MonsterEvolutionService = {
 
     if (profile.statModifiers.attack) evolvedMonster.attack += profile.statModifiers.attack;
     if (profile.statModifiers.defense) evolvedMonster.defense += profile.statModifiers.defense;
-    if (profile.statModifiers.damage) {
-      // Add damage bonus to the damage string if it exists
-      const currentDamage = evolvedMonster.damage;
-      if (currentDamage.includes('+')) {
-        const parts = currentDamage.split('+');
-        const base = parts[0];
-        const bonus = parseInt(parts[1]) + profile.statModifiers.damage;
-        evolvedMonster.damage = `${base}+${bonus}`;
-      } else {
-        evolvedMonster.damage = `${currentDamage}+${profile.statModifiers.damage}`;
-      }
-    }
-    if (profile.statModifiers.hpMultiplier) {
-      evolvedMonster.hp = Math.floor(evolvedMonster.hp * profile.statModifiers.hpMultiplier);
+    if (profile.statModifiers.hpMultiplier && profile.statModifiers.hpMultiplier !== 1) {
+      evolvedMonster.hp = Math.round(evolvedMonster.hp * profile.statModifiers.hpMultiplier);
     }
 
     // Apply attribute modifiers

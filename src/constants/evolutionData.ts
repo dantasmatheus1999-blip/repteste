@@ -23,61 +23,46 @@ export interface CombatProfile {
 export const COMBAT_PROFILES: Record<CombatProfileType, CombatProfile> = {
   agressivo: {
     name: 'Agressivo',
-    description: 'Foca em causar o máximo de dano possível, negligenciando sua própria defesa.',
+    description: 'Foca em causar pressão ofensiva contínua, investindo rapidamente contra as ameaças.',
     statModifiers: {
-      attack: 2,
-      damage: 4,
-      defense: -4,
-      str: 2
+      str: 1
     }
   },
   defensivo: {
     name: 'Defensivo',
-    description: 'Prioriza a sobrevivência e a proteção, tornando-se um alvo difícil de derrubar.',
+    description: 'Prioriza a proteção e posicionamento firme, protegendo flancos e pontos vulneráveis.',
     statModifiers: {
-      defense: 4,
-      hpMultiplier: 1.2,
-      damage: -2,
-      con: 2
+      con: 1
     }
   },
   tático: {
     name: 'Tático',
-    description: 'Luta com inteligência, aproveitando brechas e coordenando ataques precisos.',
+    description: 'Luta com inteligência e leitura de combate, aproveitando brechas e falhas dos heróis.',
     statModifiers: {
-      attack: 1,
-      defense: 1,
-      int: 2,
-      wis: 2
+      int: 1,
+      wis: 1
     }
   },
   selvagem: {
     name: 'Selvagem',
-    description: 'Ataques brutais e imprevisíveis, porém imprecisos devido à fúria descontrolada.',
+    description: 'Ataques brutais e instintivos impulsionados por ferocidade natural e fúria primal.',
     statModifiers: {
-      attack: -2,
-      damage: 6,
-      hpMultiplier: 1.1,
-      str: 4
+      str: 2
     }
   },
   arcano: {
     name: 'Arcano',
-    description: 'Utiliza energias místicas para atacar e se proteger, focando em habilidades mágicas.',
+    description: 'Canaliza energias místicas e sobrenaturais para moldar o campo de batalha.',
     statModifiers: {
-      int: 4,
-      cha: 2,
-      defense: -2,
-      hpMultiplier: 0.9
+      int: 2,
+      cha: 1
     }
   },
   agil: {
     name: 'Ágil',
-    description: 'Foca em velocidade e precisão, evitando ataques enquanto desfere golpes rápidos.',
+    description: 'Foca em mobilidade veloz, esquiva e posicionamento dinâmico.',
     statModifiers: {
-      attack: 2,
-      defense: 2,
-      dex: 4
+      dex: 2
     }
   }
 };
