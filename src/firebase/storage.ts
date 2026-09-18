@@ -4,11 +4,13 @@ import {
   uploadBytes, 
   uploadBytesResumable,
   getDownloadURL,
-  deleteObject
+  deleteObject,
+  listAll
 } from 'firebase/storage';
 import app, { firebaseConfig } from './config';
 
-const storage = getStorage(app, `gs://${firebaseConfig.storageBucket}`);
+// Inicializa o storage utilizando o bucket padrão configurado no app
+const storage = getStorage(app);
 
 export { 
   storage, 
@@ -16,5 +18,7 @@ export {
   uploadBytes, 
   uploadBytesResumable,
   getDownloadURL,
-  deleteObject
+  deleteObject,
+  listAll,
+  firebaseConfig
 };

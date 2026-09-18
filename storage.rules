@@ -2,23 +2,88 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
+    // Helper to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     // Helper to check if user is admin
     function isAdmin() {
-      return request.auth != null && 
+      return isAuthenticated() && 
         (request.auth.token.email == "dantasmatheus1999@outlook.com.br");
     }
 
+    // Mapas e cenários de batalha (test_maps e maps)
+    match /maps/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /test_maps/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Monstros e NPCs
     match /npcs/{userId}/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if isAuthenticated();
+    }
+    match /monsters/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /mostro {
+      allow read, get, list: if true;
+      allow write: if isAuthenticated();
+    }
+    match /mostro/{allPaths=**} {
+      allow read, get, list: if true;
+      allow write: if isAuthenticated();
+    }
+    match /monstro {
+      allow read, get, list: if true;
+      allow write: if isAuthenticated();
+    }
+    match /monstro/{allPaths=**} {
+      allow read, get, list: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Fichas de heróis e personagens
+    match /characters/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Avatares e perfis de usuários
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Documentos, PDFs e arquivos gerais de campanhas e notas
+    match /documents/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /files/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    match /uploads/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
     // Library assets
     match /library/{category}/{allPaths=**} {
-      // Everyone authenticated can read the library models
-      allow read: if request.auth != null;
-      // Only admins can upload/delete library models
-      allow write: if isAdmin();
+      allow read: if true;
+      allow write: if isAuthenticated() || isAdmin();
     }
   }
 }
+

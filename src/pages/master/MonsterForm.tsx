@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { 
   ChevronLeft, 
   Save, 
@@ -27,10 +27,15 @@ import {
   Sun,
   Moon,
   Skull as SkullIcon,
-  Minus
+  Minus,
+  Upload,
+  Loader2,
+  BookOpen,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
+import { fetchStorageMonsterLibrary, StorageMonster } from '../../services/monsterStorageService';
 import { MasterService } from '../../services/masterService';
 import { NPC, MonsterAction, MonsterAbility } from '../../types/master';
 import { Button } from '../../components/Button';
@@ -116,6 +121,8 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const params = useParams<{ campaignId: string; monsterId: string }>();
   
   const campaignId = customCampaignId !== undefined ? customCampaignId : params.campaignId;
@@ -127,11 +134,19 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Storage Library Modal State
+  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
+  const [storageMonsters, setStorageMonsters] = useState<StorageMonster[]>([]);
+  const [loadingStorage, setLoadingStorage] = useState(false);
+  const [libraryFilter, setLibraryFilter] = useState('');
+
   // Image Generation State
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [visualPrompt, setVisualPrompt] = useState('');
   const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [editMode, setEditMode] = useState<'simple' | 'advanced'>('simple');
@@ -366,6 +381,49 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
     }
   }, [monsterId, isEditing, user]);
 
+  // Pré-preenchimento vindo da Biblioteca de Monstros (via state ou query params)
+  useEffect(() => {
+    if (!isEditing) {
+      const stateName = (location.state as any)?.name || searchParams.get('name');
+      const stateImage = (location.state as any)?.imageUrl || searchParams.get('imageUrl');
+      if (stateName || stateImage) {
+        setFormData(prev => ({
+          ...prev,
+          ...(stateName ? { name: stateName } : {}),
+          ...(stateImage ? { imageUrl: stateImage } : {})
+        }));
+        if (stateImage) {
+          setTempImageUrl(stateImage);
+        }
+      }
+    }
+  }, [location.state, searchParams, isEditing]);
+
+  const handleOpenLibrary = async () => {
+    setIsLibraryModalOpen(true);
+    if (storageMonsters.length === 0) {
+      setLoadingStorage(true);
+      try {
+        const items = await fetchStorageMonsterLibrary();
+        setStorageMonsters(items);
+      } catch (err: any) {
+        console.info('[MonsterForm] Consulta à biblioteca do Storage:', err?.message);
+      } finally {
+        setLoadingStorage(false);
+      }
+    }
+  };
+
+  const handleSelectFromLibrary = (monster: StorageMonster) => {
+    setFormData(prev => ({
+      ...prev,
+      imageUrl: monster.url,
+      ...((!prev.name || prev.name.trim() === '') ? { name: monster.name } : {})
+    }));
+    setTempImageUrl(monster.url);
+    setIsLibraryModalOpen(false);
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name.startsWith('stats.')) {
@@ -534,6 +592,29 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
     }
   };
 
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    try {
+      setUploadingImage(true);
+      setError(null);
+      const metadata = await StorageService.uploadFile(file, {
+        category: 'monster',
+        name: formData.name || file.name.replace(/\.[^/.]+$/, ''),
+        relatedEntityId: monsterId
+      });
+      setTempImageUrl(null);
+      setFormData(prev => ({ ...prev, imageUrl: metadata.url }));
+    } catch (err) {
+      console.error('Erro ao enviar imagem de monstro:', err);
+      setError('Falha ao enviar imagem da criatura para o Firebase Storage.');
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     if (!formData.name) {
@@ -548,7 +629,7 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
       let finalImageUrl = formData.imageUrl || null;
 
       // If we have a temporary image from generation, upload it to permanent storage
-      if (tempImageUrl && tempImageUrl.startsWith('http')) {
+      if (tempImageUrl && (tempImageUrl.startsWith('http') || tempImageUrl.startsWith('data:') || tempImageUrl.startsWith('blob:'))) {
         const fileName = `monsters/${user.uid}/${Date.now()}.png`;
         finalImageUrl = await StorageService.uploadNpcImage(tempImageUrl, fileName);
       }
@@ -744,15 +825,47 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
                   className="w-full bg-black/40 border border-gold/10 rounded-xl p-4 text-gold text-sm focus:outline-none focus:border-gold/40 min-h-[120px] resize-none font-cinzel"
                 />
               </div>
-              <Button 
-                variant="secondary" 
-                className="w-full" 
-                onClick={handleGenerateImage}
-                disabled={isGenerating}
-                icon={Sparkles}
-              >
-                {isGenerating ? 'Gerando...' : 'Gerar Imagem com IA'}
-              </Button>
+              <div className="space-y-2">
+                <Button 
+                  variant="secondary" 
+                  className="w-full" 
+                  onClick={handleGenerateImage}
+                  disabled={isGenerating}
+                  icon={Sparkles}
+                >
+                  {isGenerating ? 'Gerando...' : 'Gerar Imagem com IA'}
+                </Button>
+
+                <div className="pt-2 border-t border-gold/10 space-y-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full text-xs border border-gold/30 hover:border-gold text-gold bg-gold/5 hover:bg-gold/10"
+                    onClick={handleOpenLibrary}
+                    icon={BookOpen}
+                  >
+                    📚 Escolher da Biblioteca (mostro/)
+                  </Button>
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleImageFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full text-xs"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    icon={uploadingImage ? Loader2 : Upload}
+                  >
+                    {uploadingImage ? 'Enviando ao Storage...' : 'Enviar Imagem do Arquivo'}
+                  </Button>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -2021,6 +2134,111 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
           </CollapsibleSection>
         </div>
       </div>
+
+      {/* Modal da Biblioteca de Monstros (Firebase Storage mostro/) */}
+      <AnimatePresence>
+        {isLibraryModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-mythos-bg border-2 border-gold/40 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)]"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gold/20 flex items-center justify-between bg-black/40">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/30 flex items-center justify-center text-gold">
+                    <BookOpen size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-cinzel font-black text-gold uppercase tracking-wider">
+                      Biblioteca de Monstros
+                    </h3>
+                    <p className="text-xs text-gold/60 font-cinzel">
+                      Imagens da pasta <code className="text-amber-300 font-mono">mostro/</code> no Firebase Storage
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsLibraryModalOpen(false)}
+                  className="p-2 text-gold/60 hover:text-gold hover:bg-gold/10 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Search & Filter Bar */}
+              <div className="p-4 border-b border-gold/10 bg-black/20 flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold/40" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Filtrar criaturas pelo nome..."
+                    value={libraryFilter}
+                    onChange={(e) => setLibraryFilter(e.target.value)}
+                    className="w-full bg-black/60 border border-gold/20 rounded-xl pl-10 pr-4 py-2 text-sm text-gold focus:outline-none focus:border-gold font-cinzel placeholder:text-gold/20"
+                  />
+                </div>
+                <span className="text-xs text-gold/40 font-mono shrink-0">
+                  {storageMonsters.length} {storageMonsters.length === 1 ? 'criatura' : 'criaturas'}
+                </span>
+              </div>
+
+              {/* Modal Content / Grid */}
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                {loadingStorage ? (
+                  <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
+                    <RefreshCw className="w-10 h-10 text-gold animate-spin" />
+                    <p className="text-gold/60 font-cinzel italic text-sm animate-pulse">
+                      Carregando acervo de criaturas do Firebase Storage...
+                    </p>
+                  </div>
+                ) : storageMonsters.length === 0 ? (
+                  <div className="py-16 text-center space-y-3">
+                    <Skull className="w-12 h-12 text-gold/20 mx-auto" />
+                    <p className="text-gold/60 font-cinzel font-bold">Nenhum arquivo .png encontrado na pasta mostro/</p>
+                    <p className="text-xs text-gold/40 font-cinzel max-w-md mx-auto">
+                      Certifique-se de que os arquivos .png foram enviados para a pasta mostro/ no Firebase Storage.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {storageMonsters
+                      .filter(m => m.name.toLowerCase().includes(libraryFilter.toLowerCase()) || m.fileName.toLowerCase().includes(libraryFilter.toLowerCase()))
+                      .map(monster => (
+                        <div
+                          key={monster.id}
+                          onClick={() => handleSelectFromLibrary(monster)}
+                          className="group relative aspect-[4/5] rounded-xl overflow-hidden border-2 border-gold/20 hover:border-gold cursor-pointer transition-all hover:scale-[1.02] shadow-lg bg-black/40"
+                        >
+                          <img
+                            src={monster.url}
+                            alt={monster.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                          <div className="absolute bottom-0 inset-x-0 p-3">
+                            <p className="text-xs font-cinzel font-bold text-gold drop-shadow leading-tight line-clamp-2">
+                              {monster.name}
+                            </p>
+                            <p className="text-[9px] text-gold/40 font-mono truncate mt-0.5">
+                              {monster.fileName}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

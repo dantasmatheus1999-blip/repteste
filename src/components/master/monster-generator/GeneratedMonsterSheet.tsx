@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Sword, 
   Zap, 
@@ -16,12 +16,22 @@ import {
   Heart,
   Activity,
   Flame,
-  Users
+  Users,
+  Eye,
+  Image as ImageIcon,
+  Upload,
+  Loader2
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../../Button';
 import { GeneratedMonster } from '../../../services/monsterGeneratorService';
+import { MonsterSpellEntry } from '../../../services/monsterMagicService';
 import { MonsterStatBlock } from './MonsterStatBlock';
+import { MonsterSpellModal } from './MonsterSpellModal';
+import { DEFAULT_NEUTRAL_MONSTER_IMAGE } from './monsterImageLibrary';
+import { StorageService } from '../../../services/storageService';
+import { MonsterStorageLibraryModal } from './MonsterStorageLibraryModal';
+import { StorageMonster } from '../../../services/monsterStorageService';
 
 interface GeneratedMonsterSheetProps {
   monster: GeneratedMonster;
@@ -31,48 +41,171 @@ interface GeneratedMonsterSheetProps {
 }
 
 export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ monster, onReroll, onSave, onClose }) => {
+  const [selectedSpell, setSelectedSpell] = useState<MonsterSpellEntry | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>(monster.imageUrl || '');
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSelectFromLibrary = (storageMonster: StorageMonster) => {
+    monster.imageUrl = storageMonster.url;
+    if (storageMonster.name) {
+      monster.name = storageMonster.name;
+    }
+    setCurrentImageUrl(storageMonster.url);
+    setIsLibraryOpen(false);
+  };
+
+  // Upload direto da nova foto via StorageService existente
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor selecione um arquivo de imagem válido (PNG, JPG, WEBP).');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const uploaded = await StorageService.uploadFile(file, {
+        name: cleanName,
+        folder: 'monsters',
+        category: 'monster',
+      });
+
+      if (uploaded && uploaded.url) {
+        monster.imageUrl = uploaded.url;
+        setCurrentImageUrl(uploaded.url);
+      }
+    } catch (err) {
+      console.error('Erro ao fazer upload da imagem:', err);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
-    <div className="glass-card border-2 border-gold/40 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] relative">
+    <div className="glass-card border-2 border-gold/40 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.95)] relative flex flex-col h-full max-h-full bg-stone-950/95">
       {/* Header with Background Image/Pattern */}
-      <div className="relative h-32 bg-mythos-bg overflow-hidden border-b border-gold/20">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')] opacity-40" />
-        <div className="absolute inset-0 bg-gradient-to-t from-mythos-bg to-transparent" />
+      <div className="relative shrink-0 min-h-[7rem] md:min-h-[8rem] bg-mythos-bg overflow-hidden border-b border-gold/20 flex flex-col justify-end p-5 sm:p-6 md:px-8 md:py-6">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')] opacity-40 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-mythos-bg via-mythos-bg/85 to-transparent pointer-events-none" />
         
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/40 border border-gold/10 text-gold/40 hover:text-gold hover:border-gold/40 transition-all"
+          className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-black/60 border border-gold/20 text-gold/60 hover:text-gold hover:border-gold/50 hover:bg-black/90 transition-all shadow-lg cursor-pointer"
+          title="Fechar revisão da criatura"
+          aria-label="Fechar"
         >
           <X size={20} />
         </button>
 
-        {/* Title Section */}
-        <div className="absolute bottom-4 left-8 right-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <h2 className="text-4xl font-cinzel font-black text-gold-gradient tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                {monster.name}
-              </h2>
-              <div className="px-3 py-1 rounded-sm bg-gold/10 border border-gold/20 text-[10px] text-gold font-black uppercase tracking-[0.2em]">
-                ND {monster.nd}
-              </div>
+        {/* Title Section with Creature Image Portrait */}
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 sm:gap-5">
+            {/* Creature Portrait Token */}
+            <div className="relative group shrink-0 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-xl border-2 border-gold/60 overflow-hidden bg-stone-950 shadow-[0_0_20px_rgba(217,119,6,0.35)] flex items-center justify-center">
+              {currentImageUrl ? (
+                <>
+                  <img 
+                    src={currentImageUrl} 
+                    alt={monster.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 ring-1 ring-inset ring-amber-400/20 rounded-xl pointer-events-none" />
+                  
+                  {/* Overlay button on hover to open library */}
+                  <button
+                    type="button"
+                    onClick={() => setIsLibraryOpen(true)}
+                    className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-amber-300 font-cinzel text-[10px] font-bold gap-1 p-1 text-center cursor-pointer"
+                    title="Escolher outro monstro da Biblioteca"
+                  >
+                    <BookOpen size={16} />
+                    <span>Trocar</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsLibraryOpen(true)}
+                  className="w-full h-full p-2.5 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-stone-900 transition-colors group"
+                  title="Abrir Biblioteca de Monstros"
+                >
+                  <BookOpen size={20} className="text-gold/60 group-hover:text-gold group-hover:scale-110 transition-all mb-1" />
+                  <span className="text-[9px] sm:text-[10px] font-cinzel font-black text-gold group-hover:text-amber-300 transition-colors leading-tight">
+                    🖼️ CLIQUE AQUI PARA ESCOLHER UM MONSTRO
+                  </span>
+                </button>
+              )}
+
+              <input 
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
+              {isUploading && (
+                <div className="absolute inset-0 bg-black/80 flex items-center justify-center pointer-events-none">
+                  <Loader2 size={22} className="text-amber-400 animate-spin" />
+                </div>
+              )}
             </div>
-            <p className="text-gold/80 text-xs uppercase font-bold tracking-[0.25em] flex items-center gap-2">
-              <span className="text-amber-400 font-extrabold">{monster.combatRole ? monster.combatRole.toUpperCase() : 'SOLO'}</span>
-              <span className="text-gold/30">•</span>
-              <span>{monster.type}</span>
-              <span className="text-gold/30">•</span>
-              <span>{monster.role}</span>
-              <span className="text-gold/30">•</span>
-              <span>{monster.rank}</span>
-            </p>
+
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-cinzel font-black text-gold-gradient tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                  {monster.name}
+                </h2>
+                <div className="px-3 py-1 rounded bg-gold/15 border border-gold/30 text-xs sm:text-sm text-gold font-black uppercase tracking-[0.2em] shadow-sm">
+                  ND {monster.nd}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsLibraryOpen(true)}
+                  className="px-2.5 py-1 rounded bg-gold/15 hover:bg-gold/25 border border-gold/40 text-gold font-cinzel text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                  title="Escolher monstro da Biblioteca (mostro/)"
+                >
+                  <BookOpen size={12} />
+                  <span>Biblioteca</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="px-2.5 py-1 rounded bg-amber-950/70 hover:bg-amber-900 border border-amber-500/40 text-amber-300 font-cinzel text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+                  title="Fazer Upload de nova foto"
+                >
+                  {isUploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                  <span>{isUploading ? 'Enviando...' : '📤 Fazer Upload'}</span>
+                </button>
+              </div>
+              <p className="text-gold/80 text-xs sm:text-sm uppercase font-bold tracking-[0.25em] flex flex-wrap items-center gap-2">
+                <span className="text-amber-400 font-extrabold">{monster.combatRole ? monster.combatRole.toUpperCase() : 'SOLO'}</span>
+                <span className="text-gold/30">•</span>
+                <span>{monster.type}</span>
+                <span className="text-gold/30">•</span>
+                <span>{monster.role}</span>
+                <span className="text-gold/30">•</span>
+                <span>{monster.rank}</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="p-8 grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Left Column: Stats & Description */}
-        <div className="lg:col-span-7 space-y-10">
+      {/* Internal Scrollable Body */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 md:p-8 lg:p-10 xl:p-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-start">
+          {/* Left Column: Stats & Description */}
+          <div className="lg:col-span-7 space-y-8 lg:space-y-10">
           {/* Description Block */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -149,11 +282,24 @@ export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ mo
 
               <div className="space-y-3">
                 {monster.spells.map((spell, idx) => (
-                  <div key={idx} className="p-4 rounded bg-purple-950/20 border border-purple-500/25 space-y-2.5 group hover:border-purple-500/50 transition-all">
+                  <div 
+                    key={idx} 
+                    onClick={() => setSelectedSpell(spell)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedSpell(spell);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Visualizar detalhes da magia ${spell.name}`}
+                    className="p-4 rounded bg-purple-950/20 border border-purple-500/25 space-y-2.5 group hover:border-purple-500/60 hover:bg-purple-950/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.25)] cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Sparkles size={14} className="text-purple-400" />
-                        <h4 className="text-purple-200 font-bold font-cinzel text-sm uppercase tracking-wide">
+                        <Sparkles size={14} className="text-purple-400 group-hover:scale-110 transition-transform" />
+                        <h4 className="text-purple-200 font-bold font-cinzel text-sm uppercase tracking-wide group-hover:text-purple-100">
                           {spell.name}
                         </h4>
                         {spell.category && (
@@ -176,6 +322,9 @@ export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ mo
                         <span className="px-2 py-0.5 rounded bg-stone-900 text-stone-300 border border-stone-700/40">
                           {spell.school}
                         </span>
+                        <span className="px-2 py-0.5 rounded bg-purple-950/60 text-purple-300/80 border border-purple-800/40 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Eye size={10} /> Ver Detalhes
+                        </span>
                       </div>
                     </div>
 
@@ -194,10 +343,15 @@ export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ mo
                           <span className="font-bold text-orange-200">{spell.damage}</span>
                         </div>
                       )}
-                      {spell.resistance && (
+                      {spell.dcFormatted && spell.dcFormatted !== '—' ? (
                         <div className="px-2.5 py-1 rounded bg-amber-950/50 border border-amber-700/50 text-amber-200 flex items-center gap-1.5">
-                          <span className="font-bold text-amber-400 text-[10px] uppercase">🟡 CD:</span>
+                          <span className="font-bold text-amber-400 text-[10px] uppercase">🟡 {spell.dcFormatted}:</span>
                           <span className="font-bold text-amber-200">{spell.resistance}</span>
+                        </div>
+                      ) : (
+                        <div className="px-2.5 py-1 rounded bg-stone-900/70 border border-stone-700/50 text-stone-300 flex items-center gap-1.5">
+                          <span className="font-bold text-stone-400 text-[10px] uppercase">⚪ TESTE:</span>
+                          <span className="font-medium text-stone-300">Não exige teste</span>
                         </div>
                       )}
                       <div className="px-2.5 py-1 rounded bg-blue-950/50 border border-blue-700/50 text-blue-200 flex items-center gap-1.5">
@@ -206,7 +360,9 @@ export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ mo
                       </div>
                     </div>
 
-                    <p className="text-stone-300 text-xs leading-relaxed italic">{spell.description}</p>
+                    <p className="text-stone-300 text-xs leading-relaxed">
+                      <strong className="text-purple-300 font-cinzel font-bold">Efeito:</strong> {spell.effectSummary || spell.description}
+                    </p>
 
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-purple-300/80 font-cinzel pt-2 border-t border-purple-900/30">
                       <span><strong>Execução:</strong> {spell.execution}</span>
@@ -313,11 +469,31 @@ export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ mo
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <Skull size={18} className="text-amber-400/80" />
-              <h3 className="text-lg font-cinzel text-amber-300 tracking-widest uppercase font-bold">Diretriz Tática</h3>
+              <h3 className="text-lg font-cinzel text-amber-300 tracking-widest uppercase font-bold">Diretriz Tática & Abertura</h3>
               <div className="h-[1px] flex-1 bg-gradient-to-r from-amber-500/30 to-transparent" />
             </div>
+
+            {monster.openingRound && (
+              <div className="p-4 rounded-lg bg-amber-950/30 border border-amber-500/40 space-y-1.5">
+                <div className="flex items-center gap-2 text-amber-400 font-cinzel font-bold text-xs uppercase tracking-wider">
+                  <Target size={14} className="text-amber-400" />
+                  <span>Princípio de Primeiro Turno (Abertura de Combate)</span>
+                </div>
+                <p className="text-amber-100 text-xs leading-relaxed font-cinzel font-medium">
+                  {monster.openingRound}
+                </p>
+              </div>
+            )}
+
             <div className="p-5 rounded bg-stone-900/70 border border-amber-900/30 text-amber-100/90 text-xs leading-relaxed font-cinzel italic">
-              {monster.tactics}
+              {monster.openingRound ? (
+                <div>
+                  <span className="text-amber-400 text-[10px] uppercase font-bold tracking-wider not-italic block mb-1.5">Estratégia Contínua:</span>
+                  {monster.tactics.replace(monster.openingRound, '').replace(/^Estratégia Contínua:\s*/i, '').trim()}
+                </div>
+              ) : (
+                monster.tactics
+              )}
             </div>
           </div>
 
@@ -388,6 +564,20 @@ export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ mo
           </div>
         </div>
       </div>
+    </div>
+
+      {/* Floating Spell Modal */}
+      <MonsterSpellModal 
+        spell={selectedSpell} 
+        onClose={() => setSelectedSpell(null)} 
+      />
+
+      {/* Library Modal */}
+      <MonsterStorageLibraryModal 
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        onSelect={handleSelectFromLibrary}
+      />
     </div>
   );
 };

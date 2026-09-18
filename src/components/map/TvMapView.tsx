@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { subscribeTvSync } from './mapService';
+import { subscribeTvSync, getStoredTvState } from './mapService';
 import { TvSyncState, TvSyncQuadrantItem } from './types';
 import { calculateAutomaticGrid } from './gridUtils';
 import { MapCanvas } from './MapCanvas';
 import { Tv, Sparkles, Maximize2, Minimize2, Radio, Compass } from 'lucide-react';
 
 export const TvMapView: React.FC = () => {
-  const [tvState, setTvState] = useState<TvSyncState | null>(null);
+  const [tvState, setTvState] = useState<TvSyncState | null>(() => getStoredTvState());
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isIdle, setIsIdle] = useState(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);

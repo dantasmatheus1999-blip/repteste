@@ -95,6 +95,7 @@ export interface GeneratedMonster extends MonsterStats {
   role: MonsterRole;
   rank: MonsterRank;
   description: string;
+  imageUrl?: string;
   attributes: {
     str: number;
     dex: number;
@@ -111,6 +112,7 @@ export interface GeneratedMonster extends MonsterStats {
   bossResources?: BossResourceEntry[];
   spells?: MonsterSpellEntry[];
   manaPoints?: number;
+  openingRound?: string;
   tactics: string;
   environment: string;
   theme: string;
@@ -377,8 +379,26 @@ export const MonsterGeneratorService = {
 
     const damageFormula = AttackGeneratorService.generateDiceFormula(targetDamage);
 
+    // ========================================================================
+    // REGRA 4: PRINCÍPIO DE "PRIMEIRO TURNO" (ABERTURA DE COMBATE)
+    // ========================================================================
+    // O conjunto de ações e magias deve permitir uma abertura de combate coerente:
+    // - Chefe Conjurador: abertura com controle de área / dano massivo + ação de chefe reposicionamento/defesa.
+    // - Chefe Atirador: ataque à distância no alvo vulnerável + reposicionamento tático / reação.
+    // - Chefe Marcial: investida no combate corpo a corpo + manobra de choque + recurso de chefe.
+    // - Chefe Tático: comando para aliados + manobra desestabilizadora + controle.
+    const openingRound = this.generateOpeningRound({
+      combatStyle: selectedCombatStyle,
+      rank: selectedRank,
+      attacks: generatedAttacks,
+      spells: generatedSpells,
+      bossResources,
+      theme: selectedTheme,
+    });
+
     // Táticas guiadas pelo Estilo de Combate
     const styleTactic = COMBAT_STYLE_TACTICS[selectedCombatStyle] || roleProfile.description;
+    const combinedTactics = `${openingRound}\n\nEstratégia Contínua: ${styleTactic}`;
 
     const baseMonster: GeneratedMonster = {
       id: Math.random().toString(36).substring(2, 11),
@@ -408,7 +428,8 @@ export const MonsterGeneratorService = {
       bossResources: bossResources && bossResources.length > 0 ? bossResources : undefined,
       spells: generatedSpells && generatedSpells.length > 0 ? generatedSpells : undefined,
       manaPoints,
-      tactics: styleTactic,
+      openingRound,
+      tactics: combinedTactics,
       environment: selectedEnvironment,
       theme: selectedTheme,
       targetDamage,
@@ -425,6 +446,69 @@ export const MonsterGeneratorService = {
     evolvedMonster.validation = validation;
 
     return evolvedMonster;
+  },
+
+  /**
+   * REGRA 4: GERAÇÃO DE DIRETRIZ DE PRIMEIRO TURNO (ABERTURA DE COMBATE)
+   * Responde à pergunta fundamental: "O que essa criatura faz no primeiro turno?"
+   */
+  generateOpeningRound(params: {
+    combatStyle: CombatStyle;
+    rank: MonsterRank;
+    attacks: string[];
+    spells?: MonsterSpellEntry[];
+    bossResources?: BossResourceEntry[];
+    theme?: string;
+  }): string {
+    const { combatStyle, rank, attacks, spells, bossResources } = params;
+    const isChefe = rank === 'chefe';
+    const isElite = rank === 'elite';
+    const primaryAttack = attacks[0]?.split(':')[0]?.trim() || 'Ataque Principal';
+    const bossActionName = bossResources?.[0]?.title || 'Ação de Chefe';
+
+    if (combatStyle === 'conjurador' && spells && spells.length > 0) {
+      // Procura magia de controle em área ou grande impacto ofensivo
+      const areaSpell = spells.find(s => s.category === 'controle' || (s.category === 'ofensiva' && s.range !== 'Toque'));
+      const openingSpell = areaSpell || spells[0];
+      
+      if (isChefe) {
+        return `Abertura (1º Turno): Conjura ${openingSpell.name} (${openingSpell.circle}º Círculo) na concentração máxima de adversários para controlar ou abrir o combate com impacto. Aciona imediatamente ${bossActionName} para recuar até posição protegida ou ativar barreira defensiva. Nos turnos seguintes, alterna ataques concentrados e contra-ataques mágicos.`;
+      }
+      if (isElite) {
+        return `Abertura (1º Turno): Lança ${openingSpell.name} contra o grupo de heróis para desestabilizar a aproximação, mantendo-se na retaguarda e reservando PM para focar fogo nos alvos mais perigosos.`;
+      }
+      return `Abertura (1º Turno): Conjura ${openingSpell.name} no primeiro oponente à vista, mantendo distância e buscando cobertura física antes de continuar disparando feitiços.`;
+    }
+
+    if (combatStyle === 'atirador') {
+      const rangedAttack = attacks.find(a => a.toLowerCase().includes('distância') || a.toLowerCase().includes('arco') || a.toLowerCase().includes('tiro') || a.toLowerCase().includes('flecha'))?.split(':')[0]?.trim() || primaryAttack;
+      if (isChefe) {
+        return `Abertura (1º Turno): Desfere disparo prioritário com ${rangedAttack} contra o conjurador ou combatente mais vulnerável na retaguarda dos heróis. Utiliza ${bossActionName} para se reposicionar em terreno elevado ou cobertura superior, preparando reação de disparo contra investidas.`;
+      }
+      if (isElite) {
+        return `Abertura (1º Turno): Assume posição vantajosa e desfere tiro focado com ${rangedAttack} no flanco dos heróis, mantendo linha de tiro limpa e recuando se pressionado.`;
+      }
+      return `Abertura (1º Turno): Dispara ${rangedAttack} a partir de cobertura parcial visando um alvo desprotegido, recuando 3m a 6m caso qualquer inimigo tente encurtar a distância.`;
+    }
+
+    if (combatStyle === 'marcial') {
+      if (isChefe) {
+        return `Abertura (1º Turno): Executa investida avassaladora com ${primaryAttack} contra o combatente mais resistente da vanguarda dos heróis, aplicando manobra de derrubar ou empurrar para romper a formação e ativando ${bossActionName} para espalhar pânico ou intimidar o grupo.`;
+      }
+      if (isElite) {
+        return `Abertura (1º Turno): Investe furiosamente contra a linha de frente inimiga com ${primaryAttack}, travando o oponente mais perigoso e criando espaço para o avanço de seus aliados.`;
+      }
+      return `Abertura (1º Turno): Investe em linha reta contra o oponente mais próximo com ${primaryAttack}, buscando travar o combatente na linha de frente e bloquear o acesso aos aliados na retaguarda.`;
+    }
+
+    // Tático
+    if (isChefe) {
+      return `Abertura (1º Turno): Emite ordem tática de combate concedendo bônus de coordenação aos aliados, desfere ${primaryAttack} buscando aplicar condição debilitante e utiliza ${bossActionName} para isolar o herói mais avançado.`;
+    }
+    if (isElite) {
+      return `Abertura (1º Turno): Posiciona-se no centro estratégico do combate, coordenando ataques combinados com seus aliados e punindo erros de posicionamento dos aventureiros com ${primaryAttack}.`;
+    }
+    return `Abertura (1º Turno): Avalia o posicionamento dos heróis, desferindo ${primaryAttack} com manobra de desarme ou finta para abrir brecha na defesa inimiga e facilitar o avanço de seus aliados.`;
   },
 
   /**

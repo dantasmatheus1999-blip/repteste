@@ -94,29 +94,44 @@ export async function compressDataUrl(
   });
 }
 
+import { StorageService } from '../services/storageService';
+
 /**
- * Garante que qualquer URL ou Data URL de avatar esteja otimizada para o Firestore.
+ * Garante que qualquer URL ou Data URL de avatar esteja otimizada e salva permanentemente no Firebase Storage.
  */
 export async function optimizeAvatar(urlOrDataUrl: string | undefined | null): Promise<string> {
   if (!urlOrDataUrl || typeof urlOrDataUrl !== 'string') {
     return 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&q=80';
   }
 
-  // URLs http/https externas não ocupam espaço no documento do Firestore
-  if (urlOrDataUrl.startsWith('http://') || urlOrDataUrl.startsWith('https://')) {
+  // URLs permanentes existentes (Firebase Storage ou imagens externas pré-definidas)
+  if (
+    urlOrDataUrl.includes('firebasestorage.googleapis.com') ||
+    urlOrDataUrl.includes('unsplash.com') ||
+    urlOrDataUrl.startsWith('/assets/')
+  ) {
     return urlOrDataUrl;
   }
 
-  // Data URLs grandes precisam ser comprimidas
-  if (urlOrDataUrl.startsWith('data:image/')) {
-    if (urlOrDataUrl.length > 40000) {
-      try {
+  // Se for data URL ou blob, envia permanentemente para o Firebase Storage
+  if (urlOrDataUrl.startsWith('data:') || urlOrDataUrl.startsWith('blob:')) {
+    try {
+      const permanentUrl = await StorageService.ensurePermanentUrl(urlOrDataUrl, {
+        category: 'avatar',
+        name: `avatar_${Date.now()}`
+      });
+      if (permanentUrl) return permanentUrl;
+    } catch (err) {
+      console.warn('[optimizeAvatar] Falha no upload para Firebase Storage, fallback para compressão local:', err);
+      if (urlOrDataUrl.startsWith('data:image/')) {
         return await compressDataUrl(urlOrDataUrl, { maxWidth: 280, maxHeight: 280, quality: 0.78 });
-      } catch (err) {
-        console.warn('Erro ao otimizar avatar data-url:', err);
-        return urlOrDataUrl;
       }
     }
+  }
+
+  // Se for qualquer outra URL http/https externa válida
+  if (urlOrDataUrl.startsWith('http://') || urlOrDataUrl.startsWith('https://')) {
+    return urlOrDataUrl;
   }
 
   return urlOrDataUrl;

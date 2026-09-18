@@ -143,6 +143,8 @@ export interface MonsterAbility {
   observations?: string;
 }
 
+export type SpellCombatCategory = 'ataque' | 'ofensiva' | 'controle' | 'defesa' | 'suporte' | 'utilidade';
+
 export interface MonsterSpellEntry {
   id: string;
   name: string;
@@ -150,13 +152,18 @@ export interface MonsterSpellEntry {
   costPM: number;
   type: 'arcana' | 'divina' | 'universal' | 'simulada';
   school: string;
+  category?: SpellCombatCategory;
   execution: string;
   range: string;
   targetOrArea: string;
   duration: string;
   resistance?: string;
+  attackBonus?: number;
+  damage?: string;
+  critical?: string;
   description: string;
   dcFormatted?: string;
+  effectSummary?: string;
 }
 
 export interface BossResourceEntry {
@@ -301,6 +308,15 @@ export interface EncounterParticipant {
   status: string[];
 }
 
+export interface MasterNoteAttachment {
+  id: string;
+  name: string;
+  url: string;
+  storagePath: string;
+  mimeType: string;
+  size: number;
+}
+
 export interface MasterNote {
   id: string;
   masterId: string;
@@ -315,6 +331,7 @@ export interface MasterNote {
   isSecret: boolean;
   isPinned: boolean;
   tags: string[];
+  attachments?: MasterNoteAttachment[];
   createdAt: any;
   updatedAt: any;
 }

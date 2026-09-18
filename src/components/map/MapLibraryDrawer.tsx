@@ -80,7 +80,7 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
 
   // Modal Mover Mapa
   const [movingMapId, setMovingMapId] = useState<string | null>(null);
-  const [selectedTargetFolderId, setSelectedTargetFolderId] = useState<string>('unorganized');
+  const [selectedTargetFolderId, setSelectedTargetFolderId] = useState<string>('');
 
   // Modal Renomear Mapa
   const [renamingMapId, setRenamingMapId] = useState<string | null>(null);
@@ -146,15 +146,14 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
   // Abrir Modal de Mover Mapa
   const handleOpenMoveMap = (map: TestMap) => {
     setMovingMapId(map.id);
-    setSelectedTargetFolderId(map.folderId || 'unorganized');
+    setSelectedTargetFolderId(map.folderId || folders[0]?.id || '');
     setActiveMenuMapId(null);
   };
 
   // Executar Mover Mapa
   const handleConfirmMoveMap = async () => {
-    if (!movingMapId) return;
-    const targetFolder = selectedTargetFolderId === 'unorganized' ? undefined : selectedTargetFolderId;
-    await onMoveMap(movingMapId, targetFolder);
+    if (!movingMapId || !selectedTargetFolderId) return;
+    await onMoveMap(movingMapId, selectedTargetFolderId);
     setMovingMapId(null);
   };
 
@@ -213,9 +212,8 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
   // Agrupamento por Pastas
   const groupedMaps = useMemo(() => {
     const mapByFolder: Record<string, TestMap[]> = {};
-    const unorganized: TestMap[] = [];
 
-    // Inicializar grupos de pastas conhecidas
+    // Inicializar grupos apenas das pastas do usuário
     folders.forEach(f => {
       mapByFolder[f.id] = [];
     });
@@ -223,12 +221,10 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
     sortedAndFilteredMaps.forEach(map => {
       if (map.folderId && mapByFolder[map.folderId]) {
         mapByFolder[map.folderId].push(map);
-      } else {
-        unorganized.push(map);
       }
     });
 
-    return { mapByFolder, unorganized };
+    return { mapByFolder };
   }, [folders, sortedAndFilteredMaps]);
 
   if (!isOpen) return null;
@@ -372,7 +368,7 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
                 BIBLIOTECA DE MAPAS
               </h2>
               <p className="text-[10px] text-stone-400 font-sans">
-                {maps.length} mapa{maps.length === 1 ? '' : 's'} em {folders.length} pasta{folders.length === 1 ? '' : 's'}
+                {folders.length} pasta{folders.length === 1 ? '' : 's'}
               </p>
             </div>
           </div>
@@ -609,64 +605,6 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
               </div>
             );
           })}
-
-          {/* 2. SEÇÃO: MAPAS SEM ORGANIZAÇÃO */}
-          {(groupedMaps.unorganized.length > 0 || folders.length === 0) && (
-            <div 
-              id="folder-group-unorganized"
-              className="bg-stone-900/40 border border-stone-800 rounded-xl overflow-hidden shadow-sm"
-            >
-              <div 
-                className="p-2.5 bg-stone-900/70 hover:bg-stone-850 border-b border-stone-800/80 flex items-center justify-between cursor-pointer transition-colors"
-                onClick={() => toggleFolderCollapse('unorganized')}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-base shrink-0">📁</span>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="font-cinzel font-bold text-stone-300 text-xs truncate">
-                      Mapas sem organização
-                    </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-stone-800 text-stone-400 border border-stone-700 shrink-0">
-                      {groupedMaps.unorganized.length}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenUploadModal(undefined)}
-                    className="p-1 rounded hover:bg-stone-800 text-stone-400 hover:text-amber-300 transition-colors"
-                    title="Adicionar mapa"
-                  >
-                    <Plus size={13} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => toggleFolderCollapse('unorganized')}
-                    className="p-1 rounded text-stone-400 hover:text-stone-200"
-                  >
-                    {collapsedFolders['unorganized'] ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                  </button>
-                </div>
-              </div>
-
-              {!collapsedFolders['unorganized'] && (
-                <div className="p-2.5">
-                  {groupedMaps.unorganized.length === 0 ? (
-                    <p className="text-[11px] text-stone-400 text-center py-2">
-                      Nenhum mapa avulso.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {groupedMaps.unorganized.map(map => renderMapCard(map))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Rodapé da Biblioteca: Botão de Novo Mapa */}
@@ -804,42 +742,30 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
               </p>
 
               <div className="space-y-1.5 max-h-56 overflow-y-auto">
-                {/* Opção: Sem Organização */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedTargetFolderId('unorganized')}
-                  className={`w-full text-left p-2.5 rounded-lg border transition-all flex items-center justify-between ${
-                    selectedTargetFolderId === 'unorganized'
-                      ? 'bg-amber-900/40 border-amber-400 text-amber-200 font-bold'
-                      : 'bg-stone-900/60 border-stone-800 hover:bg-stone-850 text-stone-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">📁</span>
-                    <span className="text-xs">Mapas sem organização</span>
-                  </div>
-                  {selectedTargetFolderId === 'unorganized' && <Check size={14} className="text-amber-400" />}
-                </button>
-
-                {/* Lista de Pastas */}
-                {folders.map(f => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setSelectedTargetFolderId(f.id)}
-                    className={`w-full text-left p-2.5 rounded-lg border transition-all flex items-center justify-between ${
-                      selectedTargetFolderId === f.id
-                        ? 'bg-amber-900/40 border-amber-400 text-amber-200 font-bold'
-                        : 'bg-stone-900/60 border-stone-800 hover:bg-stone-850 text-stone-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="text-base">{f.icon || '📁'}</span>
-                      <span className="text-xs truncate">{f.name}</span>
-                    </div>
-                    {selectedTargetFolderId === f.id && <Check size={14} className="text-amber-400" />}
-                  </button>
-                ))}
+                {folders.length === 0 ? (
+                  <p className="text-xs text-stone-400 py-4 text-center font-sans">
+                    Nenhuma pasta criada. Crie uma pasta primeiro para mover o mapa.
+                  </p>
+                ) : (
+                  folders.map(f => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setSelectedTargetFolderId(f.id)}
+                      className={`w-full text-left p-2.5 rounded-lg border transition-all flex items-center justify-between ${
+                        selectedTargetFolderId === f.id
+                          ? 'bg-amber-900/40 border-amber-400 text-amber-200 font-bold'
+                          : 'bg-stone-900/60 border-stone-800 hover:bg-stone-850 text-stone-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-base">{f.icon || '📁'}</span>
+                        <span className="text-xs truncate">{f.name}</span>
+                      </div>
+                      {selectedTargetFolderId === f.id && <Check size={14} className="text-amber-400" />}
+                    </button>
+                  ))
+                )}
               </div>
 
               <div className="pt-2 border-t border-stone-800 flex justify-end gap-2">
@@ -999,7 +925,7 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
                 Excluir a pasta <strong className="text-amber-300 font-cinzel">"{folderBeingDeleted?.name}"</strong>?
               </p>
               <p className="text-[11px] text-stone-400">
-                Os mapas contidos nela NÃO serão excluídos; eles serão movidos com segurança para <span className="text-amber-200">"Mapas sem organização"</span>.
+                Os mapas contidos nela NÃO serão excluídos.
               </p>
 
               <div className="pt-2 border-t border-stone-800 flex justify-end gap-2 font-cinzel">

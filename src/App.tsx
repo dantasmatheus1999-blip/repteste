@@ -258,6 +258,16 @@ const Home = () => {
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
+  const isTvMode = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/tv') ||
+    window.location.hash.startsWith('#/tv') ||
+    window.location.search.includes('mode=tv')
+  );
+
+  if (isTvMode) {
+    return <TvMapView />;
+  }
+
   return (
     <ErrorBoundary>
       <Router>
@@ -279,6 +289,8 @@ export default function App() {
                     <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                     <Route path="/join/:inviteCode" element={<AppLayout><GameInvitePage /></AppLayout>} />
                     <Route path="/campaigns/:campaignId/games/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
+                    <Route path="/mesa/:campaignId/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
+                    <Route path="/mesa/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
 
                     {/* Protected Routes */}
                     <Route path="/welcome" element={
@@ -331,6 +343,8 @@ export default function App() {
                             <Route path="/master/campaigns/:id/edit" element={<CampaignForm />} />
                             <Route path="/master/campaigns/:campaignId/games/:gameId" element={<GameBasicPage />} />
                             <Route path="/campaigns/:campaignId/games/:gameId" element={<GameBasicPage />} />
+                            <Route path="/mesa/:campaignId/:gameId" element={<GameBasicPage />} />
+                            <Route path="/mesa/:gameId" element={<GameBasicPage />} />
                             <Route path="/join/:inviteCode" element={<GameInvitePage />} />
                             <Route path="/master/campaigns/:campaignId/sessions/new" element={<SessionForm />} />
                             <Route path="/master/campaigns/:campaignId/sessions/:sessionId" element={<SessionForm />} />
@@ -384,7 +398,7 @@ export default function App() {
             }
           />
         </Routes>
-        <FirestoreDevHud />
+        {!isTvMode && <FirestoreDevHud />}
       </Router>
     </ErrorBoundary>
   );

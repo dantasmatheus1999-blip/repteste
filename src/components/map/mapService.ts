@@ -12,7 +12,7 @@ import {
   serverTimestamp 
 } from '../../firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../../firebase/storage';
+import { StorageService } from '../../services/storageService';
 import { TestMap, MapFolder, TvSyncState } from './types';
 
 const LOCAL_MAPS_KEY = 'realmor_local_test_maps';
@@ -29,40 +29,24 @@ try {
   // Ignora se não for suportado
 }
 
-export const SAMPLE_FOLDERS: MapFolder[] = [
-  {
-    id: 'folder-realmor',
-    name: 'Reino de Realmor',
-    description: 'Cidades, fortalezas e masmorras do reino principal',
-    icon: '👑',
-    createdAt: new Date('2026-01-01').toISOString(),
-    updatedAt: new Date('2026-01-01').toISOString()
-  },
-  {
-    id: 'folder-norte',
-    name: 'Campanha do Norte',
-    description: 'Estradas gélidas, acampamentos e montanhas',
-    icon: '⚔️',
-    createdAt: new Date('2026-01-02').toISOString(),
-    updatedAt: new Date('2026-01-02').toISOString()
-  },
-  {
-    id: 'folder-aventuras',
-    name: 'Aventuras & Ermos',
-    description: 'Ruínas ancestrais, cavernas e templos esquecidos',
-    icon: '🐉',
-    createdAt: new Date('2026-01-03').toISOString(),
-    updatedAt: new Date('2026-01-03').toISOString()
-  }
-];
+export const SAMPLE_FOLDERS: MapFolder[] = [];
 
 function getLocalFolders(): MapFolder[] {
   try {
     const raw = localStorage.getItem(LOCAL_FOLDERS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        // Filtra pastas de exemplo legadas e qualquer pasta física automática
+        return parsed.filter((f: any) => 
+          f && f.id &&
+          f.id !== 'folder-realmor' &&
+          f.id !== 'folder-norte' &&
+          f.id !== 'folder-aventuras' &&
+          f.name !== 'MAPAS SEM ORGANIZAÇÃO' &&
+          f.name !== 'Mapas sem organização' &&
+          f.id !== 'unorganized'
+        );
       }
     }
   } catch (e) {}
@@ -94,13 +78,13 @@ function setLocalMaps(maps: TestMap[]) {
   } catch (e) {}
 }
 
-// Mapas padrão de teste para garantir usabilidade imediata
+// Mapas padrão de teste (iniciam sem pasta)
 export const SAMPLE_MAPS: TestMap[] = [
   {
     id: 'sample-taverna',
     name: 'Taverna do Javali Dourado',
     imageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1600&q=80',
-    folderId: 'folder-realmor',
+    folderId: undefined,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     grid: { enabled: true, size: 50, color: '#FFFFFF', opacity: 0.35, thickness: 1.2 },
@@ -113,7 +97,7 @@ export const SAMPLE_MAPS: TestMap[] = [
     id: 'sample-cripta',
     name: 'Cripta dos Antigos Reis',
     imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1600&q=80',
-    folderId: 'folder-aventuras',
+    folderId: undefined,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     grid: { enabled: true, size: 60, color: '#FFFFFF', opacity: 0.35, thickness: 1.2 },
@@ -125,7 +109,7 @@ export const SAMPLE_MAPS: TestMap[] = [
     id: 'sample-floresta',
     name: 'Clareira da Névoa Sombria',
     imageUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1600&q=80',
-    folderId: 'folder-norte',
+    folderId: undefined,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     grid: { enabled: false, size: 50, color: '#FFFFFF', opacity: 0.35, thickness: 1.2 },
@@ -137,7 +121,8 @@ const MAPS_COLLECTION = 'testMaps';
 const FOLDERS_COLLECTION = 'mapFolders';
 
 /**
- * Busca todas as pastas de mapas.
+ * Busca todas as pastas de mapas criadas pelo usuário.
+ * Não cria pastas automáticas.
  */
 export async function fetchMapFolders(): Promise<MapFolder[]> {
   const local = getLocalFolders();
@@ -147,18 +132,28 @@ export async function fetchMapFolders(): Promise<MapFolder[]> {
     const snap = await getDocs(query(colRef));
 
     if (snap.empty) {
-      if (local.length > 0) return local;
-      setLocalFolders(SAMPLE_FOLDERS);
-      // Persiste as pastas de exemplo iniciais no Firestore de forma transparente se desejado
-      return SAMPLE_FOLDERS;
+      return local;
     }
 
     const folders: MapFolder[] = [];
     snap.forEach(docSnap => {
       const data = docSnap.data();
+      const folderId = docSnap.id;
+      // Não carregar pastas automáticas legadas
+      if (
+        folderId === 'folder-realmor' ||
+        folderId === 'folder-norte' ||
+        folderId === 'folder-aventuras' ||
+        folderId === 'unorganized' ||
+        data.name === 'MAPAS SEM ORGANIZAÇÃO' ||
+        data.name === 'Mapas sem organização'
+      ) {
+        return;
+      }
+
       folders.push({
-        id: docSnap.id,
-        name: data.name || 'Pasta Sem Nome',
+        id: folderId,
+        name: data.name || 'Nova Pasta',
         description: data.description || '',
         icon: data.icon || '📁',
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
@@ -166,15 +161,13 @@ export async function fetchMapFolders(): Promise<MapFolder[]> {
       });
     });
 
-    if (folders.length > 0) {
-      setLocalFolders(folders);
-      return folders;
-    }
+    setLocalFolders(folders);
+    return folders;
   } catch (err: any) {
     console.warn('[MapService] Não foi possível consultar pastas do Firestore (cota ou rede), usando armazenamento local:', err?.message || err);
   }
 
-  return local.length > 0 ? local : SAMPLE_FOLDERS;
+  return local;
 }
 
 /**
@@ -367,57 +360,64 @@ export async function deleteTestMap(mapId: string): Promise<void> {
 
 /**
  * Upload de imagem do mapa:
- * 1. Tenta Firebase Storage.
- * 2. Se falhar (ex.: regras ou CORS), faz fallback transparente para /api/upload-map do servidor Node/Express.
+ * Armazena PERMANENTEMENTE no Firebase Storage e registra metadados no Firestore.
  */
 export async function uploadMapImage(file: File): Promise<{ url: string; name: string }> {
-  const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const uniqueName = `map_${Date.now()}_${cleanName}`;
+  const baseName = file.name.replace(/\.[^/.]+$/, '');
+  const metadata = await StorageService.uploadFile(file, {
+    category: 'map',
+    name: baseName,
+    folder: 'maps'
+  });
 
-  // 1. Tentar Firebase Storage
-  try {
-    const storageRef = ref(storage, `test_maps/${uniqueName}`);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadUrl = await getDownloadURL(snapshot.ref);
-    return { url: downloadUrl, name: file.name.replace(/\.[^/.]+$/, '') };
-  } catch (storageError) {
-    console.warn('Firebase Storage indisponível ou bloqueado, utilizando servidor local Express...', storageError);
+  return {
+    url: metadata.url,
+    name: metadata.name
+  };
+}
+
+/**
+ * Remove recursivamente todas as propriedades undefined ou valores inválidos
+ * para evitar rejeição de escrita no Firestore (FirebaseError: Unsupported field value: undefined).
+ */
+export function sanitizeForFirestore<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return null as any;
   }
-
-  // 2. Fallback para /api/upload-map
-  try {
-    const formData = new FormData();
-    formData.append('map', file);
-    const response = await fetch('/api/upload-map', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      throw new Error(`Falha no upload do servidor: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    if (!data.url) {
-      throw new Error('Servidor não retornou URL do arquivo');
-    }
-
-    return { url: data.url, name: file.name.replace(/\.[^/.]+$/, '') };
-  } catch (serverError) {
-    console.error('Erro em ambos os métodos de upload:', serverError);
-    // Último recurso: Leitor local como base64 data URL
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        resolve({
-          url: reader.result as string,
-          name: file.name.replace(/\.[^/.]+$/, '')
-        });
-      };
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo localmente'));
-      reader.readAsDataURL(file);
-    });
+  if (Array.isArray(obj)) {
+    return obj
+      .filter(item => item !== undefined)
+      .map(item => sanitizeForFirestore(item)) as any;
   }
+  if (typeof obj === 'object') {
+    if (obj.constructor && obj.constructor.name !== 'Object') {
+      return obj;
+    }
+    const cleanObj: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleanObj[key] = sanitizeForFirestore(value);
+      }
+    }
+    return cleanObj as any;
+  }
+  return obj;
+}
+
+/**
+ * Obtém o último estado transmitido para a TV salvo localmente.
+ */
+export function getStoredTvState(): TvSyncState | null {
+  try {
+    const saved = localStorage.getItem(TV_LOCAL_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && (parsed.imageUrl || (parsed.quadrants && parsed.quadrants.length > 0))) {
+        return parsed as TvSyncState;
+      }
+    }
+  } catch (e) {}
+  return null;
 }
 
 /**
@@ -426,26 +426,28 @@ export async function uploadMapImage(file: File): Promise<{ url: string; name: s
  * - Transmite via BroadcastChannel exclusivo para atualização instantânea na mesma máquina
  */
 export async function broadcastToTv(state: TvSyncState): Promise<void> {
+  const sanitized = sanitizeForFirestore(state);
+
   // 1. Envio local imediato via BroadcastChannel seguro
   try {
     if (localTvChannel) {
       localTvChannel.postMessage({
         type: 'tv_sync_update',
-        state
+        state: sanitized
       });
     }
   } catch (e) {}
 
   // 2. Armazenamento local auxiliar
   try {
-    localStorage.setItem(TV_LOCAL_KEY, JSON.stringify(state));
+    localStorage.setItem(TV_LOCAL_KEY, JSON.stringify(sanitized));
   } catch (e) {}
 
   // 3. Firestore como Fonte de Verdade para sincronização (com proteção de cota)
   try {
     const docRef = doc(db, 'test_tv_sync', 'current');
     await setDoc(docRef, {
-      ...state,
+      ...sanitized,
       updatedAt: new Date().toISOString(),
       serverTimestamp: serverTimestamp(),
       __diagnosticReason: 'tv broadcast'
@@ -455,7 +457,7 @@ export async function broadcastToTv(state: TvSyncState): Promise<void> {
       // Ignora erro de cota pois a transmissão local já foi concluída
       return;
     }
-    console.warn('[TvSync] Erro ao transmitir para a TV no Firestore:', err);
+    console.error('[TvSync] Erro ao transmitir para a TV no Firestore:', err);
     throw err;
   }
 }
@@ -467,10 +469,21 @@ export async function broadcastToTv(state: TvSyncState): Promise<void> {
  * A TV é estritamente de leitura (não faz escritas nem heartbeats no Firestore).
  */
 export function subscribeTvSync(callback: (state: TvSyncState | null) => void): () => void {
+  // Notifica imediatamente com estado local se disponível para evitar tela vazia na inicialização
+  const localInitial = getStoredTvState();
+  if (localInitial) {
+    try {
+      callback(localInitial);
+    } catch (e) {}
+  }
+
   // Listener seguro do BroadcastChannel (mesma máquina)
   const handleBroadcast = (event: MessageEvent) => {
-    if (event.data && event.data.type === 'tv_sync_update' && event.data.state?.imageUrl) {
-      callback(event.data.state as TvSyncState);
+    if (event.data && event.data.type === 'tv_sync_update') {
+      const bState = event.data.state as TvSyncState;
+      if (bState && (bState.imageUrl || (bState.quadrants && bState.quadrants.length > 0))) {
+        callback(bState);
+      }
     }
   };
 
@@ -485,7 +498,10 @@ export function subscribeTvSync(callback: (state: TvSyncState | null) => void): 
     unsubFirestore = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as TvSyncState;
-        if (data && data.imageUrl) {
+        if (data && (data.imageUrl || (data.quadrants && data.quadrants.length > 0))) {
+          try {
+            localStorage.setItem(TV_LOCAL_KEY, JSON.stringify(data));
+          } catch (e) {}
           callback(data);
         }
       }

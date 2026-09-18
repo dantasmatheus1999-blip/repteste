@@ -14,7 +14,10 @@ import {
   Dices,
   Heart,
   Trash2,
-  X
+  X,
+  RefreshCw,
+  Sparkles,
+  Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
@@ -22,7 +25,9 @@ import { MasterService } from '../../services/masterService';
 import { NPC } from '../../types/master';
 import { Button } from '../../components/Button';
 import { MonsterGeneratorCard } from '../../components/master/monster-generator/MonsterGeneratorCard';
+import { DEFAULT_NEUTRAL_MONSTER_IMAGE } from '../../components/master/monster-generator/monsterImageLibrary';
 import { GeneratedMonster } from '../../services/monsterGeneratorService';
+import { fetchStorageMonsterLibrary, StorageMonster } from '../../services/monsterStorageService';
 
 export const BestiaryPage: React.FC = () => {
   const { user } = useAuth();
@@ -33,9 +38,53 @@ export const BestiaryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [rankFilter, setRankFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'list' | 'generator'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'library' | 'generator'>('list');
   const [monsterToDelete, setMonsterToDelete] = useState<NPC | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Biblioteca Padrão de Monstros (Firebase Storage mostro/)
+  const [storageMonsters, setStorageMonsters] = useState<StorageMonster[]>([]);
+  const [loadingStorage, setLoadingStorage] = useState(false);
+  const [storageSearch, setStorageSearch] = useState('');
+  const [generatorPreset, setGeneratorPreset] = useState<{ name?: string; imageUrl?: string } | null>(null);
+
+  const loadStorageMonsters = async (forceRefresh = false) => {
+    setLoadingStorage(true);
+    try {
+      const items = await fetchStorageMonsterLibrary(forceRefresh);
+      setStorageMonsters(items);
+    } catch (err: any) {
+      console.info('[BestiaryPage] Consulta à biblioteca do Storage:', err?.message);
+    } finally {
+      setLoadingStorage(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'library' && storageMonsters.length === 0) {
+      loadStorageMonsters();
+    }
+  }, [activeTab]);
+
+  const handleSelectMonsterFromLibrary = (monster: StorageMonster, mode: 'form' | 'generator') => {
+    if (mode === 'form') {
+      const targetUrl = campaignId 
+        ? `/master/campaigns/${campaignId}/monsters/new` 
+        : `/master/monsters/new`;
+      navigate(targetUrl, {
+        state: {
+          name: monster.name,
+          imageUrl: monster.url
+        }
+      });
+    } else {
+      setGeneratorPreset({
+        name: monster.name,
+        imageUrl: monster.url
+      });
+      setActiveTab('generator');
+    }
+  };
 
   useEffect(() => {
     if (user && campaignId) {
@@ -75,6 +124,7 @@ export const BestiaryPage: React.FC = () => {
         description: `Rank: ${monster.rank} | Papel: ${monster.combatRole || monster.role} | ND: ${monster.nd} | Tema: ${monster.theme}\n\nAmbiente: ${monster.environment}\n\nTáticas: ${monster.tactics}\n\nHabilidades: ${monster.abilities.join(', ')}`,
         attitude: 'hostile',
         category: 'monster',
+        imageUrl: monster.imageUrl || DEFAULT_NEUTRAL_MONSTER_IMAGE,
         campaignId: campaignId || '',
         isFavorite: false,
         combatProfile: monster.combatProfile,
@@ -188,15 +238,30 @@ export const BestiaryPage: React.FC = () => {
             <div className="flex p-1 bg-black/40 border border-gold/20 rounded-xl">
               <button
                 onClick={() => setActiveTab('list')}
-                className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+                className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
                   activeTab === 'list' ? 'bg-gold text-mythos-bg shadow-lg' : 'text-gold/40 hover:text-gold'
                 }`}
               >
                 Lista
               </button>
               <button
+                onClick={() => setActiveTab('library')}
+                className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-1.5 ${
+                  activeTab === 'library' ? 'bg-gold text-mythos-bg shadow-lg' : 'text-gold/40 hover:text-gold'
+                }`}
+              >
+                <span>Biblioteca</span>
+                {storageMonsters.length > 0 && (
+                  <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                    activeTab === 'library' ? 'bg-black/80 text-amber-300' : 'bg-gold/10 text-gold'
+                  }`}>
+                    {storageMonsters.length}
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab('generator')}
-                className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+                className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
                   activeTab === 'generator' ? 'bg-gold text-mythos-bg shadow-lg' : 'text-gold/40 hover:text-gold'
                 }`}
               >
@@ -226,7 +291,157 @@ export const BestiaryPage: React.FC = () => {
             <MonsterGeneratorCard 
               onSave={handleSaveMonster} 
               onClose={() => setActiveTab('list')}
+              initialName={generatorPreset?.name}
+              initialImageUrl={generatorPreset?.imageUrl}
             />
+          </motion.div>
+        ) : activeTab === 'library' ? (
+          <motion.div
+            key="library"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-8"
+          >
+            {/* Library Header & Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gold/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/30 flex items-center justify-center text-gold">
+                  <BookOpen size={22} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-cinzel text-gold font-bold tracking-wide flex items-center gap-3">
+                    Biblioteca de Monstros
+                  </h3>
+                  <p className="text-xs text-gold/60 font-cinzel">
+                    Acervo padrão do REALMOR lido da pasta <code className="text-amber-300 font-mono">mostro/</code> no Firebase Storage
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => loadStorageMonsters(true)}
+                  disabled={loadingStorage}
+                  icon={RefreshCw}
+                  className="text-[10px] font-black uppercase tracking-wider"
+                >
+                  {loadingStorage ? 'Atualizando...' : 'Atualizar Acervo'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gold/40" size={18} />
+              <input 
+                type="text"
+                placeholder="Buscar monstro na biblioteca..."
+                value={storageSearch}
+                onChange={(e) => setStorageSearch(e.target.value)}
+                className="w-full bg-black/40 border border-gold/20 rounded-xl pl-12 pr-4 py-3 text-gold placeholder:text-gold/20 focus:outline-none focus:border-gold font-cinzel text-sm shadow-inner"
+              />
+            </div>
+
+            {/* Content: Loading, Empty or Grid */}
+            {loadingStorage ? (
+              <div className="py-24 text-center space-y-4">
+                <RefreshCw className="w-12 h-12 text-gold animate-spin mx-auto" />
+                <p className="text-gold/60 font-cinzel italic text-base animate-pulse">
+                  Consultando acervo de criaturas em Firebase Storage (pasta mostro/)...
+                </p>
+              </div>
+            ) : storageMonsters.length === 0 ? (
+              <div className="glass-card p-12 rounded-3xl border border-gold/10 text-center space-y-4 max-w-xl mx-auto">
+                <Skull className="w-16 h-16 text-gold/20 mx-auto" />
+                <h4 className="text-xl font-cinzel font-black text-gold">Nenhum Monstro Encontrado</h4>
+                <p className="text-sm text-gold/60 font-cinzel leading-relaxed">
+                  Não foram encontrados arquivos <code className="text-amber-300 font-mono">.png</code> na pasta <code className="text-amber-300 font-mono">mostro/</code> do Firebase Storage.
+                </p>
+                <div className="pt-2">
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    onClick={() => loadStorageMonsters(true)}
+                    icon={RefreshCw}
+                  >
+                    Tentar Novamente
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between text-xs text-gold/40 font-cinzel uppercase tracking-widest">
+                  <span>
+                    Mostrando {storageMonsters.filter(m => m.name.toLowerCase().includes(storageSearch.toLowerCase()) || m.fileName.toLowerCase().includes(storageSearch.toLowerCase())).length} de {storageMonsters.length} criaturas
+                  </span>
+                  <span>Clique para criar ficha ou gerar ameaça</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {storageMonsters
+                    .filter(m => m.name.toLowerCase().includes(storageSearch.toLowerCase()) || m.fileName.toLowerCase().includes(storageSearch.toLowerCase()))
+                    .map((monster) => (
+                      <div
+                        key={monster.id}
+                        className="group relative flex flex-col rounded-2xl border-2 border-gold/20 hover:border-gold transition-all duration-300 overflow-hidden shadow-xl bg-mythos-card/60 hover:shadow-[0_0_30px_rgba(212,175,55,0.25)]"
+                      >
+                        {/* Image Area */}
+                        <div 
+                          className="relative aspect-[4/5] overflow-hidden bg-black/60 cursor-pointer"
+                          onClick={() => handleSelectMonsterFromLibrary(monster, 'form')}
+                        >
+                          <img 
+                            src={monster.url} 
+                            alt={monster.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                          
+                          <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-black/80 border border-gold/30 text-[9px] font-cinzel font-bold text-amber-300 uppercase tracking-widest shadow">
+                            mostro/
+                          </div>
+
+                          <div className="absolute bottom-0 inset-x-0 p-4">
+                            <h4 className="text-xl font-cinzel font-black text-gold drop-shadow leading-tight line-clamp-2">
+                              {monster.name}
+                            </h4>
+                            <p className="text-[10px] text-gold/40 font-mono truncate mt-0.5">
+                              {monster.fileName}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Card Actions */}
+                        <div className="p-3 bg-black/50 border-t border-gold/10 grid grid-cols-2 gap-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleSelectMonsterFromLibrary(monster, 'form')}
+                            className="w-full text-[10px] font-black uppercase tracking-wider justify-center py-2"
+                            icon={Plus}
+                          >
+                            Ficha
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleSelectMonsterFromLibrary(monster, 'generator')}
+                            className="w-full text-[10px] font-black uppercase tracking-wider justify-center py-2"
+                            icon={Zap}
+                          >
+                            Gerador
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.div

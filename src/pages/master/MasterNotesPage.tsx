@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Plus, 
@@ -12,11 +12,17 @@ import {
   X,
   Lock,
   Eye,
-  Tag
+  Tag,
+  Paperclip,
+  FileText,
+  Download,
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { MasterService } from '../../services/masterService';
-import { MasterNote } from '../../types/master';
+import { StorageService } from '../../services/storageService';
+import { MasterNote, MasterNoteAttachment } from '../../types/master';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 
@@ -30,12 +36,16 @@ export const MasterNotesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [editingNote, setEditingNote] = useState<MasterNote | null>(null);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState<Partial<MasterNote>>({
     title: '',
     content: '',
     category: 'Geral',
     isSecret: true,
     tags: [],
+    attachments: []
   });
 
   useEffect(() => {
@@ -54,6 +64,51 @@ export const MasterNotesPage: React.FC = () => {
     }
   }, [user, campaignId]);
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    try {
+      setIsUploadingAttachment(true);
+      const metadata = await StorageService.uploadFile(file, {
+        category: 'document',
+        name: file.name.replace(/\.[^/.]+$/, ''),
+        relatedEntityId: editingNote?.id
+      });
+
+      const newAttachment: MasterNoteAttachment = {
+        id: metadata.id,
+        name: metadata.name || file.name,
+        url: metadata.url,
+        storagePath: metadata.storagePath,
+        mimeType: metadata.mimeType,
+        size: metadata.size
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), newAttachment]
+      }));
+    } catch (err) {
+      console.error('Erro ao anexar arquivo:', err);
+    } finally {
+      setIsUploadingAttachment(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAttachment = async (attachment: MasterNoteAttachment) => {
+    try {
+      await StorageService.deleteUserFile(attachment.id, attachment.storagePath);
+      setFormData(prev => ({
+        ...prev,
+        attachments: prev.attachments?.filter(a => a.id !== attachment.id) || []
+      }));
+    } catch (err) {
+      console.error('Erro ao excluir anexo:', err);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !formData.title) return;
@@ -66,7 +121,7 @@ export const MasterNotesPage: React.FC = () => {
       }
       setIsCreating(false);
       setEditingNote(null);
-      setFormData({ title: '', content: '', category: 'Geral', isSecret: true, tags: [] });
+      setFormData({ title: '', content: '', category: 'Geral', isSecret: true, tags: [], attachments: [] });
     } catch (error) {
       console.error("Error saving note:", error);
     }
@@ -150,6 +205,60 @@ export const MasterNotesPage: React.FC = () => {
                   className="w-full bg-black/40 border border-gold/10 rounded-sm py-3 px-4 text-gold placeholder:text-gold/20 focus:outline-none focus:border-gold/40 transition-colors resize-none"
                 />
               </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] uppercase font-bold text-gold/40 tracking-widest flex items-center gap-1.5">
+                    <Paperclip size={12} className="text-gold/60" /> Anexos, PDFs e Documentos
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.txt,image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    icon={isUploadingAttachment ? Loader2 : Plus}
+                    disabled={isUploadingAttachment}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {isUploadingAttachment ? 'Enviando ao Storage...' : 'Anexar Arquivo'}
+                  </Button>
+                </div>
+
+                {formData.attachments && formData.attachments.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                    {formData.attachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="flex items-center justify-between p-2.5 rounded bg-black/40 border border-gold/10 text-xs text-gold/80 hover:border-gold/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+                          <FileText size={16} className="text-gold shrink-0" />
+                          <span className="truncate font-medium">{att.name}</span>
+                          {att.size && (
+                            <span className="text-[10px] text-gold/40 shrink-0">
+                              ({(att.size / 1024).toFixed(0)} KB)
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAttachment(att)}
+                          className="text-gold/30 hover:text-red-400 transition-colors p-1"
+                          title="Remover anexo"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center gap-6">
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <input 
@@ -235,6 +344,30 @@ export const MasterNotesPage: React.FC = () => {
                       {note.content}
                     </p>
                   </div>
+
+                  {note.attachments && note.attachments.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-gold/10 space-y-1.5">
+                      <span className="text-[9px] uppercase font-bold text-gold/40 tracking-wider flex items-center gap-1">
+                        <Paperclip size={10} /> {note.attachments.length} {note.attachments.length === 1 ? 'Anexo' : 'Anexos'}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {note.attachments.map((att) => (
+                          <a
+                            key={att.id}
+                            href={att.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-black/40 border border-gold/20 text-[10px] text-gold/90 hover:text-gold hover:border-gold/50 transition-all max-w-full"
+                            title={att.name}
+                          >
+                            <FileText size={11} className="text-gold shrink-0" />
+                            <span className="truncate max-w-[130px]">{att.name}</span>
+                            <ExternalLink size={10} className="text-gold/40 shrink-0" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-6 pt-4 border-t border-gold/5 flex justify-between items-center">
                     <span className="text-[8px] text-gold/20 uppercase font-bold tracking-widest">

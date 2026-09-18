@@ -869,7 +869,9 @@ console.log('\n[NÍVEL 9] Executando Bateria de Testes Obrigatórios de Magias e
   });
   const spells = t5.spells || [];
   const maxAllowedCircle = MonsterMagicService.getMaxCircle(10); // 3º Círculo
-  const allMaxCircle = spells.length > 0 && spells.every(s => s.circle === maxAllowedCircle);
+  const noneExceedsMax = spells.every(s => s.circle <= maxAllowedCircle);
+  const maxCircleCount = spells.filter(s => s.circle === maxAllowedCircle).length;
+  const stronglyPrioritizesMax = maxCircleCount >= spells.length - 1;
   const offensiveCount = spells.filter(s => s.category === 'ataque' || s.category === 'ofensiva').length;
 
   recordAssertion(spells.length >= 3 && spells.length <= 5, {
@@ -880,13 +882,21 @@ console.log('\n[NÍVEL 9] Executando Bateria de Testes Obrigatórios de Magias e
     expected: '3 a 5 magias',
     received: `${spells.length} magias`
   });
-  recordAssertion(allMaxCircle, {
+  recordAssertion(noneExceedsMax, {
     suite: 'TESTE 5 (Especial ND 10 Chefe Conjurador)',
     combatRole: 'especial',
     nd: '10',
-    parameter: 'TODAS as magias devem ser de 3º círculo',
-    expected: '100% magias de 3º círculo',
-    received: allMaxCircle ? 'Todas de 3º círculo' : 'Contém círculos diferentes'
+    parameter: 'Nenhuma magia ultrapassa o 3º círculo',
+    expected: 'círculo <= 3',
+    received: noneExceedsMax ? 'Conforme' : 'Círculo excedido'
+  });
+  recordAssertion(stronglyPrioritizesMax, {
+    suite: 'TESTE 5 (Especial ND 10 Chefe Conjurador)',
+    combatRole: 'especial',
+    nd: '10',
+    parameter: 'Chefe prioriza fortemente o maior círculo (pelo menos N-1 magias)',
+    expected: `>= ${spells.length - 1} de 3º círculo`,
+    received: `${maxCircleCount}/${spells.length} de 3º círculo`
   });
   recordAssertion(offensiveCount >= 2, {
     suite: 'TESTE 5 (Especial ND 10 Chefe Conjurador)',
@@ -909,7 +919,9 @@ console.log('\n[NÍVEL 9] Executando Bateria de Testes Obrigatórios de Magias e
   });
   const spells = t6.spells || [];
   const maxAllowedCircle = MonsterMagicService.getMaxCircle(20); // 5º Círculo
-  const allMaxCircle = spells.length > 0 && spells.every(s => s.circle === maxAllowedCircle);
+  const noneExceedsMax = spells.every(s => s.circle <= maxAllowedCircle);
+  const maxCircleCount = spells.filter(s => s.circle === maxAllowedCircle).length;
+  const stronglyPrioritizesMax = maxCircleCount >= spells.length - 1;
   const offensiveCount = spells.filter(s => s.category === 'ataque' || s.category === 'ofensiva').length;
 
   recordAssertion(spells.length >= 6 && spells.length <= 8, {
@@ -920,13 +932,21 @@ console.log('\n[NÍVEL 9] Executando Bateria de Testes Obrigatórios de Magias e
     expected: '6 a 8 magias',
     received: `${spells.length} magias`
   });
-  recordAssertion(allMaxCircle, {
+  recordAssertion(noneExceedsMax, {
     suite: 'TESTE 6 (Especial ND 20 Chefe Conjurador)',
     combatRole: 'especial',
     nd: '20',
-    parameter: 'TODAS as magias devem ser de 5º círculo',
-    expected: '100% magias de 5º círculo',
-    received: allMaxCircle ? 'Todas de 5º círculo' : 'Contém círculos inferiores'
+    parameter: 'Nenhuma magia ultrapassa o 5º círculo',
+    expected: 'círculo <= 5',
+    received: noneExceedsMax ? 'Conforme' : 'Círculo excedido'
+  });
+  recordAssertion(stronglyPrioritizesMax, {
+    suite: 'TESTE 6 (Especial ND 20 Chefe Conjurador)',
+    combatRole: 'especial',
+    nd: '20',
+    parameter: 'Chefe prioriza fortemente o maior círculo (pelo menos N-1 magias)',
+    expected: `>= ${spells.length - 1} de 5º círculo`,
+    received: `${maxCircleCount}/${spells.length} de 5º círculo`
   });
   recordAssertion(offensiveCount >= 3, {
     suite: 'TESTE 6 (Especial ND 20 Chefe Conjurador)',
@@ -935,6 +955,107 @@ console.log('\n[NÍVEL 9] Executando Bateria de Testes Obrigatórios de Magias e
     parameter: 'Aproximadamente metade ofensivas/ataque',
     expected: '>= 3 ofensivas/ataque (metade de 6-8)',
     received: `${offensiveCount} ofensivas/ataque`
+  });
+}
+
+// ============================================================================
+// NÍVEL 10: VALIDAÇÃO DOS REFINAMENTOS FINAIS
+// ============================================================================
+console.log('\n[NÍVEL 10] Validação Específica dos Refinamentos Finais...');
+
+// Teste 10.1: CD oficial estrita nas magias
+{
+  const caster = MonsterGeneratorService.generate({
+    nd: '12',
+    combatRole: 'especial',
+    combatStyle: 'conjurador',
+    rank: 'elite'
+  });
+  const officialSaveDC = caster.saveDC;
+  const spells = caster.spells || [];
+  const savingSpells = spells.filter(s => s.dcFormatted && s.dcFormatted !== '—');
+  const allUseOfficialDC = savingSpells.every(s => s.dcFormatted === `CD ${officialSaveDC}` && s.resistance.includes(`CD ${officialSaveDC}`));
+
+  recordAssertion(allUseOfficialDC, {
+    suite: 'TESTE 10.1 (Conformidade de CD Estrutural T20)',
+    combatRole: 'especial',
+    nd: '12',
+    parameter: 'Magias utilizam estritamente a CD da criatura da Tabela 2-3',
+    expected: `CD ${officialSaveDC} em todas as magias com teste`,
+    received: allUseOfficialDC ? `Todas usam CD ${officialSaveDC}` : 'Divergência de CD encontrada'
+  });
+}
+
+// Teste 10.2: Princípio de Primeiro Turno (Abertura de Combate)
+{
+  const bossCaster = MonsterGeneratorService.generate({
+    nd: '15',
+    combatRole: 'especial',
+    combatStyle: 'conjurador',
+    rank: 'chefe'
+  });
+  const hasOpening = !!bossCaster.openingRound && bossCaster.openingRound.includes('Abertura (1º Turno)');
+  recordAssertion(hasOpening, {
+    suite: 'TESTE 10.2 (Princípio de Primeiro Turno)',
+    combatRole: 'especial',
+    nd: '15',
+    parameter: 'Geração de Diretriz de Abertura (1º Turno)',
+    expected: 'Abertura (1º Turno) presente',
+    received: hasOpening ? 'Diretriz presente' : 'Ausente'
+  });
+}
+
+// Teste 10.3: Sem duplicatas funcionais de ID no repertório
+{
+  const boss = MonsterGeneratorService.generate({
+    nd: '20',
+    combatRole: 'especial',
+    combatStyle: 'conjurador',
+    rank: 'chefe'
+  });
+  const spells = boss.spells || [];
+  const idSet = new Set(spells.map(s => s.id));
+  const noDuplicates = idSet.size === spells.length;
+
+  recordAssertion(noDuplicates, {
+    suite: 'TESTE 10.3 (Diversidade e Ausência de Duplicatas)',
+    combatRole: 'especial',
+    nd: '20',
+    parameter: 'Sem magias duplicadas no mesmo repertório',
+    expected: `${spells.length} IDs únicos`,
+    received: `${idSet.size} IDs únicos`
+  });
+}
+
+// Teste 10.4: Exceção controlada de círculo inferior (no máximo 1 e com função real)
+{
+  let lowerCircleFound = false;
+  let lowerCircleCompliant = true;
+  for (let i = 0; i < 20; i++) {
+    const boss = MonsterGeneratorService.generate({
+      nd: '18',
+      combatRole: 'especial',
+      combatStyle: 'conjurador',
+      rank: 'chefe'
+    });
+    const spells = boss.spells || [];
+    const maxCircle = MonsterMagicService.getMaxCircle(18); // 5º
+    const lowerSpells = spells.filter(s => s.circle < maxCircle);
+    if (lowerSpells.length > 0) {
+      lowerCircleFound = true;
+      if (lowerSpells.length > 1) {
+        lowerCircleCompliant = false;
+      }
+    }
+  }
+
+  recordAssertion(lowerCircleCompliant, {
+    suite: 'TESTE 10.4 (Exceção Controlada de Círculo Inferior)',
+    combatRole: 'especial',
+    nd: '18',
+    parameter: 'Chefe possui no máximo 1 magia de círculo inferior quando justificado',
+    expected: '<= 1 magia de círculo inferior',
+    received: lowerCircleCompliant ? 'No máximo 1 magia' : 'Mais de 1 magia inferior encontrada'
   });
 }
 

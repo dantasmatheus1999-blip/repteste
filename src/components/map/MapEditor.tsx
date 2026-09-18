@@ -201,9 +201,9 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       setIsUpdatingGameStatus(false);
     }
   };
-  // Estado dos Mapas e Pastas
+  // Estado dos Mapas e Pastas (inicia sem pastas padrão automáticas)
   const [maps, setMaps] = useState<TestMap[]>(SAMPLE_MAPS);
-  const [folders, setFolders] = useState<MapFolder[]>(SAMPLE_FOLDERS);
+  const [folders, setFolders] = useState<MapFolder[]>([]);
   const [isLoadingMaps, setIsLoadingMaps] = useState(true);
 
   // Carregar Último Estado Salvo do Mestre (localStorage)
@@ -387,9 +387,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             return next;
           });
         }
-        if (loadedFolders.length > 0) {
-          setFolders(loadedFolders);
-        }
+        setFolders(loadedFolders);
         setIsLoadingMaps(false);
       }
     }).catch(err => {
@@ -912,20 +910,30 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     setIsMapModalOpen(true);
   };
 
-  // Abrir Janela da TV
-  const handleOpenTv = () => {
-    const tvUrl = `${window.location.origin}${window.location.pathname}?mode=tv`;
+  // Rota exclusiva da TV (independente da rota do Mestre)
+  const tvPath = (campaignId && gameId) ? `/tv/campaigns/${campaignId}/games/${gameId}` : '/tv';
+
+  // Abrir Janela da TV (Rota exclusiva e independente /tv)
+  const handleOpenTv = (e?: React.MouseEvent) => {
+    const tvUrl = `${window.location.origin}${tvPath}`;
     try {
       if (tvWindowRef.current && !tvWindowRef.current.closed) {
-        tvWindowRef.current.focus();
-        setIsTvConnected(true);
-        return;
+        try {
+          tvWindowRef.current.location.href = tvUrl;
+          tvWindowRef.current.focus();
+          setIsTvConnected(true);
+          if (e) e.preventDefault();
+          return;
+        } catch (crossErr) {
+          tvWindowRef.current = null;
+        }
       }
-      const newWin = window.open(tvUrl, 'realmor_tv_window');
-      tvWindowRef.current = newWin;
+      const newWin = window.open(tvUrl, '_blank');
       if (newWin) {
+        tvWindowRef.current = newWin;
         setIsTvConnected(true);
       }
+      if (e) e.preventDefault();
     } catch (err) {
       console.warn('Não foi possível abrir a janela da TV:', err);
     }
@@ -949,16 +957,16 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             drawings: [],
             shapes: [],
             viewport: {
-              zoom: q.zoom,
-              panX: q.pan.x,
-              panY: q.pan.y
+              zoom: q.zoom || 1,
+              panX: q.pan?.x || 0,
+              panY: q.pan?.y || 0
             }
           };
         }
         return {
-          mapId: qMap.id,
-          mapName: qMap.name,
-          imageUrl: qMap.imageUrl,
+          mapId: qMap.id || '',
+          mapName: qMap.name || '',
+          imageUrl: qMap.imageUrl || '',
           grid: qMap.grid,
           fogData: qMap.fogData || '',
           fogSettings: qMap.fogSettings,
@@ -966,17 +974,17 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           drawings: qMap.drawings || [],
           shapes: qMap.shapes || [],
           viewport: {
-            zoom: q.zoom,
-            panX: q.pan.x,
-            panY: q.pan.y
+            zoom: q.zoom || 1,
+            panX: q.pan?.x || 0,
+            panY: q.pan?.y || 0
           }
         };
       });
 
       const syncPayload: TvSyncState = {
-        mapId: activeMap.id,
-        mapName: activeMap.name,
-        imageUrl: activeMap.imageUrl,
+        mapId: activeMap.id || '',
+        mapName: activeMap.name || '',
+        imageUrl: activeMap.imageUrl || '',
         grid: gridSettings,
         fogData: activeMap.fogData || '',
         fogSettings: fogSettings,
@@ -984,11 +992,11 @@ export const MapEditor: React.FC<MapEditorProps> = ({
         drawings: activeMap.drawings || [],
         shapes: activeMap.shapes || [],
         viewport: {
-          zoom: currentQuadrant.zoom,
-          panX: currentQuadrant.pan.x,
-          panY: currentQuadrant.pan.y
+          zoom: currentQuadrant?.zoom || 1,
+          panX: currentQuadrant?.pan?.x || 0,
+          panY: currentQuadrant?.pan?.y || 0
         },
-        splitCount: splitCount,
+        splitCount: splitCount || 1,
         quadrants: activeQuadrantsList,
         updatedAt: new Date().toISOString()
       };
@@ -1293,17 +1301,19 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             </span>
           </div>
 
-          {/* Botão para Abrir Tela da TV */}
-          <button
-            type="button"
+          {/* Botão para Abrir Tela da TV (Rota exclusiva e independente /tv) */}
+          <a
+            href={tvPath}
+            target="_blank"
+            rel="noopener noreferrer"
             id="map-open-tv-tab-btn"
-            onClick={handleOpenTv}
-            className="flex items-center gap-1.5 text-[11px] font-cinzel text-amber-400/90 hover:text-amber-200 px-2 sm:px-2.5 py-1 rounded bg-stone-900/80 hover:bg-stone-850 border border-amber-900/50 hover:border-amber-700/60 transition-all cursor-pointer shadow-sm"
-            title="Abrir Tela da TV em nova aba independente"
+            onClick={(e) => handleOpenTv(e)}
+            className="flex items-center gap-1.5 text-[11px] font-cinzel text-amber-400/90 hover:text-amber-200 px-2 sm:px-2.5 py-1 rounded bg-stone-900/80 hover:bg-stone-850 border border-amber-900/50 hover:border-amber-700/60 transition-all cursor-pointer shadow-sm no-underline"
+            title={`Abrir Tela da TV em rota exclusiva (${tvPath})`}
           >
             <ExternalLink size={13} />
             <span className="hidden sm:inline">ABRIR TV</span>
-          </button>
+          </a>
 
           {/* BOTÃO CRÍTICO: [ 📺 ATUALIZAR NA TV ] */}
           <button

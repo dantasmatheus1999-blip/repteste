@@ -16,7 +16,8 @@ import {
   Zap,
   Dices,
   Sparkles,
-  Loader2
+  Loader2,
+  Upload
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { MasterService } from '../../services/masterService';
@@ -42,6 +43,8 @@ export const NPCForm: React.FC = () => {
   const [loras, setLoras] = useState<string[]>([]);
   const [selectedLora, setSelectedLora] = useState<string>('');
   const [loraWeight, setLoraWeight] = useState<number>(1.0);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   // Estados para o Gerador de Prompt Estruturado
   const [genRace, setGenRace] = useState(NPC_RACES[0].id);
@@ -228,6 +231,29 @@ export const NPCForm: React.FC = () => {
       setGenerationStatus('Erro');
     } finally {
       setGeneratingImage(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    try {
+      setUploadingFile(true);
+      setImageError(null);
+      const metadata = await StorageService.uploadFile(file, {
+        category: 'avatar',
+        name: formData.name || file.name.replace(/\.[^/.]+$/, ''),
+        relatedEntityId: npcId
+      });
+      setFormData(prev => ({ ...prev, imageUrl: metadata.url }));
+      setIsImageTemporary(false);
+    } catch (err) {
+      console.error('Erro ao fazer upload da imagem:', err);
+      setImageError('Falha no upload para o Firebase Storage.');
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -579,6 +605,26 @@ export const NPCForm: React.FC = () => {
                 {imageError && (
                   <p className="text-[10px] text-red-500 italic text-center">{imageError}</p>
                 )}
+
+                <div className="pt-2 border-t border-gold/10">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full text-xs"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFile}
+                    icon={uploadingFile ? Loader2 : Upload}
+                  >
+                    {uploadingFile ? 'Enviando ao Storage...' : 'Upload de Imagem (Arquivo)'}
+                  </Button>
+                </div>
               </div>
             </Card>
 

@@ -22,6 +22,7 @@ import { MasterService } from '../../services/masterService';
 import { NPC } from '../../types/master';
 import { GeneratedMonster } from '../../services/monsterGeneratorService';
 import { MonsterGeneratorCard } from '../master/monster-generator/MonsterGeneratorCard';
+import { DEFAULT_NEUTRAL_MONSTER_IMAGE } from '../master/monster-generator/monsterImageLibrary';
 import { MonsterForm } from '../../pages/master/MonsterForm';
 import { MonsterDetailsPage } from '../../pages/master/MonsterDetailsPage';
 
@@ -127,6 +128,7 @@ export const MapBestiaryDrawer: React.FC<MapBestiaryDrawerProps> = ({
         description: `Rank: ${generated.rank} | Papel: ${generated.combatRole || generated.role} | ND: ${generated.nd} | Tema: ${generated.theme}\n\nAmbiente: ${generated.environment}\n\nTáticas: ${generated.tactics}\n\nHabilidades: ${generated.abilities.join(', ')}`,
         attitude: 'hostile',
         category: 'monster',
+        imageUrl: generated.imageUrl || DEFAULT_NEUTRAL_MONSTER_IMAGE,
         campaignId: campaignId || '',
         isFavorite: false,
         combatProfile: generated.combatProfile,

@@ -25,6 +25,7 @@ import { MasterService } from '../../services/masterService';
 import { NPC } from '../../types/master';
 import { Button } from '../../components/Button';
 import { MonsterGeneratorCard } from '../../components/master/monster-generator/MonsterGeneratorCard';
+import { DEFAULT_NEUTRAL_MONSTER_IMAGE } from '../../components/master/monster-generator/monsterImageLibrary';
 import { GeneratedMonster } from '../../services/monsterGeneratorService';
 
 export const BestiaryPage: React.FC = () => {
@@ -76,6 +77,7 @@ export const BestiaryPage: React.FC = () => {
         description: `Rank: ${monster.rank} | Papel: ${monster.combatRole || monster.role} | ND: ${monster.nd} | Tema: ${monster.theme}\n\nAmbiente: ${monster.environment}\n\nTáticas: ${monster.tactics}\n\nHabilidades: ${monster.abilities.join(', ')}`,
         attitude: 'hostile',
         category: 'monster',
+        imageUrl: monster.imageUrl || DEFAULT_NEUTRAL_MONSTER_IMAGE,
         campaignId: campaignId || '',
         isFavorite: false,
         combatProfile: monster.combatProfile,

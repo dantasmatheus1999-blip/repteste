@@ -27,6 +27,8 @@ import { MasterService } from '../../services/masterService';
 import { NPC } from '../../types/master';
 import { Button } from '../../components/Button';
 import { CollapsibleSection } from '../../components/CollapsibleSection';
+import { MonsterSpellModal } from '../../components/master/monster-generator/MonsterSpellModal';
+import { MonsterSpellEntry } from '../../types/master';
 
 export interface MonsterDetailsPageProps {
   customCampaignId?: string;
@@ -48,6 +50,7 @@ export const MonsterDetailsPage: React.FC<MonsterDetailsPageProps> = ({
   const campaignId = customCampaignId !== undefined ? customCampaignId : params.campaignId;
   const monsterId = customMonsterId !== undefined ? customMonsterId : params.monsterId;
   const [monster, setMonster] = useState<NPC | null>(null);
+  const [selectedSpell, setSelectedSpell] = useState<MonsterSpellEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -635,10 +638,23 @@ export const MonsterDetailsPage: React.FC<MonsterDetailsPageProps> = ({
 
                       <div className="grid grid-cols-1 gap-3">
                         {monster.spells.map((spell, idx) => (
-                          <div key={idx} className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-2.5 hover:border-purple-500/60 transition-all">
+                          <div 
+                            key={idx} 
+                            onClick={() => setSelectedSpell(spell)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setSelectedSpell(spell);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Visualizar detalhes da magia ${spell.name}`}
+                            className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-2.5 hover:border-purple-500/60 hover:bg-purple-950/30 hover:shadow-[0_0_15px_rgba(168,85,247,0.2)] cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-purple-400/50 group"
+                          >
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <h4 className="text-purple-200 font-bold uppercase tracking-wide text-sm flex items-center gap-2">
-                                <Sparkles size={14} className="text-purple-400" /> {spell.name}
+                              <h4 className="text-purple-200 font-bold uppercase tracking-wide text-sm flex items-center gap-2 group-hover:text-purple-100">
+                                <Sparkles size={14} className="text-purple-400 group-hover:scale-110 transition-transform" /> {spell.name}
                               </h4>
                               <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
                                 <span className="px-2 py-0.5 rounded bg-purple-900/60 text-purple-200 border border-purple-700/40 font-bold">
@@ -941,6 +957,12 @@ export const MonsterDetailsPage: React.FC<MonsterDetailsPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Floating Spell Modal */}
+      <MonsterSpellModal 
+        spell={selectedSpell} 
+        onClose={() => setSelectedSpell(null)} 
+      />
     </div>
   );
 };

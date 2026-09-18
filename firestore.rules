@@ -363,5 +363,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // User Files Collection (Registro Permanente de Metadados de Uploads)
+    match /user_files/{fileId} {
+      allow read: if isAuthenticated() || true;
+      allow create: if true;
+      allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
   }
 }

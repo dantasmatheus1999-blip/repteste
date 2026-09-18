@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Shield, Upload, Check, UserCheck, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { WizardData, PRESET_AVATARS } from './types';
 import { compressImageFile } from '../../../utils/imageCompression';
+import { StorageService } from '../../../services/storageService';
 
 interface StepIdentityProps {
   data: WizardData;
@@ -17,15 +18,24 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({ data, onChange }) =>
     if (file) {
       try {
         setIsCompressing(true);
-        const compressedDataUrl = await compressImageFile(file, {
-          maxWidth: 300,
-          maxHeight: 300,
-          quality: 0.8,
-          cropToSquare: true
+        const metadata = await StorageService.uploadFile(file, {
+          category: 'avatar',
+          name: file.name.replace(/\.[^/.]+$/, '')
         });
-        onChange({ imageUrl: compressedDataUrl });
+        onChange({ imageUrl: metadata.url });
       } catch (err) {
-        console.error('Erro ao processar imagem:', err);
+        console.warn('Fallback para compressão local ao falhar upload direto:', err);
+        try {
+          const compressedDataUrl = await compressImageFile(file, {
+            maxWidth: 300,
+            maxHeight: 300,
+            quality: 0.8,
+            cropToSquare: true
+          });
+          onChange({ imageUrl: compressedDataUrl });
+        } catch (e) {
+          console.error('Erro ao processar imagem:', e);
+        }
       } finally {
         setIsCompressing(false);
         if (fileInputRef.current) {

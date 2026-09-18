@@ -13,6 +13,7 @@ import {
 } from '../firebase/auth';
 import { db, doc, setDoc, getDoc, serverTimestamp, OperationType, handleFirestoreError } from '../firebase/firestore';
 import { storage, ref, uploadBytes, getDownloadURL } from '../firebase/storage';
+import { StorageService } from '../services/storageService';
 
 export type AppUserRole = "player" | "master" | "admin";
 
@@ -109,9 +110,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleUploadAvatar = async (file: File): Promise<string> => {
     if (!auth.currentUser) throw new Error('No user logged in');
-    const storageRef = ref(storage, `users/${auth.currentUser.uid}/profile/avatar.jpg`);
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
+    const metadata = await StorageService.uploadFile(file, {
+      category: 'avatar',
+      name: 'avatar_profile',
+      folder: 'users'
+    });
+    return metadata.url;
   };
 
   const register = async (name: string, email: string, password: string, avatar?: File, role: AppUserRole = "player") => {
