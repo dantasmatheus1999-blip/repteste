@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sword, RefreshCw, X, Sparkles, ShieldAlert, Crosshair, Wand2, Compass, Upload, Image as ImageIcon, Loader2, BookOpen } from 'lucide-react';
+import { Sword, RefreshCw, X, Sparkles, ShieldAlert, Crosshair, Wand2, Compass, Upload, Image as ImageIcon, Loader2, BookOpen, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MonsterGeneratorService, GeneratedMonster } from '../../../services/monsterGeneratorService';
 import { CombatRole, MonsterRole, MonsterRank, CreatureType } from '../../../constants/monsterData';
@@ -29,6 +29,7 @@ export const MonsterGeneratorCard: React.FC<MonsterGeneratorCardProps> = ({
 
   // Nome da Criatura e Imagem (Começa vazia se não fornecido)
   const [creatureName, setCreatureName] = useState(initialName);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>(initialImageUrl || '');
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -44,7 +45,10 @@ export const MonsterGeneratorCard: React.FC<MonsterGeneratorCardProps> = ({
 
   const handleSelectFromLibrary = (storageMonster: StorageMonster) => {
     setSelectedImageUrl(storageMonster.url);
-    setCreatureName(storageMonster.name);
+    if (!creatureName.trim()) {
+      setCreatureName(storageMonster.name);
+    }
+    setNameError(null);
     setIsLibraryOpen(false);
   };
 
@@ -104,6 +108,14 @@ export const MonsterGeneratorCard: React.FC<MonsterGeneratorCardProps> = ({
   }, [generatedMonster, onClose]);
 
   const handleGenerate = () => {
+    if (!creatureName.trim()) {
+      setNameError('O Nome do Monstro é obrigatório para gerar ou salvar.');
+      const inputEl = document.getElementById('creature-name-input');
+      inputEl?.focus();
+      return;
+    }
+    setNameError(null);
+
     try {
       const monster = MonsterGeneratorService.generate({
         nd, 
@@ -116,9 +128,7 @@ export const MonsterGeneratorCard: React.FC<MonsterGeneratorCardProps> = ({
         environment, 
         theme
       });
-      if (creatureName.trim()) {
-        monster.name = creatureName.trim();
-      }
+      monster.name = creatureName.trim();
       monster.imageUrl = selectedImageUrl || '';
       setGeneratedMonster(monster);
     } catch (err) {
@@ -171,117 +181,114 @@ export const MonsterGeneratorCard: React.FC<MonsterGeneratorCardProps> = ({
             <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar">
               
               {/* 🖼️ ÁREA DA IMAGEM & NOME DO MONSTRO */}
-              <div className="p-3.5 bg-gradient-to-r from-stone-900/90 via-amber-950/20 to-stone-900/90 border-2 border-gold/40 rounded-xl shadow-[0_0_25px_rgba(0,0,0,0.7)] space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] uppercase font-black text-gold tracking-wider font-cinzel flex items-center gap-1.5">
-                    <span>🖼️</span> Imagem da Criatura
-                  </label>
-                  {isUploading && (
-                    <span className="text-[10px] text-amber-400 font-cinzel animate-pulse flex items-center gap-1">
-                      <Loader2 size={12} className="animate-spin" />
-                      Enviando imagem...
-                    </span>
-                  )}
-                </div>
-
-                {/* Área da Imagem: Começa vazia ou mostra a imagem escolhida com borda dourada */}
-                <div className="relative">
-                  {!selectedImageUrl ? (
-                    /* Estado Vazio */
-                    <button
-                      type="button"
-                      onClick={() => setIsLibraryOpen(true)}
-                      className="group relative w-full h-40 sm:h-48 rounded-xl border-2 border-dashed border-gold/40 hover:border-gold bg-stone-950/90 hover:bg-stone-900/90 transition-all duration-300 flex flex-col items-center justify-center p-4 cursor-pointer shadow-[0_0_20px_rgba(0,0,0,0.6)] hover:shadow-[0_0_25px_rgba(212,175,55,0.25)] select-none text-center"
-                      title="Abrir Biblioteca de Monstros"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-gold/10 border border-gold/30 flex items-center justify-center text-gold mb-3 group-hover:scale-110 group-hover:bg-gold/20 transition-all shadow-md">
-                        <BookOpen size={24} />
+              <div className="p-3 bg-gradient-to-r from-stone-900/95 via-amber-950/20 to-stone-900/95 border border-gold/40 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.6)]">
+                <div className="flex items-center gap-3 sm:gap-3.5">
+                  {/* Prévia pequena e discreta da imagem */}
+                  <div className="shrink-0">
+                    {!selectedImageUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsLibraryOpen(true)}
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg border-2 border-dashed border-gold/30 hover:border-gold bg-stone-950/90 hover:bg-stone-900 transition-all flex flex-col items-center justify-center p-1 cursor-pointer text-center group shadow-sm"
+                        title="Escolher imagem da Biblioteca (pasta monstro/)"
+                      >
+                        <BookOpen size={18} className="text-gold/60 group-hover:text-gold transition-transform group-hover:scale-110 mb-0.5" />
+                        <span className="text-[9px] font-cinzel font-bold text-gold/70 group-hover:text-amber-300 leading-tight">
+                          Imagem
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="relative group w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 border-gold/60 shadow-md bg-black">
+                        <img 
+                          src={selectedImageUrl} 
+                          alt="Criatura" 
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsLibraryOpen(true)}
+                            className="p-1 bg-black/80 hover:bg-gold hover:text-black border border-gold/40 text-gold rounded text-[8px] font-cinzel font-bold shadow"
+                            title="Trocar imagem"
+                          >
+                            <BookOpen size={10} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedImageUrl('')}
+                            className="p-1 bg-black/80 hover:bg-red-900 border border-red-500/40 text-red-300 rounded text-[8px] font-cinzel font-bold shadow"
+                            title="Remover imagem"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-xs sm:text-sm font-cinzel font-black text-gold group-hover:text-amber-300 tracking-wider transition-colors drop-shadow">
-                        🖼️ CLIQUE AQUI PARA ESCOLHER UM MONSTRO
-                      </span>
-                      <span className="text-[10px] text-gold/50 font-cinzel mt-1 tracking-wide">
-                        Acervo de ilustrações da pasta <span className="text-amber-300 font-mono">mostro/</span>
-                      </span>
-                    </button>
-                  ) : (
-                    /* Imagem Escolhida com borda dourada (Sem escrever nome sobre a imagem) */
-                    <div className="relative group w-full h-44 sm:h-52 rounded-xl overflow-hidden border-2 border-gold/50 hover:border-gold shadow-[0_0_25px_rgba(212,175,55,0.25)] bg-black/70">
-                      <img 
-                        src={selectedImageUrl} 
-                        alt="Criatura" 
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        referrerPolicy="no-referrer"
-                      />
-
-                      {/* Controles de troca/remoção */}
-                      <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
-                        <button
-                          type="button"
-                          onClick={() => setIsLibraryOpen(true)}
-                          className="px-2.5 py-1 bg-black/80 hover:bg-gold hover:text-black border border-gold/40 text-gold text-[10px] font-cinzel font-black uppercase tracking-wider rounded-md shadow-md transition-all cursor-pointer flex items-center gap-1"
-                          title="Escolher outro monstro da Biblioteca"
-                        >
-                          <BookOpen size={12} />
-                          <span>Trocar</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedImageUrl('')}
-                          className="px-2 py-1 bg-black/80 hover:bg-red-900/80 border border-red-500/40 text-red-300 text-[10px] font-cinzel font-black uppercase tracking-wider rounded-md shadow-md transition-all cursor-pointer"
-                          title="Remover imagem"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Nome da Criatura (O nome do arquivo é usado como nome, mas nunca escrito sobre a imagem) */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] uppercase font-black text-amber-300 tracking-wider font-cinzel flex items-center gap-1.5">
-                      <span>🏷️</span> Nome da Criatura
-                    </label>
-                    <span className="text-[9px] text-gold/40 font-cinzel italic">
-                      {selectedImageUrl ? 'Definido pelo arquivo selecionado' : '(opcional)'}
-                    </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="text"
-                      value={creatureName}
-                      onChange={(e) => setCreatureName(e.target.value)}
-                      placeholder="Ex: Minotauro Furioso, Carniçal da Cripta..."
-                      className="flex-1 bg-stone-900/90 border border-gold/30 focus:border-gold rounded-lg px-3 py-2 text-gold font-cinzel text-xs focus:outline-none transition-colors shadow-inner"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsLibraryOpen(true)}
-                      className="shrink-0 py-2 px-3 bg-gold/10 hover:bg-gold/20 border border-gold/40 hover:border-gold text-gold font-cinzel text-[10px] font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
-                      title="Escolher da Biblioteca de Monstros"
-                    >
-                      <BookOpen size={13} />
-                      <span className="hidden sm:inline">Biblioteca</span>
-                    </button>
-                    <input 
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,image/gif"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="shrink-0 py-2 px-2.5 bg-stone-900 hover:bg-stone-800 border border-gold/30 hover:border-gold text-gold/80 font-cinzel text-[10px] font-bold uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
-                      title="Upload de imagem própria"
-                    >
-                      <Upload size={12} />
-                      <span className="hidden sm:inline">Upload</span>
-                    </button>
+
+                  {/* Campo Nome do Monstro ao lado da imagem */}
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="creature-name-input" className="text-[10px] sm:text-[11px] uppercase font-black text-amber-300 tracking-wider font-cinzel flex items-center gap-1.5">
+                        <span>🏷️</span> Nome do Monstro <span className="text-red-400 font-bold">*</span>
+                      </label>
+                      {isUploading && (
+                        <span className="text-[9px] text-amber-400 font-cinzel animate-pulse flex items-center gap-1">
+                          <Loader2 size={10} className="animate-spin" />
+                          Enviando...
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <input 
+                        id="creature-name-input"
+                        type="text"
+                        value={creatureName}
+                        onChange={(e) => {
+                          setCreatureName(e.target.value);
+                          if (nameError && e.target.value.trim()) {
+                            setNameError(null);
+                          }
+                        }}
+                        placeholder="Ex: Minotauro Furioso, Carniçal..."
+                        className={`flex-1 min-w-0 bg-stone-900/90 border ${
+                          nameError ? 'border-red-500 ring-1 ring-red-500/50' : 'border-gold/30 focus:border-gold'
+                        } rounded-lg px-3 py-2 text-gold font-cinzel text-xs focus:outline-none transition-colors shadow-inner`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsLibraryOpen(true)}
+                        className="shrink-0 py-2 px-2.5 bg-gold/10 hover:bg-gold/20 border border-gold/40 hover:border-gold text-gold font-cinzel text-[10px] font-bold uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                        title="Escolher da Biblioteca de Monstros"
+                      >
+                        <BookOpen size={12} />
+                        <span className="hidden sm:inline">Biblioteca</span>
+                      </button>
+                      <input 
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="shrink-0 py-2 px-2 bg-stone-900 hover:bg-stone-800 border border-gold/30 hover:border-gold text-gold/80 font-cinzel text-[10px] font-bold uppercase tracking-wider rounded-lg flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                        title="Upload de imagem própria"
+                      >
+                        <Upload size={12} />
+                        <span className="hidden sm:inline">Upload</span>
+                      </button>
+                    </div>
+                    {nameError && (
+                      <p className="text-[10px] text-red-400 font-cinzel font-bold flex items-center gap-1 pt-0.5">
+                        <AlertCircle size={11} className="shrink-0" />
+                        <span>{nameError}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -604,6 +611,10 @@ export const MonsterGeneratorCard: React.FC<MonsterGeneratorCardProps> = ({
                 monster={generatedMonster} 
                 onReroll={handleGenerate}
                 onSave={onSave ? () => {
+                  if (!generatedMonster.name || !generatedMonster.name.trim()) {
+                    alert('O Nome do Monstro é obrigatório para salvar.');
+                    return;
+                  }
                   onSave(generatedMonster);
                   setGeneratedMonster(null);
                 } : undefined}
@@ -613,11 +624,13 @@ export const MonsterGeneratorCard: React.FC<MonsterGeneratorCardProps> = ({
           </div>
         )}
       </AnimatePresence>
-      {/* Modal da Biblioteca de Monstros (Storage mostro/) */}
+      {/* Modal da Biblioteca de Monstros (Storage monstro/) */}
       <MonsterStorageLibraryModal 
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}
         onSelect={handleSelectFromLibrary}
+        combatRole={combatRole}
+        scale={realmorScale}
       />
     </div>
   );

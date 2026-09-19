@@ -13,9 +13,12 @@ import {
   Loader2, 
   Sword, 
   AlertTriangle,
-  ChevronDown
+  ChevronDown,
+  FileUp,
+  FileText
 } from 'lucide-react';
 import { Button } from '../components/Button';
+import { CharacterImportModal } from '../components/character/CharacterImportModal';
 
 type SortOption = 'name-asc' | 'name-desc' | 'level-desc' | 'level-asc' | 'recent';
 
@@ -32,6 +35,7 @@ export const CharacterListPage: React.FC = () => {
   // Estado para modal de exclusão
   const [charToDelete, setCharToDelete] = useState<(T20Character & { id: string }) | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Carrega personagens do usuário via listener em tempo real
   useEffect(() => {
@@ -204,8 +208,17 @@ export const CharacterListPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Lado Direito: Pill Badge com Contagem de Heróis / Slots */}
+        {/* Lado Direito: Botão Importar e Pill Badge com Slots */}
         <div className="flex items-center gap-2">
+          <button
+            id="import-character-header-button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-2.5 py-1 rounded-lg bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/50 text-amber-300 hover:text-amber-200 text-[11px] font-cinzel font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+          >
+            <FileUp size={13} className="text-amber-400" />
+            <span>Importar Ficha</span>
+          </button>
+
           <div className="px-2.5 py-1 rounded-full bg-red-950/70 border border-red-800/60 shadow-[0_0_10px_rgba(239,68,68,0.15)] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
             <span className="text-[11px] font-sans font-bold text-red-200 tracking-wide">
@@ -258,14 +271,23 @@ export const CharacterListPage: React.FC = () => {
               "Toda grande lenda começa com um único passo."
             </p>
           </div>
-          <Button 
-            icon={Plus} 
-            size="sm" 
-            onClick={() => navigate('/characters/sheet')}
-            className="mx-auto"
-          >
-            Criar Primeiro Personagem
-          </Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+            <Button 
+              icon={Plus} 
+              size="sm" 
+              onClick={() => navigate('/characters/sheet')}
+              className="w-full sm:w-auto"
+            >
+              Criar Manualmente
+            </Button>
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="w-full sm:w-auto px-4 py-2 rounded-lg bg-gold/15 hover:bg-gold/25 border border-gold/40 text-amber-300 font-cinzel font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <FileUp size={15} />
+              <span>Importar Ficha (PDF)</span>
+            </button>
+          </div>
         </div>
       ) : filteredAndSortedCharacters.length === 0 ? (
         /* Busca Sem Resultados */
@@ -295,9 +317,9 @@ export const CharacterListPage: React.FC = () => {
       )}
 
       {/* ============================================================ */}
-      {/* BOTÃO "+ NOVO HERÓI" (Estilo D&D Beyond / Compacto no fim)   */}
+      {/* BOTÕES DE AÇÃO INFERIORES: NOVO HERÓI / IMPORTAR FICHA       */}
       {/* ============================================================ */}
-      <div className="pt-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
         <button
           id="create-new-character-button"
           onClick={() => navigate('/characters/sheet')}
@@ -306,7 +328,23 @@ export const CharacterListPage: React.FC = () => {
           <Plus size={16} className="text-sky-400 group-hover:scale-110 transition-transform" />
           <span>Novo Herói</span>
         </button>
+
+        <button
+          id="import-character-bottom-button"
+          onClick={() => setIsImportModalOpen(true)}
+          className="w-full py-2.5 px-4 rounded-lg bg-[#18140c] hover:bg-[#241c10] border border-amber-500/40 hover:border-amber-400 text-amber-300 hover:text-amber-200 font-cinzel font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(0,0,0,0.6)] cursor-pointer group"
+        >
+          <FileUp size={16} className="text-amber-400 group-hover:scale-110 transition-transform" />
+          <span>Importar Ficha (PDF)</span>
+        </button>
       </div>
+
+      {/* Modal de Importação de Ficha Tormenta 20 */}
+      <CharacterImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        existingCharacters={characters}
+      />
 
       {/* ============================================================ */}
       {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO                             */}

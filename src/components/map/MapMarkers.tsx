@@ -15,6 +15,7 @@ interface MapMarkersProps {
   onSelectMarker: (markerId: string | null) => void;
   onUpdateMarkerPosition: (markerId: string, x: number, y: number) => void;
   isInteractive: boolean;
+  hideLabels?: boolean;
 }
 
 export const MapMarkers: React.FC<MapMarkersProps> = ({
@@ -22,7 +23,8 @@ export const MapMarkers: React.FC<MapMarkersProps> = ({
   selectedMarkerId,
   onSelectMarker,
   onUpdateMarkerPosition,
-  isInteractive
+  isInteractive,
+  hideLabels = false
 }) => {
   const [dragState, setDragState] = useState<{ id: string; x: number; y: number } | null>(null);
   const lastPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -128,16 +130,18 @@ export const MapMarkers: React.FC<MapMarkersProps> = ({
                 style={{ borderTopColor: marker.color || '#f59e0b' }}
               />
 
-              {/* Rótulo / Nomeplate do Marcador */}
-              <div 
-                className={`mt-1 px-2 py-0.5 rounded text-[11px] font-cinzel font-bold tracking-wide whitespace-nowrap border shadow-md pointer-events-none transition-opacity ${
-                  isSelected 
-                    ? 'bg-stone-950/95 text-amber-300 border-amber-500/80 opacity-100' 
-                    : 'bg-stone-950/85 text-stone-200 border-stone-800 opacity-90 group-hover:opacity-100'
-                }`}
-              >
-                {marker.label}
-              </div>
+              {/* Rótulo / Nomeplate do Marcador (Oculto em modo TV / Limpo) */}
+              {!hideLabels && marker.label && (
+                <div 
+                  className={`mt-1 px-2 py-0.5 rounded text-[11px] font-cinzel font-bold tracking-wide whitespace-nowrap border shadow-md pointer-events-none transition-opacity ${
+                    isSelected 
+                      ? 'bg-stone-950/95 text-amber-300 border-amber-500/80 opacity-100' 
+                      : 'bg-stone-950/85 text-stone-200 border-stone-800 opacity-90 group-hover:opacity-100'
+                  }`}
+                >
+                  {marker.label}
+                </div>
+              )}
             </div>
           </div>
         );

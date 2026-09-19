@@ -33,20 +33,16 @@ service firebase.storage {
       allow write: if isAuthenticated();
     }
     match /mostro {
-      allow read, get, list: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if isAuthenticated();
     }
     match /mostro/{allPaths=**} {
-      allow read, get, list: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if isAuthenticated();
     }
     match /monstro {
-      allow read, get, list: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if isAuthenticated();
     }
     match /monstro/{allPaths=**} {
-      allow read, get, list: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if isAuthenticated();
     }
 
     // Fichas de heróis e personagens

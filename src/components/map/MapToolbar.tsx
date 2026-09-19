@@ -18,7 +18,9 @@ import {
   ArrowRight,
   Sliders,
   Check,
-  Maximize2
+  Maximize2,
+  Eye,
+  Trash2
 } from 'lucide-react';
 import { 
   ToolType, 
@@ -49,6 +51,11 @@ interface MapToolbarProps {
   onUpdateFogSettings: (settings: Partial<FogSettings>) => void;
   onClearFog: () => void;
   onCoverAllFog: () => void;
+  // Área de Visão
+  selectedVisionRadius?: number;
+  onSelectVisionRadius?: (radius: number) => void;
+  visionAreasCount?: number;
+  onClearVisionAreas?: () => void;
   // Ferramenta Formas
   activeShapeType: ShapeType;
   onSelectShapeType: (type: ShapeType) => void;
@@ -114,6 +121,10 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   onUpdateFogSettings,
   onClearFog,
   onCoverAllFog,
+  selectedVisionRadius = 10,
+  onSelectVisionRadius,
+  visionAreasCount = 0,
+  onClearVisionAreas,
   activeShapeType,
   onSelectShapeType,
   shapeStrokeColor,
@@ -981,6 +992,81 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
                         <span>✏️ LIVRE</span>
                       </button>
                     </div>
+                  </div>
+
+                  {/* 3. SEÇÃO ÁREA DE VISÃO (TORMENTA 20) */}
+                  <div className="space-y-2 bg-stone-950/80 p-2.5 rounded-lg border border-amber-800/50 shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-amber-300 font-cinzel font-bold text-xs">
+                        <span>👁️</span>
+                        <span>ÁREA DE VISÃO</span>
+                      </div>
+                      {visionAreasCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded bg-amber-950/90 text-amber-300 border border-amber-700/60 text-[9px] font-mono font-bold">
+                          {visionAreasCount} {visionAreasCount === 1 ? 'ativa' : 'ativas'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Botão de Ativação da Ferramenta */}
+                    <button
+                      type="button"
+                      id="tool-fog-vision-toggle-btn"
+                      onClick={() => onSelectTool(activeTool === 'fog-vision' ? 'select' : 'fog-vision')}
+                      className={`w-full py-2 px-3 rounded-lg text-xs font-cinzel font-bold tracking-wider uppercase flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                        activeTool === 'fog-vision'
+                          ? 'bg-amber-500 text-stone-950 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)] ring-2 ring-amber-400/60'
+                          : 'bg-stone-900 hover:bg-stone-850 border-amber-900/60 text-amber-200 hover:border-amber-500/60'
+                      }`}
+                    >
+                      <Eye size={14} className={activeTool === 'fog-vision' ? 'stroke-[2.5]' : ''} />
+                      <span>{activeTool === 'fog-vision' ? '✓ CLIQUE NO MAPA PARA POSICIONAR' : '+ ADICIONAR ÁREA DE VISÃO'}</span>
+                    </button>
+
+                    {/* Seleção do Raio: 5m, 10m ou 15m */}
+                    <div className="space-y-1 pt-1">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-stone-400 font-medium">Raio de Visão:</span>
+                        <span className="text-amber-400 font-mono font-bold">{selectedVisionRadius} metros</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[5, 10, 15].map((radius) => (
+                          <button
+                            key={radius}
+                            type="button"
+                            onClick={() => {
+                              if (onSelectVisionRadius) onSelectVisionRadius(radius);
+                            }}
+                            className={`py-1.5 px-1 rounded text-[10px] font-mono font-bold border transition-all text-center ${
+                              selectedVisionRadius === radius
+                                ? 'border-amber-500 bg-amber-950 text-amber-200 shadow-sm ring-1 ring-amber-500/50'
+                                : 'border-stone-800 bg-stone-900 text-stone-400 hover:border-stone-700 hover:text-stone-300'
+                            }`}
+                          >
+                            {radius}m
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-stone-400 font-sans leading-tight pt-1">
+                      <p className="italic">
+                        Cria um círculo suave sobre a névoa sem alterar o desenho original. Arraste ou clique no olho no mapa para reposicionar ou remover.
+                      </p>
+                    </div>
+
+                    {visionAreasCount > 0 && onClearVisionAreas && (
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={onClearVisionAreas}
+                          className="w-full py-1 px-2 rounded bg-stone-900 hover:bg-red-950/40 border border-stone-800 hover:border-red-800/60 text-stone-400 hover:text-red-300 text-[9px] font-bold tracking-wider uppercase flex items-center justify-center gap-1 transition-all"
+                        >
+                          <Trash2 size={11} />
+                          <span>Remover Todas as Áreas de Visão</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Densidade */}

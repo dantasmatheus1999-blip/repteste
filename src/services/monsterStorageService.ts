@@ -66,7 +66,7 @@ export function getStorageLibraryStatus(): { status: StorageLibraryStatus; messa
 }
 
 /**
- * Lê automaticamente todos os arquivos .png dentro de mostro/ no Firebase Storage
+ * Lê automaticamente todos os arquivos .png dentro de monstro/ no Firebase Storage
  */
 export async function fetchStorageMonsterLibrary(forceRefresh = false): Promise<StorageMonster[]> {
   if (!forceRefresh && cachedLibrary && cachedLibrary.length > 0) {
@@ -81,132 +81,95 @@ export async function fetchStorageMonsterLibrary(forceRefresh = false): Promise<
   currentLibraryStatus = 'loading';
 
   fetchPromise = (async () => {
-    // 1. Obter o token atual do usuário se autenticado
-    let userToken = '';
-    try {
-      if (auth.currentUser) {
-        userToken = await auth.currentUser.getIdToken();
+    // 1. Garantir que o estado de autenticação do Firebase esteja pronto
+    if (typeof auth.authStateReady === 'function') {
+      try {
+        await auth.authStateReady();
+      } catch (authReadyErr) {
+        console.warn('[MonsterStorageService] Aviso ao aguardar authStateReady:', authReadyErr);
       }
-    } catch (tokenErr) {
-      console.warn('[MonsterStorageService] Aviso ao obter token do usuário:', tokenErr);
     }
 
-    // 2. Tentar ler diretamente da pasta 'mostro' no Firebase Storage via cliente SDK
-    const currentBucket = (storage as any)._bucket?.bucket || (storage.app.options as any)?.storageBucket || 'gen-lang-client-0150741197.firebasestorage.app';
-    const searchedPath = 'mostro';
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      const unauthErr = new Error('Usuário não autenticado no Firebase. Faça login para acessar a biblioteca de monstros.');
+      (unauthErr as any).code = 'storage/unauthorized';
+      currentLibraryStatus = 'permission_denied';
+      currentStatusMessage = unauthErr.message;
+      console.error('[MonsterStorageService]', unauthErr.message);
+      throw unauthErr;
+    }
+
+    console.log(`[MonsterStorageService] Consultando pasta "monstro/" diretamente via Firebase Storage SDK (Usuário: ${currentUser.email})`);
 
     try {
-      const mostroRef = ref(storage, searchedPath);
-      const result = await listAll(mostroRef);
+      // 2. Consulta direta via Firebase Storage SDK no navegador
+      const monstroRef = ref(storage, 'monstro');
 
-      const allItems = [...result.items];
+      // Função recursiva para listar todos os arquivos .png dentro de monstro/ e quaisquer subpastas
+      async function collectPngItems(folderRef: any): Promise<any[]> {
+        const result = await listAll(folderRef);
+        const pngs = result.items.filter((item: any) => 
+          typeof item.name === 'string' && item.name.toLowerCase().endsWith('.png')
+        );
 
-      // Se houver subpastas dentro de mostro/, lê seus arquivos também
-      for (const prefix of result.prefixes) {
-        try {
-          const subResult = await listAll(prefix);
-          allItems.push(...subResult.items);
-        } catch (subErr: any) {
-          console.warn('[MonsterStorageService] Aviso ao listar subpasta:', prefix.name, subErr?.message);
-        }
-      }
-
-      // Filtrar estritamente arquivos .png
-      const pngItems = allItems.filter(item => item.name.toLowerCase().endsWith('.png'));
-
-      if (pngItems.length > 0) {
-        const monsterPromises = pngItems.map(async (item) => {
-          try {
-            const url = await getDownloadURL(item);
-            const name = formatMonsterNameFromFilename(item.name);
-            const category = inferCategoryFromName(name);
-            return {
-              id: item.fullPath || item.name,
-              name,
-              fileName: item.name,
-              url,
-              fullPath: item.fullPath,
-              category
-            } as StorageMonster;
-          } catch (itemErr) {
-            console.warn('[MonsterStorageService] Aviso ao obter URL para:', item.name, itemErr);
-            return null;
+        if (result.prefixes && result.prefixes.length > 0) {
+          for (const subPrefix of result.prefixes) {
+            try {
+              const subPngs = await collectPngItems(subPrefix);
+              pngs.push(...subPngs);
+            } catch (subErr) {
+              console.warn('[MonsterStorageService] Aviso ao listar subpasta:', subPrefix.name, subErr);
+            }
           }
-        });
-
-        const resolved = await Promise.all(monsterPromises);
-        const validMonsters = resolved.filter((m): m is StorageMonster => m !== null);
-
-        if (validMonsters.length > 0) {
-          validMonsters.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-          cachedLibrary = validMonsters;
-          currentLibraryStatus = 'success';
-          currentStatusMessage = `${validMonsters.length} monstros carregados.`;
-          return validMonsters;
         }
+
+        return pngs;
       }
-    } catch (directErr: any) {
-      // Registrar status sem poluir o console com erros fatais
-      const errorCode = directErr?.code || '';
-      if (errorCode === 'storage/unauthorized') {
-        currentLibraryStatus = 'permission_denied';
-        currentStatusMessage = 'Acesso não autorizado às regras do Firebase Storage para a pasta mostro/.';
-      } else {
+
+      const pngItems = await collectPngItems(monstroRef);
+
+      if (pngItems.length === 0) {
+        cachedLibrary = [];
         currentLibraryStatus = 'empty';
-        currentStatusMessage = directErr?.message || 'Falha ao consultar pasta no Firebase Storage.';
-      }
-      console.info(`[MonsterStorageService] Consulta direta ao Storage: ${currentLibraryStatus} (${errorCode || 'desconhecido'}).`);
-    }
-
-    // 3. Contingência via endpoint do servidor (Node.js contorna restrições de CORS e aplica autenticação)
-    try {
-      const headers: Record<string, string> = {};
-      if (userToken) {
-        headers['Authorization'] = `Bearer ${userToken}`;
+        currentStatusMessage = 'Nenhum arquivo .png encontrado na pasta monstro/.';
+        return [];
       }
 
-      const queryParam = userToken ? `?token=${encodeURIComponent(userToken)}` : '';
-      const endpoint = typeof window !== 'undefined'
-        ? `/api/storage/mostro-monsters${queryParam}`
-        : `http://localhost:3000/api/storage/mostro-monsters${queryParam}`;
+      // 3. Obter URLs de download para cada arquivo PNG
+      const monsterPromises = pngItems.map(async (item) => {
+        const url = await getDownloadURL(item);
+        const name = formatMonsterNameFromFilename(item.name);
+        const category = inferCategoryFromName(name);
+        return {
+          id: item.fullPath || item.name,
+          name,
+          fileName: item.name,
+          url,
+          fullPath: item.fullPath,
+          category
+        } as StorageMonster;
+      });
 
-      const res = await fetch(endpoint, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.monsters) && data.monsters.length > 0) {
-          const mappedMonsters: StorageMonster[] = data.monsters.map((m: any) => ({
-            id: m.id || m.fullPath || m.fileName,
-            name: m.name || formatMonsterNameFromFilename(m.fileName),
-            fileName: m.fileName,
-            url: m.url,
-            fullPath: m.fullPath || `mostro/${m.fileName}`,
-            category: m.category || inferCategoryFromName(m.name || m.fileName)
-          }));
-
-          mappedMonsters.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-          cachedLibrary = mappedMonsters;
-          currentLibraryStatus = 'success';
-          currentStatusMessage = `${mappedMonsters.length} monstros carregados via contingência.`;
-          return mappedMonsters;
-        } else if (data.status === 'permission_denied') {
-          currentLibraryStatus = 'permission_denied';
-          currentStatusMessage = data.message || currentStatusMessage;
-        }
-      }
-    } catch (apiErr: any) {
-      console.info('[MonsterStorageService] Informação da contingência /api/storage/mostro-monsters:', apiErr?.message);
-    }
-
-    if (cachedLibrary && cachedLibrary.length > 0) {
+      const resolvedMonsters = await Promise.all(monsterPromises);
+      resolvedMonsters.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+      cachedLibrary = resolvedMonsters;
       currentLibraryStatus = 'success';
-      return cachedLibrary;
-    }
+      currentStatusMessage = `${resolvedMonsters.length} monstros carregados do Firebase Storage.`;
+      return resolvedMonsters;
+    } catch (sdkErr: any) {
+      console.error('[MonsterStorageService] Erro real retornado pelo Firebase Storage SDK:', sdkErr);
+      const isUnauthorized = 
+        sdkErr?.code === 'storage/unauthorized' || 
+        String(sdkErr?.message).toLowerCase().includes('permission') || 
+        String(sdkErr?.message).toLowerCase().includes('unauthorized');
 
-    if (currentLibraryStatus === 'loading') {
-      currentLibraryStatus = 'empty';
-    }
+      currentLibraryStatus = isUnauthorized ? 'permission_denied' : 'empty';
+      currentStatusMessage = sdkErr?.message || 'Erro ao carregar acervo do Firebase Storage.';
 
-    return [];
+      // Lança o erro real para ser exibido na interface do usuário
+      throw sdkErr;
+    }
   })();
 
   try {

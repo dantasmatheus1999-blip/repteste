@@ -409,9 +409,9 @@ export async function getMergedMonsterLibrary(forceRefresh = false): Promise<Mon
         name: sm.name,
         category: (sm.category as MonsterLibraryCategory) || 'monstro',
         url: sm.url,
-        tags: [sm.name.toLowerCase(), 'storage', 'realmor', 'mostro']
+        tags: [sm.name.toLowerCase(), 'storage', 'realmor', 'monstro']
       }));
-      // As imagens do Firebase Storage (mostro/) vêm em primeiro lugar como biblioteca padrão
+      // As imagens do Firebase Storage (monstro/) vêm em primeiro lugar como biblioteca padrão
       return [...formattedStorageItems, ...MONSTER_IMAGE_LIBRARY];
     }
   } catch (e) {

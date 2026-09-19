@@ -44,7 +44,8 @@ import {
   TvSyncState,
   SplitLayoutCount,
   QuadrantMapState,
-  TvSyncQuadrantItem
+  TvSyncQuadrantItem,
+  VisionArea
 } from './types';
 import { MapToolbar } from './MapToolbar';
 import { MapCanvas } from './MapCanvas';
@@ -76,6 +77,7 @@ interface HistorySnapshot {
   drawings: MapDrawing[];
   shapes: MapShape[];
   fogData?: string;
+  visionAreas?: VisionArea[];
 }
 
 const LAST_STATE_STORAGE_KEY = 'realmor_map_editor_last_state';
@@ -330,6 +332,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   const [drawColor, setDrawColor] = useState<string>('#f59e0b');
   const [drawWidth, setDrawWidth] = useState<number>(4);
   const [scaleMeters, setScaleMeters] = useState<number>(3);
+  const [selectedVisionRadius, setSelectedVisionRadius] = useState<number>(10);
 
   // Histórico Local de Desfazer / Refazer (Undo / Redo)
   const [undoStack, setUndoStack] = useState<HistorySnapshot[]>([]);
@@ -456,11 +459,12 @@ export const MapEditor: React.FC<MapEditorProps> = ({
         markers: activeMap.markers || [],
         drawings: activeMap.drawings || [],
         shapes: activeMap.shapes || [],
-        fogData: activeMap.fogData
+        fogData: activeMap.fogData,
+        visionAreas: activeMap.visionAreas || []
       }
     ]);
     setRedoStack([]);
-  }, [activeMap.id, activeMap.markers, activeMap.drawings, activeMap.shapes, activeMap.fogData]);
+  }, [activeMap.id, activeMap.markers, activeMap.drawings, activeMap.shapes, activeMap.fogData, activeMap.visionAreas]);
 
   // Atualizar propriedades do mapa ativo com debounce inteligente (salva no Firestore apenas após estabilização)
   const updateActiveMap = useCallback((updater: Partial<TestMap>, reason: string = 'map update') => {
@@ -582,7 +586,8 @@ export const MapEditor: React.FC<MapEditorProps> = ({
         markers: targetMap.markers || [],
         drawings: targetMap.drawings || [],
         shapes: targetMap.shapes || [],
-        fogData: targetMap.fogData
+        fogData: targetMap.fogData,
+        visionAreas: targetMap.visionAreas || []
       }
     ]);
 
@@ -595,6 +600,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           drawings: last.drawings,
           shapes: last.shapes,
           fogData: last.fogData,
+          visionAreas: last.visionAreas || [],
           updatedAt: new Date().toISOString()
         };
       }
@@ -617,7 +623,8 @@ export const MapEditor: React.FC<MapEditorProps> = ({
         markers: targetMap.markers || [],
         drawings: targetMap.drawings || [],
         shapes: targetMap.shapes || [],
-        fogData: targetMap.fogData
+        fogData: targetMap.fogData,
+        visionAreas: targetMap.visionAreas || []
       }
     ]);
 
@@ -630,6 +637,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           drawings: next.drawings,
           shapes: next.shapes,
           fogData: next.fogData,
+          visionAreas: next.visionAreas || [],
           updatedAt: new Date().toISOString()
         };
       }
@@ -846,6 +854,45 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   // ============================================================
+  // ÁREAS DE VISÃO (TORMENTA 20 - DINÂMICO E NÃO DESTRUTIVO)
+  // ============================================================
+  const handleAddVisionArea = (visionData: Omit<VisionArea, 'id'>) => {
+    pushHistorySnapshot();
+    const newVision: VisionArea = {
+      ...visionData,
+      id: `vision-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`
+    };
+    const currentAreas = activeMap.visionAreas || [];
+    updateActiveMap({
+      visionAreas: [...currentAreas, newVision]
+    }, 'add vision area');
+  };
+
+  const handleUpdateVisionArea = (visionId: string, updates: Partial<VisionArea>) => {
+    const currentAreas = activeMap.visionAreas || [];
+    updateActiveMap({
+      visionAreas: currentAreas.map(v => v.id === visionId ? { ...v, ...updates } : v)
+    }, 'update vision area');
+  };
+
+  const handleDeleteVisionArea = (visionId: string) => {
+    pushHistorySnapshot();
+    const currentAreas = activeMap.visionAreas || [];
+    updateActiveMap({
+      visionAreas: currentAreas.filter(v => v.id !== visionId)
+    }, 'delete vision area');
+  };
+
+  const handleClearVisionAreas = () => {
+    const currentAreas = activeMap.visionAreas || [];
+    if (currentAreas.length === 0) return;
+    pushHistorySnapshot();
+    updateActiveMap({
+      visionAreas: []
+    }, 'clear vision areas');
+  };
+
+  // ============================================================
   // GERENCIAMENTO DA BIBLIOTECA & PASTAS
   // ============================================================
   const handleCreateFolder = async (folderData: Omit<MapFolder, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -911,29 +958,18 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   // Rota exclusiva da TV (independente da rota do Mestre)
-  const tvPath = (campaignId && gameId) ? `/tv/campaigns/${campaignId}/games/${gameId}` : '/tv';
+  const tvPath = '/tv';
 
-  // Abrir Janela da TV (Rota exclusiva e independente /tv)
+  // Abrir Janela da TV (Rota exclusiva e independente /tv sem alterar a autenticação do Mestre)
   const handleOpenTv = (e?: React.MouseEvent) => {
-    const tvUrl = `${window.location.origin}${tvPath}`;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const tvUrl = `${window.location.origin}/tv`;
     try {
-      if (tvWindowRef.current && !tvWindowRef.current.closed) {
-        try {
-          tvWindowRef.current.location.href = tvUrl;
-          tvWindowRef.current.focus();
-          setIsTvConnected(true);
-          if (e) e.preventDefault();
-          return;
-        } catch (crossErr) {
-          tvWindowRef.current = null;
-        }
-      }
-      const newWin = window.open(tvUrl, '_blank');
-      if (newWin) {
-        tvWindowRef.current = newWin;
-        setIsTvConnected(true);
-      }
-      if (e) e.preventDefault();
+      window.open(tvUrl, '_blank', 'noopener,noreferrer');
+      setIsTvConnected(true);
     } catch (err) {
       console.warn('Não foi possível abrir a janela da TV:', err);
     }
@@ -970,6 +1006,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           grid: qMap.grid,
           fogData: qMap.fogData || '',
           fogSettings: qMap.fogSettings,
+          visionAreas: qMap.visionAreas || [],
           markers: qMap.markers || [],
           drawings: qMap.drawings || [],
           shapes: qMap.shapes || [],
@@ -988,6 +1025,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
         grid: gridSettings,
         fogData: activeMap.fogData || '',
         fogSettings: fogSettings,
+        visionAreas: activeMap.visionAreas || [],
         markers: activeMap.markers || [],
         drawings: activeMap.drawings || [],
         shapes: activeMap.shapes || [],
@@ -1302,18 +1340,16 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           </div>
 
           {/* Botão para Abrir Tela da TV (Rota exclusiva e independente /tv) */}
-          <a
-            href={tvPath}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
             id="map-open-tv-tab-btn"
-            onClick={(e) => handleOpenTv(e)}
-            className="flex items-center gap-1.5 text-[11px] font-cinzel text-amber-400/90 hover:text-amber-200 px-2 sm:px-2.5 py-1 rounded bg-stone-900/80 hover:bg-stone-850 border border-amber-900/50 hover:border-amber-700/60 transition-all cursor-pointer shadow-sm no-underline"
-            title={`Abrir Tela da TV em rota exclusiva (${tvPath})`}
+            onClick={handleOpenTv}
+            className="flex items-center gap-1.5 text-[11px] font-cinzel text-amber-400/90 hover:text-amber-200 px-2 sm:px-2.5 py-1 rounded bg-stone-900/80 hover:bg-stone-850 border border-amber-900/50 hover:border-amber-700/60 transition-all cursor-pointer shadow-sm"
+            title="Abrir Tela da TV em nova aba (/tv)"
           >
             <ExternalLink size={13} />
             <span className="hidden sm:inline">ABRIR TV</span>
-          </a>
+          </button>
 
           {/* BOTÃO CRÍTICO: [ 📺 ATUALIZAR NA TV ] */}
           <button
@@ -1388,6 +1424,10 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           onUpdateFogSettings={handleUpdateFogSettings}
           onClearFog={handleClearFog}
           onCoverAllFog={handleCoverAllFog}
+          selectedVisionRadius={selectedVisionRadius}
+          onSelectVisionRadius={setSelectedVisionRadius}
+          visionAreasCount={(activeMap.visionAreas || []).length}
+          onClearVisionAreas={handleClearVisionAreas}
           activeShapeType={activeShapeType}
           onSelectShapeType={setActiveShapeType}
           shapeStrokeColor={shapeStrokeColor}
@@ -1878,6 +1918,17 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           fogData={quadMap.fogData}
           onFogChange={(newFog) => {
             if (isActive) handleFogChange(newFog);
+          }}
+          visionAreas={quadMap.visionAreas || []}
+          selectedVisionRadius={selectedVisionRadius}
+          onAddVisionArea={(area) => {
+            if (isActive) handleAddVisionArea(area);
+          }}
+          onUpdateVisionArea={(id, updates) => {
+            if (isActive) handleUpdateVisionArea(id, updates);
+          }}
+          onDeleteVisionArea={(id) => {
+            if (isActive) handleDeleteVisionArea(id);
           }}
           markers={quadMap.markers || []}
           selectedMarkerId={isActive && selectedObject?.type === 'marker' ? selectedObject.id : null}

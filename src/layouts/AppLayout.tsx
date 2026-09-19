@@ -66,7 +66,11 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
                      location.pathname.startsWith('/master/maps') || 
                      location.pathname === '/maps';
 
-  if (location.pathname === '/select-profile' || location.pathname === '/characters/sheet' || isMapRoute) {
+  const isGameRoute = location.pathname.startsWith('/mesa') || 
+                      location.pathname.startsWith('/join') ||
+                      location.pathname.includes('/games/');
+
+  if (location.pathname === '/select-profile' || location.pathname === '/characters/sheet' || isMapRoute || isGameRoute) {
     return <>{children}</>;
   }
 

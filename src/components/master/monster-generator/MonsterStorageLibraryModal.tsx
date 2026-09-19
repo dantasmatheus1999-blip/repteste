@@ -9,28 +9,40 @@ interface MonsterStorageLibraryModalProps {
   onClose: () => void;
   onSelect: (monster: StorageMonster) => void;
   title?: string;
+  combatRole?: 'solo' | 'lacaio' | 'especial' | string;
+  scale?: string;
 }
 
 export const MonsterStorageLibraryModal: React.FC<MonsterStorageLibraryModalProps> = ({
   isOpen,
   onClose,
   onSelect,
-  title = 'Biblioteca de Monstros'
+  title = 'Biblioteca de Monstros',
+  combatRole = 'solo',
+  scale = 'normal'
 }) => {
   const [monsters, setMonsters] = useState<StorageMonster[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [libraryStatus, setLibraryStatus] = useState<StorageLibraryStatus>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
+  const normalizedRole = (combatRole || 'solo').toUpperCase();
+  const roleDisplay = normalizedRole === 'LACAIO' ? 'LACAIO' : normalizedRole === 'ESPECIAL' ? 'ESPECIAL' : 'SOLO';
+  const scaleDisplay = (scale || 'normal').toUpperCase();
+  const badgeLabel = `MOSTRO • ${scaleDisplay} • ${roleDisplay}`;
 
   const loadMonsters = async (force = false) => {
     setLoading(true);
+    setErrorMessage('');
     try {
       const items = await fetchStorageMonsterLibrary(force);
       setMonsters(items);
       setLibraryStatus(getStorageLibraryStatus().status);
     } catch (err: any) {
-      console.warn('[MonsterStorageLibraryModal] Aviso ao carregar acervo:', err?.message);
+      console.error('[MonsterStorageLibraryModal] Erro ao carregar acervo do Firebase Storage:', err);
       setLibraryStatus('permission_denied');
+      setErrorMessage(err?.message || 'Erro de permissão no Firebase Storage para a pasta monstro/.');
     } finally {
       setLoading(false);
     }
@@ -97,7 +109,7 @@ export const MonsterStorageLibraryModal: React.FC<MonsterStorageLibraryModalProp
                     {title}
                   </h3>
                   <p className="text-[11px] text-gold/60 font-cinzel">
-                    Acervo do Firebase Storage (pasta <code className="text-amber-300 font-mono">mostro/</code>)
+                    Acervo do Firebase Storage (pasta <code className="text-amber-300 font-mono">monstro/</code>)
                   </p>
                 </div>
               </div>
@@ -147,49 +159,42 @@ export const MonsterStorageLibraryModal: React.FC<MonsterStorageLibraryModalProp
                 <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
                   <RefreshCw className="w-10 h-10 text-gold animate-spin" />
                   <p className="text-gold/60 font-cinzel italic text-sm animate-pulse">
-                    Carregando criaturas da pasta mostro/...
+                    Carregando criaturas da pasta monstro/...
                   </p>
                 </div>
-              ) : filteredMonsters.length === 0 ? (
-                libraryStatus === 'permission_denied' ? (
-                  <div className="py-12 px-4 max-w-lg mx-auto text-center space-y-4">
-                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto shadow">
-                      <ShieldAlert size={24} />
-                    </div>
-                    <div>
-                      <h4 className="text-base font-cinzel font-bold text-amber-300">
-                        Permissão no Firebase Storage Pendente
-                      </h4>
-                      <p className="text-xs text-gold/70 mt-1 font-cinzel leading-relaxed">
-                        A pasta <code className="text-amber-300 font-mono">mostro/</code> requer regra de leitura pública no Firebase Console para que o navegador liste os arquivos.
-                      </p>
-                    </div>
-                    <div className="bg-black/60 border border-gold/20 rounded-lg p-3 text-left">
-                      <p className="text-[10px] uppercase font-mono text-gold/50 mb-1">
-                        Regra recomendada no Firebase Console:
-                      </p>
-                      <code className="text-[11px] font-mono text-emerald-300 block select-all whitespace-pre-wrap">
-                        {`match /mostro/{allPaths=**} {\n  allow read: if true;\n}`}
-                      </code>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => loadMonsters(true)}
-                      className="px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/40 text-gold text-xs font-cinzel rounded-lg transition-colors cursor-pointer inline-flex items-center gap-2"
-                    >
-                      <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                      Tentar Novamente
-                    </button>
+              ) : errorMessage ? (
+                <div className="py-12 px-4 max-w-lg mx-auto text-center space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto shadow">
+                    <ShieldAlert size={24} />
                   </div>
-                ) : (
-                  <div className="py-16 text-center space-y-3">
-                    <Skull className="w-12 h-12 text-gold/20 mx-auto" />
-                    <p className="text-gold/60 font-cinzel font-bold">Nenhum monstro encontrado</p>
-                    <p className="text-xs text-gold/40 font-cinzel max-w-md mx-auto">
-                      Nenhum arquivo .png corresponde aos termos digitados ou a pasta mostro/ está vazia.
+                  <div>
+                    <h4 className="text-base font-cinzel font-bold text-amber-300">
+                      Erro no Firebase Storage
+                    </h4>
+                    <p className="text-[11px] font-mono text-amber-200/90 mt-1.5 p-2.5 rounded bg-amber-950/40 border border-amber-500/20 break-words text-left">
+                      <strong>Detalhes:</strong> {errorMessage}
+                    </p>
+                    <p className="text-xs text-gold/70 mt-2 font-cinzel leading-relaxed">
+                      Não foi possível listar os monstros na pasta <code className="text-amber-300 font-mono">monstro/</code>. Verifique se o usuário está autenticado e com permissão no Firebase.
                     </p>
                   </div>
-                )
+                  <button
+                    type="button"
+                    onClick={() => loadMonsters(true)}
+                    className="px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/40 text-gold text-xs font-cinzel rounded-lg transition-colors cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                    Tentar Novamente
+                  </button>
+                </div>
+              ) : filteredMonsters.length === 0 ? (
+                <div className="py-16 text-center space-y-3">
+                  <Skull className="w-12 h-12 text-gold/20 mx-auto" />
+                  <p className="text-gold/60 font-cinzel font-bold">Nenhum monstro encontrado</p>
+                  <p className="text-xs text-gold/40 font-cinzel max-w-md mx-auto">
+                    Nenhum arquivo .png corresponde aos termos digitados ou a pasta monstro/ está vazia.
+                  </p>
+                </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {filteredMonsters.map((monster) => (
@@ -217,6 +222,9 @@ export const MonsterStorageLibraryModal: React.FC<MonsterStorageLibraryModalProp
                       
                       {/* Name in library card footer */}
                       <div className="relative z-10 p-3">
+                        <span className="inline-block px-1.5 py-0.5 rounded bg-black/80 border border-gold/30 text-[9px] font-cinzel font-bold text-amber-300 uppercase tracking-wider mb-1 shadow-sm">
+                          {badgeLabel}
+                        </span>
                         <p className="text-xs font-cinzel font-bold text-gold drop-shadow leading-tight line-clamp-2">
                           {monster.name}
                         </p>

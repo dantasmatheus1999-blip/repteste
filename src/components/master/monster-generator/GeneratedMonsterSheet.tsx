@@ -171,7 +171,7 @@ export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ mo
                   type="button"
                   onClick={() => setIsLibraryOpen(true)}
                   className="px-2.5 py-1 rounded bg-gold/15 hover:bg-gold/25 border border-gold/40 text-gold font-cinzel text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-                  title="Escolher monstro da Biblioteca (mostro/)"
+                  title="Escolher monstro da Biblioteca (monstro/)"
                 >
                   <BookOpen size={12} />
                   <span>Biblioteca</span>
@@ -551,7 +551,13 @@ export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ mo
             <Button 
               fullWidth 
               icon={Save} 
-              onClick={onSave}
+              onClick={() => {
+                if (!monster.name || !monster.name.trim()) {
+                  alert('O Nome do Monstro é obrigatório para salvar.');
+                  return;
+                }
+                if (onSave) onSave();
+              }}
               disabled={!onSave}
               className="shadow-[0_0_30px_rgba(212,175,55,0.2)]"
             >
@@ -577,6 +583,8 @@ export const GeneratedMonsterSheet: React.FC<GeneratedMonsterSheetProps> = ({ mo
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}
         onSelect={handleSelectFromLibrary}
+        combatRole={monster.combatRole}
+        scale={monster.rank || monster.realmorScale}
       />
     </div>
   );

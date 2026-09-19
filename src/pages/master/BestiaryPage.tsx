@@ -17,6 +17,7 @@ import {
   X,
   RefreshCw,
   Sparkles,
+  ShieldAlert,
   Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -42,19 +43,22 @@ export const BestiaryPage: React.FC = () => {
   const [monsterToDelete, setMonsterToDelete] = useState<NPC | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Biblioteca Padrão de Monstros (Firebase Storage mostro/)
+  // Biblioteca Padrão de Monstros (Firebase Storage monstro/)
   const [storageMonsters, setStorageMonsters] = useState<StorageMonster[]>([]);
   const [loadingStorage, setLoadingStorage] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [storageSearch, setStorageSearch] = useState('');
   const [generatorPreset, setGeneratorPreset] = useState<{ name?: string; imageUrl?: string } | null>(null);
 
   const loadStorageMonsters = async (forceRefresh = false) => {
     setLoadingStorage(true);
+    setStorageError(null);
     try {
       const items = await fetchStorageMonsterLibrary(forceRefresh);
       setStorageMonsters(items);
     } catch (err: any) {
-      console.info('[BestiaryPage] Consulta à biblioteca do Storage:', err?.message);
+      console.error('[BestiaryPage] Erro ao carregar acervo do Storage:', err);
+      setStorageError(err?.message || 'Erro de permissão no Firebase Storage');
     } finally {
       setLoadingStorage(false);
     }
@@ -314,7 +318,7 @@ export const BestiaryPage: React.FC = () => {
                     Biblioteca de Monstros
                   </h3>
                   <p className="text-xs text-gold/60 font-cinzel">
-                    Acervo padrão do REALMOR lido da pasta <code className="text-amber-300 font-mono">mostro/</code> no Firebase Storage
+                    Acervo padrão do REALMOR lido da pasta <code className="text-amber-300 font-mono">monstro/</code> no Firebase Storage
                   </p>
                 </div>
               </div>
@@ -350,15 +354,38 @@ export const BestiaryPage: React.FC = () => {
               <div className="py-24 text-center space-y-4">
                 <RefreshCw className="w-12 h-12 text-gold animate-spin mx-auto" />
                 <p className="text-gold/60 font-cinzel italic text-base animate-pulse">
-                  Consultando acervo de criaturas em Firebase Storage (pasta mostro/)...
+                  Consultando acervo de criaturas em Firebase Storage (pasta monstro/)...
                 </p>
+              </div>
+            ) : storageError ? (
+              <div className="glass-card p-12 rounded-3xl border border-amber-500/30 text-center space-y-4 max-w-xl mx-auto bg-amber-950/20">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto shadow">
+                  <ShieldAlert size={32} />
+                </div>
+                <h4 className="text-xl font-cinzel font-black text-amber-300">Erro no Firebase Storage</h4>
+                <p className="text-xs text-amber-200/90 font-mono break-words bg-black/60 p-3 rounded-xl border border-amber-500/20 text-left">
+                  <strong>Detalhes:</strong> {storageError}
+                </p>
+                <p className="text-xs text-gold/60 font-cinzel leading-relaxed">
+                  Não foi possível ler a pasta <code className="text-amber-300 font-mono">monstro/</code>. Verifique as regras de segurança do Firebase Storage para o usuário autenticado ou leitura pública.
+                </p>
+                <div className="pt-2">
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    onClick={() => loadStorageMonsters(true)}
+                    icon={RefreshCw}
+                  >
+                    Tentar Novamente
+                  </Button>
+                </div>
               </div>
             ) : storageMonsters.length === 0 ? (
               <div className="glass-card p-12 rounded-3xl border border-gold/10 text-center space-y-4 max-w-xl mx-auto">
                 <Skull className="w-16 h-16 text-gold/20 mx-auto" />
                 <h4 className="text-xl font-cinzel font-black text-gold">Nenhum Monstro Encontrado</h4>
                 <p className="text-sm text-gold/60 font-cinzel leading-relaxed">
-                  Não foram encontrados arquivos <code className="text-amber-300 font-mono">.png</code> na pasta <code className="text-amber-300 font-mono">mostro/</code> do Firebase Storage.
+                  Não foram encontrados arquivos <code className="text-amber-300 font-mono">.png</code> na pasta <code className="text-amber-300 font-mono">monstro/</code> do Firebase Storage.
                 </p>
                 <div className="pt-2">
                   <Button 
@@ -403,10 +430,13 @@ export const BestiaryPage: React.FC = () => {
                           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
                           
                           <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-black/80 border border-gold/30 text-[9px] font-cinzel font-bold text-amber-300 uppercase tracking-widest shadow">
-                            mostro/
+                            monstro/
                           </div>
 
                           <div className="absolute bottom-0 inset-x-0 p-4">
+                            <span className="inline-block px-2 py-0.5 rounded bg-black/80 border border-gold/30 text-[9px] font-cinzel font-bold text-amber-300 uppercase tracking-widest mb-1.5 shadow">
+                              MOSTRO • NORMAL • SOLO
+                            </span>
                             <h4 className="text-xl font-cinzel font-black text-gold drop-shadow leading-tight line-clamp-2">
                               {monster.name}
                             </h4>

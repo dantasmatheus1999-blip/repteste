@@ -5,14 +5,66 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { Sword, Plus, Dices, ScrollText, Castle, Hourglass, Flame, Compass } from 'lucide-react';
+
 import { AppLayout } from './layouts/AppLayout';
 import { Button } from './components/Button';
 import { Card } from './components/Card';
-import { Sword, Plus, Dices, ScrollText, Castle, Hourglass, Flame, Compass } from 'lucide-react';
 import { useDiceRoller } from './hooks/useDiceRoller';
-
-import { motion, AnimatePresence } from 'motion/react';
 import { FirestoreDevHud } from './components/dev/FirestoreDevHud';
+import { ErrorBoundary } from './components/ErrorBoundary';
+
+import { ProfileProvider } from './context/ProfileContext';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './routes/ProtectedRoute';
+
+import { AuthPage } from './pages/AuthPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { WelcomePage } from './pages/WelcomePage';
+import { ProfileSelection } from './pages/ProfileSelection';
+import { CharacterSheet } from './pages/CharacterSheet';
+import { CharacterListPage } from './pages/CharacterListPage';
+import { ClassesPage } from './pages/ClassesPage';
+import { ClassDetailPage } from './pages/ClassDetailPage';
+import { CodexPage } from './pages/CodexPage';
+import { RacesPage } from './pages/RacesPage';
+import { RaceDetailPage } from './pages/RaceDetailPage';
+import { OriginsPage } from './pages/OriginsPage';
+import { OriginDetailPage } from './pages/OriginDetailPage';
+import { DeitiesPage } from './pages/DeitiesPage';
+import { DeityDetailPage } from './pages/DeityDetailPage';
+import { PowersPage } from './components/codex/PowersPage';
+import { SpellsPage } from './components/codex/SpellsPage';
+
+import { CharacterCreationWizard } from './components/character/CharacterCreationWizard';
+import { CharacterSheetView } from './pages/CharacterSheetView';
+import { MasterGrimoire } from './pages/master/MasterGrimoire';
+import { CampaignListPage } from './pages/master/CampaignListPage';
+import { CampaignForm } from './pages/master/CampaignForm';
+import { CampaignDetailPage } from './pages/master/CampaignDetailPage';
+import { SessionForm } from './pages/master/SessionForm';
+import { NPCListPage } from './pages/master/NPCListPage';
+import { NPCForm } from './pages/master/NPCForm';
+import { NPCGenerator } from './pages/master/NPCGenerator';
+import { MasterNotesPage } from './pages/master/MasterNotesPage';
+import { LocationForm } from './pages/master/LocationForm';
+import { EncounterForm } from './pages/master/EncounterForm';
+import { MonsterForm } from './pages/master/MonsterForm';
+import { MonsterDetailsPage } from './pages/master/MonsterDetailsPage';
+
+import { MapPage } from './pages/master/MapPage';
+import { TacticalMapPage } from './pages/master/TacticalMapPage';
+import { TvMapView } from './components/map/TvMapView';
+
+import { BestiaryPage } from './pages/master/BestiaryPage';
+import { GameBasicPage } from './pages/master/GameBasicPage';
+import { GameInvitePage } from './pages/join/GameInvitePage';
+
+import { ImmersiveRPGPage } from './pages/ImmersiveRPGPage';
+import { GrimoireCentralPage } from './pages/GrimoireCentralPage';
+import { NewMasterPage } from './pages/master/NewMasterPage';
+import { NewPlayerPage } from './pages/jogador/NewPlayerPage';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -178,7 +230,6 @@ const Dashboard = () => {
   );
 };
 
-
 const PlaceholderPage = ({ title }: { title: string }) => (
   <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6">
     <div className="w-24 h-24 rounded-sm bg-mythos-card border-2 border-gold/30 flex items-center justify-center text-gold shadow-[0_0_30px_rgba(212,175,55,0.1)] relative">
@@ -196,66 +247,9 @@ const PlaceholderPage = ({ title }: { title: string }) => (
   </div>
 );
 
-import { ProfileProvider, useProfile } from './context/ProfileContext';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { ProtectedRoute } from './routes/ProtectedRoute';
-import { AuthPage } from './pages/AuthPage';
-import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
-import { WelcomePage } from './pages/WelcomePage';
-import { ProfileSelection } from './pages/ProfileSelection';
-import { CharacterSheet } from './pages/CharacterSheet';
-import { CharacterListPage } from './pages/CharacterListPage';
-import { ClassesPage } from './pages/ClassesPage';
-import { ClassDetailPage } from './pages/ClassDetailPage';
-import { CodexPage } from './pages/CodexPage';
-import { RacesPage } from './pages/RacesPage';
-import { RaceDetailPage } from './pages/RaceDetailPage';
-import { OriginsPage } from './pages/OriginsPage';
-import { OriginDetailPage } from './pages/OriginDetailPage';
-import { DeitiesPage } from './pages/DeitiesPage';
-import { DeityDetailPage } from './pages/DeityDetailPage';
-import { PowersPage } from './components/codex/PowersPage';
-import { SpellsPage } from './components/codex/SpellsPage';
-
-import { CharacterCreationWizard } from './components/character/CharacterCreationWizard';
-import { CharacterSheetView } from './pages/CharacterSheetView';
-import { MasterGrimoire } from './pages/master/MasterGrimoire';
-import { CampaignListPage } from './pages/master/CampaignListPage';
-import { CampaignForm } from './pages/master/CampaignForm';
-import { CampaignDetailPage } from './pages/master/CampaignDetailPage';
-import { SessionForm } from './pages/master/SessionForm';
-import { NPCListPage } from './pages/master/NPCListPage';
-import { NPCForm } from './pages/master/NPCForm';
-import { NPCGenerator } from './pages/master/NPCGenerator';
-import { MasterNotesPage } from './pages/master/MasterNotesPage';
-import { LocationForm } from './pages/master/LocationForm';
-import { EncounterForm } from './pages/master/EncounterForm';
-import { MonsterForm } from './pages/master/MonsterForm';
-import { MonsterDetailsPage } from './pages/master/MonsterDetailsPage';
-
-import { MapPage } from './pages/master/MapPage';
-import { TacticalMapPage } from './pages/master/TacticalMapPage';
-import { TvMapView } from './components/map/TvMapView';
-
-import { BestiaryPage } from './pages/master/BestiaryPage';
-import { GameBasicPage } from './pages/master/GameBasicPage';
-import { GameInvitePage } from './pages/join/GameInvitePage';
-
-import { ImmersiveRPGPage } from './pages/ImmersiveRPGPage';
-
-// Novo Grimório Central do REALMOR
-import { GrimoireCentralPage } from './pages/GrimoireCentralPage';
-
-// Módulo legado preservado como rascunho para consulta futura.
-// Não excluir sem autorização.
-import { NewMasterPage } from './pages/master/NewMasterPage';
-import { NewPlayerPage } from './pages/jogador/NewPlayerPage';
-
 const Home = () => {
   return <GrimoireCentralPage />;
 };
-
-import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
   const isTvMode = typeof window !== 'undefined' && (
@@ -271,133 +265,111 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Router>
-        <Routes>
-          {/* Rota 100% pública e independente da TV - Sem Layout, Sem Menus, Sem Auth, Sem Profile, Sem ProtectedRoute */}
-          <Route path="/tv" element={<TvMapView />} />
-          <Route path="/tv/*" element={<TvMapView />} />
-          <Route path="/tv/mapa-teste" element={<TvMapView />} />
+        <AuthProvider>
+          <ProfileProvider>
+            <Routes>
+              {/* Rota 100% pública e independente da TV - Sem Layout, Sem Menus, Sem Auth, Sem Profile, Sem ProtectedRoute */}
+              <Route path="/tv" element={<TvMapView />} />
+              <Route path="/tv/*" element={<TvMapView />} />
+              <Route path="/tv/mapa-teste" element={<TvMapView />} />
 
-          {/* Todas as demais rotas da aplicação utilizam AuthProvider e ProfileProvider */}
-          <Route
-            path="/*"
-            element={
-              <AuthProvider>
-                <ProfileProvider>
-                  <Routes>
-                    {/* Public Routes */}
-                    <Route path="/auth" element={<AuthPage />} />
-                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                    <Route path="/join/:inviteCode" element={<AppLayout><GameInvitePage /></AppLayout>} />
-                    <Route path="/campaigns/:campaignId/games/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
-                    <Route path="/mesa/:campaignId/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
-                    <Route path="/mesa/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
+              {/* Public Routes */}
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/join/:inviteCode" element={<AppLayout><GameInvitePage /></AppLayout>} />
+              <Route path="/campaigns/:campaignId/games/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
+              <Route path="/mesa/:campaignId/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
+              <Route path="/mesa/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
 
-                    {/* Protected Routes */}
-                    <Route path="/welcome" element={
-                      <ProtectedRoute>
-                        <WelcomePage />
-                      </ProtectedRoute>
-                    } />
+              {/* Protected Routes */}
+              <Route path="/welcome" element={
+                <ProtectedRoute>
+                  <WelcomePage />
+                </ProtectedRoute>
+              } />
 
-                    <Route path="/*" element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Routes>
-                            <Route path="/" element={<GrimoireCentralPage />} />
-                            <Route path="/grimorio" element={<GrimoireCentralPage />} />
-                            <Route path="/select-profile" element={<ProfileSelection />} />
-                            
-                            {/* Novas rotas principais do REALMOR */}
-                            <Route path="/mestre" element={<NewMasterPage />} />
-                            <Route path="/jogador" element={<NewPlayerPage />} />
+              <Route path="/" element={<ProtectedRoute><AppLayout><GrimoireCentralPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/grimorio" element={<ProtectedRoute><AppLayout><GrimoireCentralPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/select-profile" element={<ProtectedRoute><AppLayout><ProfileSelection /></AppLayout></ProtectedRoute>} />
+              
+              {/* Novas rotas principais do REALMOR */}
+              <Route path="/mestre" element={<ProtectedRoute><AppLayout><NewMasterPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/jogador" element={<ProtectedRoute><AppLayout><NewPlayerPage /></AppLayout></ProtectedRoute>} />
 
-                            {/* Módulos legados preservados como rascunho para consulta futura */}
-                            {/* Não excluir sem autorização */}
-                            <Route path="/legacy/dashboard" element={<Home />} />
-                            <Route path="/legacy/mestre" element={<MasterGrimoire />} />
-                            <Route path="/legacy/jogador" element={<Dashboard />} />
-                            
-                            {/* Codex Routes */}
-                            <Route path="/codex" element={<CodexPage />} />
-                            <Route path="/codex/classes" element={<ClassesPage />} />
-                            <Route path="/codex/classes/:slug" element={<ClassDetailPage />} />
-                            <Route path="/codex/racas" element={<RacesPage />} />
-                            <Route path="/codex/racas/:slug" element={<RaceDetailPage />} />
-                            <Route path="/codex/origens" element={<OriginsPage />} />
-                            <Route path="/codex/origens/:slug" element={<OriginDetailPage />} />
-                            <Route path="/codex/divindades" element={<DeitiesPage />} />
-                            <Route path="/codex/divindades/:slug" element={<DeityDetailPage />} />
-                            <Route path="/codex/poderes" element={<PowersPage />} />
-                            <Route path="/codex/magias" element={<SpellsPage />} />
-                            <Route path="/spells" element={<SpellsPage />} />
+              {/* Módulos legados preservados como rascunho para consulta futura */}
+              <Route path="/legacy/dashboard" element={<ProtectedRoute><AppLayout><Home /></AppLayout></ProtectedRoute>} />
+              <Route path="/legacy/mestre" element={<ProtectedRoute><AppLayout><MasterGrimoire /></AppLayout></ProtectedRoute>} />
+              <Route path="/legacy/jogador" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
+              
+              {/* Codex Routes */}
+              <Route path="/codex" element={<ProtectedRoute><AppLayout><CodexPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/classes" element={<ProtectedRoute><AppLayout><ClassesPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/classes/:slug" element={<ProtectedRoute><AppLayout><ClassDetailPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/racas" element={<ProtectedRoute><AppLayout><RacesPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/racas/:slug" element={<ProtectedRoute><AppLayout><RaceDetailPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/origens" element={<ProtectedRoute><AppLayout><OriginsPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/origens/:slug" element={<ProtectedRoute><AppLayout><OriginDetailPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/divindades" element={<ProtectedRoute><AppLayout><DeitiesPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/divindades/:slug" element={<ProtectedRoute><AppLayout><DeityDetailPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/poderes" element={<ProtectedRoute><AppLayout><PowersPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/codex/magias" element={<ProtectedRoute><AppLayout><SpellsPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/spells" element={<ProtectedRoute><AppLayout><SpellsPage /></AppLayout></ProtectedRoute>} />
 
-                            <Route path="/characters" element={<CharacterListPage />} />
-                            <Route path="/characters/sheet" element={<CharacterCreationWizard />} />
-                            <Route path="/characters/:id" element={<CharacterSheetView />} />
-                            
-                            {/* Master Routes */}
-                            <Route path="/master" element={<MasterGrimoire />} />
-                            <Route path="/master/campaigns" element={<CampaignListPage />} />
-                            <Route path="/master/campaigns/new" element={<CampaignForm />} />
-                            <Route path="/master/campaigns/:id" element={<CampaignDetailPage />} />
-                            <Route path="/master/campaigns/:id/edit" element={<CampaignForm />} />
-                            <Route path="/master/campaigns/:campaignId/games/:gameId" element={<GameBasicPage />} />
-                            <Route path="/campaigns/:campaignId/games/:gameId" element={<GameBasicPage />} />
-                            <Route path="/mesa/:campaignId/:gameId" element={<GameBasicPage />} />
-                            <Route path="/mesa/:gameId" element={<GameBasicPage />} />
-                            <Route path="/join/:inviteCode" element={<GameInvitePage />} />
-                            <Route path="/master/campaigns/:campaignId/sessions/new" element={<SessionForm />} />
-                            <Route path="/master/campaigns/:campaignId/sessions/:sessionId" element={<SessionForm />} />
-                            
-                            <Route path="/master/npcs" element={<NPCListPage />} />
-                            <Route path="/master/npcs/new" element={<NPCForm />} />
-                            <Route path="/master/npcs/generator" element={<NPCGenerator />} />
-                            <Route path="/master/npcs/:npcId" element={<NPCForm />} />
-                            
-                            <Route path="/master/monsters" element={<BestiaryPage />} />
-                            <Route path="/master/monsters/new" element={<MonsterForm />} />
-                            <Route path="/master/monsters/:monsterId" element={<MonsterDetailsPage />} />
-                            <Route path="/master/monsters/:monsterId/edit" element={<MonsterForm />} />
-                            
-                            <Route path="/master/campaigns/:campaignId/monsters" element={<BestiaryPage />} />
-                            <Route path="/master/campaigns/:campaignId/monsters/new" element={<MonsterForm />} />
-                            <Route path="/master/campaigns/:campaignId/monsters/:monsterId" element={<MonsterDetailsPage />} />
-                            <Route path="/master/campaigns/:campaignId/monsters/:monsterId/edit" element={<MonsterForm />} />
-                            <Route path="/master/campaigns/:campaignId/npcs" element={<NPCListPage />} />
-                            <Route path="/master/campaigns/:campaignId/npcs/new" element={<NPCForm />} />
-                            <Route path="/master/campaigns/:campaignId/npcs/generator" element={<NPCGenerator />} />
-                            <Route path="/master/campaigns/:campaignId/npcs/:npcId" element={<NPCForm />} />
-                            
-                            <Route path="/master/campaigns/:campaignId/locations/new" element={<LocationForm />} />
-                            <Route path="/master/campaigns/:campaignId/locations/:locationId" element={<LocationForm />} />
-                            
-                            <Route path="/master/campaigns/:campaignId/encounters/new" element={<EncounterForm />} />
-                            <Route path="/master/campaigns/:campaignId/encounters/:encounterId" element={<EncounterForm />} />
-                            
-                            <Route path="/master/notes" element={<MasterNotesPage />} />
-                            <Route path="/master/campaigns/:campaignId/notes" element={<MasterNotesPage />} />
+              <Route path="/characters" element={<ProtectedRoute><AppLayout><CharacterListPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/characters/sheet" element={<ProtectedRoute><AppLayout><CharacterCreationWizard /></AppLayout></ProtectedRoute>} />
+              <Route path="/characters/:id" element={<ProtectedRoute><AppLayout><CharacterSheetView /></AppLayout></ProtectedRoute>} />
+              
+              {/* Master Routes */}
+              <Route path="/master" element={<ProtectedRoute><AppLayout><MasterGrimoire /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns" element={<ProtectedRoute><AppLayout><CampaignListPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/new" element={<ProtectedRoute><AppLayout><CampaignForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:id" element={<ProtectedRoute><AppLayout><CampaignDetailPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:id/edit" element={<ProtectedRoute><AppLayout><CampaignForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/sessions/new" element={<ProtectedRoute><AppLayout><SessionForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/sessions/:sessionId" element={<ProtectedRoute><AppLayout><SessionForm /></AppLayout></ProtectedRoute>} />
+              
+              <Route path="/master/npcs" element={<ProtectedRoute><AppLayout><NPCListPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/npcs/new" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/npcs/generator" element={<ProtectedRoute><AppLayout><NPCGenerator /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/npcs/:npcId" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
+              
+              <Route path="/master/monsters" element={<ProtectedRoute><AppLayout><BestiaryPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/monsters/new" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/monsters/:monsterId" element={<ProtectedRoute><AppLayout><MonsterDetailsPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/monsters/:monsterId/edit" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
+              
+              <Route path="/master/campaigns/:campaignId/monsters" element={<ProtectedRoute><AppLayout><BestiaryPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/monsters/new" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/monsters/:monsterId" element={<ProtectedRoute><AppLayout><MonsterDetailsPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/monsters/:monsterId/edit" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/npcs" element={<ProtectedRoute><AppLayout><NPCListPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/npcs/new" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/npcs/generator" element={<ProtectedRoute><AppLayout><NPCGenerator /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/npcs/:npcId" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
+              
+              <Route path="/master/campaigns/:campaignId/locations/new" element={<ProtectedRoute><AppLayout><LocationForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/locations/:locationId" element={<ProtectedRoute><AppLayout><LocationForm /></AppLayout></ProtectedRoute>} />
+              
+              <Route path="/master/campaigns/:campaignId/encounters/new" element={<ProtectedRoute><AppLayout><EncounterForm /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/encounters/:encounterId" element={<ProtectedRoute><AppLayout><EncounterForm /></AppLayout></ProtectedRoute>} />
+              
+              <Route path="/master/notes" element={<ProtectedRoute><AppLayout><MasterNotesPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/master/campaigns/:campaignId/notes" element={<ProtectedRoute><AppLayout><MasterNotesPage /></AppLayout></ProtectedRoute>} />
 
-                            {/* Map Routes */}
-                            <Route path="/master/maps" element={<MapPage />} />
-                            <Route path="/map/test-map" element={<MapPage />} />
-                            <Route path="/maps" element={<MapPage />} />
-                            <Route path="/map/:roomId" element={<MapPage />} />
-                            <Route path="/map/:roomId/tactical" element={<TacticalMapPage />} />
+              {/* Map Routes */}
+              <Route path="/master/maps" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/map/test-map" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/maps" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/map/:roomId" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
+              <Route path="/map/:roomId/tactical" element={<ProtectedRoute><AppLayout><TacticalMapPage /></AppLayout></ProtectedRoute>} />
 
-                            <Route path="/immersive-rpg" element={<ImmersiveRPGPage />} />
+              <Route path="/immersive-rpg" element={<ProtectedRoute><AppLayout><ImmersiveRPGPage /></AppLayout></ProtectedRoute>} />
 
-                            <Route path="/combat" element={<PlaceholderPage title="Combate" />} />
-                            <Route path="*" element={<PlaceholderPage title="Página não encontrada" />} />
-                          </Routes>
-                        </AppLayout>
-                      </ProtectedRoute>
-                    } />
-                  </Routes>
-                </ProfileProvider>
-              </AuthProvider>
-            }
-          />
-        </Routes>
+              <Route path="/combat" element={<ProtectedRoute><AppLayout><PlaceholderPage title="Combate" /></AppLayout></ProtectedRoute>} />
+              <Route path="*" element={<ProtectedRoute><AppLayout><PlaceholderPage title="Página não encontrada" /></AppLayout></ProtectedRoute>} />
+            </Routes>
+          </ProfileProvider>
+        </AuthProvider>
         {!isTvMode && <FirestoreDevHud />}
       </Router>
     </ErrorBoundary>

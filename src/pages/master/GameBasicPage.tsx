@@ -29,6 +29,7 @@ import { JoinGameFlowModal } from '../../components/games/JoinGameFlowModal';
 import { getClassEmoji } from '../../utils/characterUtils';
 import { useAuth } from '../../context/AuthContext';
 import { MapEditor } from '../../components/map/MapEditor';
+import { MobilePlayerSessionPage } from '../jogador/MobilePlayerSessionPage';
 
 type TabType = 'overview' | 'players' | 'settings';
 
@@ -283,6 +284,24 @@ export const GameBasicPage: React.FC = () => {
 
   // Emojis de classe/herói temáticos para lista de jogadores
   const heroIcons = ['🧙', '🧝', '🛡️', '🏹', '⚔️', '🗡️', '🔮', '📜', '🐺', '🐉'];
+
+  // =========================================================================
+  // MESA DO JOGADOR: QUANDO A AVENTURA ESTÁ INICIADA (STATUS = ACTIVE / PAUSED)
+  // O JOGADOR ABRE A INTERFACE MOBILE EXCLUSIVA COM SUA FICHA SINCRONIZADA
+  // =========================================================================
+  if (!isMaster && (game.status === 'active' || game.status === 'paused') && currentPlayer?.characterId) {
+    return (
+      <div className="fixed inset-0 w-screen h-screen z-40 overflow-y-auto bg-[#0a0806]">
+        <MobilePlayerSessionPage
+          campaignId={campaignId || game.campaignId || ''}
+          gameId={gameId || game.id}
+          game={game}
+          currentPlayer={currentPlayer}
+          onExit={() => navigate('/jogador')}
+        />
+      </div>
+    );
+  }
 
   // =========================================================================
   // MESA DO MESTRE: QUANDO O MESTRE INICIA A AVENTURA (STATUS = ACTIVE / PAUSED)
@@ -947,7 +966,13 @@ export const GameBasicPage: React.FC = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setIsPreparationModalOpen(true)}
+                      onClick={() => {
+                        if (isMaster) {
+                          setIsPreparationModalOpen(true);
+                        } else if (!currentPlayer?.characterId) {
+                          setIsChangeHeroModalOpen(true);
+                        }
+                      }}
                       className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-500 text-stone-950 font-cinzel font-bold tracking-widest uppercase text-base sm:text-lg shadow-[0_0_35px_rgba(217,119,6,0.35)] transition-all flex items-center justify-center gap-3 active:scale-[0.99] border border-amber-300/60 cursor-pointer"
                     >
                       <Sword size={22} className="text-stone-950" />

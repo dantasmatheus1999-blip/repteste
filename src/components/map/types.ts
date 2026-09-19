@@ -51,7 +51,15 @@ export interface MapShape {
 
 export interface SelectedObject {
   id: string;
-  type: 'marker' | 'drawing' | 'shape';
+  type: 'marker' | 'drawing' | 'shape' | 'vision';
+}
+
+export interface VisionArea {
+  id: string;
+  x: number; // native coords (1920x1080)
+  y: number; // native coords (1920x1080)
+  radiusMeters: number; // 5, 10, or 15 meters
+  label?: string;
 }
 
 export interface MapFolder {
@@ -76,6 +84,7 @@ export interface TestMap {
   markers?: MapMarker[];
   drawings?: MapDrawing[];
   shapes?: MapShape[];
+  visionAreas?: VisionArea[];
 }
 
 export type SplitLayoutCount = 1 | 2 | 3 | 4;
@@ -97,6 +106,7 @@ export type ToolType =
   | 'fog'
   | 'fog-paint'
   | 'fog-reveal'
+  | 'fog-vision'
   | 'grid'
   | 'draw'
   | 'shape'
@@ -114,6 +124,7 @@ export interface TvSyncQuadrantItem {
   markers?: MapMarker[];
   drawings?: MapDrawing[];
   shapes?: MapShape[];
+  visionAreas?: VisionArea[];
   viewport: {
     zoom: number;
     panX: number;
@@ -131,6 +142,7 @@ export interface TvSyncState {
   markers: MapMarker[];
   drawings?: MapDrawing[];
   shapes?: MapShape[];
+  visionAreas?: VisionArea[];
   viewport: {
     zoom: number;
     panX: number;

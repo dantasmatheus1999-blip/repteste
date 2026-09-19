@@ -9,7 +9,8 @@ import {
   MapDrawing, 
   MapShape, 
   ShapeType, 
-  SelectedObject 
+  SelectedObject,
+  VisionArea
 } from './types';
 import { MapMarkers } from './MapMarkers';
 import { MapVectorLayers } from './MapVectorLayers';
@@ -25,7 +26,7 @@ import {
   coverEntireMapFog, 
   clearEntireMapFog 
 } from './fogUtils';
-import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Trash2 } from 'lucide-react';
 
 interface MapCanvasProps {
   imageUrl: string;
@@ -34,6 +35,12 @@ interface MapCanvasProps {
   fogSettings?: FogSettings;
   fogData?: string;
   onFogChange: (newFogData: string) => void;
+  // Áreas de Visão
+  visionAreas?: VisionArea[];
+  onAddVisionArea?: (area: Omit<VisionArea, 'id'>) => void;
+  onUpdateVisionArea?: (id: string, updates: Partial<VisionArea>) => void;
+  onDeleteVisionArea?: (id: string) => void;
+  selectedVisionRadius?: number;
   // Marcadores
   markers: MapMarker[];
   selectedMarkerId: string | null;
@@ -65,6 +72,7 @@ interface MapCanvasProps {
   onResetView: () => void;
   resetViewTrigger?: number;
   isReadOnly?: boolean;
+  isTvMode?: boolean;
 }
 
 interface SelectionBox {
@@ -81,6 +89,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   fogSettings = DEFAULT_FOG_SETTINGS,
   fogData,
   onFogChange,
+  visionAreas = [],
+  onAddVisionArea,
+  onUpdateVisionArea,
+  onDeleteVisionArea,
+  selectedVisionRadius = 10,
   markers,
   selectedMarkerId,
   onSelectMarker,
@@ -107,7 +120,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   setPan,
   onResetView,
   resetViewTrigger,
-  isReadOnly = false
+  isReadOnly = false,
+  isTvMode = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -118,6 +132,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  // Controle de arrasto da Área de Visão
+  const [isDraggingVision, setIsDraggingVision] = useState(false);
+  const [draggingVisionId, setDraggingVisionId] = useState<string | null>(null);
+  const [dragVisionOffset, setDragVisionOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const autoId = useId();
   const gridPatternId = useMemo(() => `tactical-grid-pattern-${autoId.replace(/[^a-zA-Z0-9_-]/g, '')}`, [autoId]);
@@ -137,7 +156,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   // 4. Criação de Forma Geométrica Ativa
   const [activeShapePreview, setActiveShapePreview] = useState<{ start: Point; current: Point } | null>(null);
 
-  const isFogActive = activeTool === 'fog' || activeTool === 'fog-paint' || activeTool === 'fog-reveal';
+  const isFogActive = activeTool === 'fog' || activeTool === 'fog-paint' || activeTool === 'fog-reveal' || activeTool === 'fog-vision';
   const currentFogMode: FogMode = fogSettings.mode || (activeTool === 'fog-reveal' ? 'reveal' : 'hide');
   const currentFogShape: FogShape = fogSettings.shape || 'rect';
 
@@ -182,22 +201,26 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
   const isReadOnlyRef = useRef(isReadOnly);
+  const isTvModeRef = useRef(isTvMode);
 
   setZoomRef.current = setZoom;
   setPanRef.current = setPan;
   zoomRef.current = zoom;
   panRef.current = pan;
   isReadOnlyRef.current = isReadOnly;
+  isTvModeRef.current = isTvMode;
 
   // Enquadramento automático no espaço disponível respeitando rigorosamente 16:9
   const autoFit16by9 = useCallback(() => {
-    if (isReadOnlyRef.current) return;
+    // Se for apenas readOnly sem ser modo TV, respeita o viewport fixo
+    if (isReadOnlyRef.current && !isTvModeRef.current) return;
     if (!containerRef.current) return;
     const cw = containerRef.current.clientWidth;
     const ch = containerRef.current.clientHeight;
     if (cw <= 0 || ch <= 0) return;
 
-    const margin = 0.96;
+    // Em modo TV, utiliza 100% da área (margin = 1.0) para preenchimento total e sem barras pretas desnecessárias
+    const margin = isTvModeRef.current ? 1.0 : 0.96;
     const scaleW = (cw * margin) / NATIVE_MAP_WIDTH;
     const scaleH = (ch * margin) / NATIVE_MAP_HEIGHT;
     const targetZoom = Math.min(scaleW, scaleH);
@@ -228,9 +251,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   const handleImageLoad = () => {
     setIsImageLoaded(true);
-    if (!isReadOnly) {
-      // Se não havia viewport customizado restaurado, ajusta automaticamente 16:9
-      if (!hasCustomInitialViewRef.current) {
+    if (!isReadOnly || isTvMode) {
+      // Se não havia viewport customizado restaurado (ou se for modo TV), ajusta automaticamente 16:9
+      if (!hasCustomInitialViewRef.current || isTvMode) {
         autoFit16by9();
       }
     }
@@ -246,7 +269,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   }, [resetViewTrigger, autoFit16by9]);
 
   useEffect(() => {
-    if (!containerRef.current || isReadOnly) return;
+    if (!containerRef.current || (isReadOnly && !isTvMode)) return;
     let prevWidth = 0;
     let prevHeight = 0;
     const observer = new ResizeObserver((entries) => {
@@ -256,8 +279,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           const isInitialTick = prevWidth === 0 && prevHeight === 0;
           prevWidth = width;
           prevHeight = height;
-          if (isInitialTick && hasCustomInitialViewRef.current) {
-            // Preserva zoom/pan restaurados no primeiro layout
+          if (isInitialTick && hasCustomInitialViewRef.current && !isTvMode) {
+            // Preserva zoom/pan restaurados no primeiro layout no editor
             continue;
           }
           autoFit16by9();
@@ -266,9 +289,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, [autoFit16by9, isReadOnly]);
+  }, [autoFit16by9, isReadOnly, isTvMode]);
 
-  // Sincronizar / Carregar a camada da Névoa de Guerra no Canvas 1920x1080
+  // Sincronizar / Carregar a camada da Névoa de Guerra no Canvas 1920x1080 com recorte dinâmico das Áreas de Visão
   useEffect(() => {
     if (!fogCanvasRef.current || !isImageLoaded) return;
     const canvas = fogCanvasRef.current;
@@ -277,36 +300,88 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const applyDynamicVisionCutouts = () => {
+      if (!visionAreas || visionAreas.length === 0) return;
+      const cellSize = gridSettings.size || 50;
+      const effectiveScale = scaleMeters || gridSettings.scaleMeters || 3;
+      const pxPerMeter = cellSize / effectiveScale;
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+
+      for (const area of visionAreas) {
+        const radiusPx = (area.radiusMeters || 10) * pxPerMeter;
+        if (radiusPx <= 0) continue;
+
+        // Borda suave / feather proporcional com efeito orgânico
+        const innerR = Math.max(0, radiusPx * 0.72);
+        const outerR = radiusPx;
+
+        const grad = ctx.createRadialGradient(area.x, area.y, innerR, area.x, area.y, outerR);
+        grad.addColorStop(0, 'rgba(0, 0, 0, 1.0)');
+        grad.addColorStop(0.5, 'rgba(0, 0, 0, 0.85)');
+        grad.addColorStop(0.85, 'rgba(0, 0, 0, 0.35)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(area.x, area.y, outerR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    };
+
     if (fogData && fogData.length > 50) {
       const fogImg = new Image();
       fogImg.crossOrigin = 'anonymous';
       fogImg.onload = () => {
         ctx.clearRect(0, 0, NATIVE_MAP_WIDTH, NATIVE_MAP_HEIGHT);
         ctx.drawImage(fogImg, 0, 0, NATIVE_MAP_WIDTH, NATIVE_MAP_HEIGHT);
+        applyDynamicVisionCutouts();
       };
       fogImg.src = fogData;
     } else {
       ctx.clearRect(0, 0, NATIVE_MAP_WIDTH, NATIVE_MAP_HEIGHT);
     }
-  }, [fogData, isImageLoaded]);
+  }, [fogData, isImageLoaded, visionAreas, gridSettings.size, gridSettings.scaleMeters, scaleMeters]);
+
+  // Função auxiliar para operar na névoa base (sem queimar as áreas de visão no PNG)
+  const modifyBaseFog = useCallback((drawFn: (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => void) => {
+    const offscreen = document.createElement('canvas');
+    offscreen.width = NATIVE_MAP_WIDTH;
+    offscreen.height = NATIVE_MAP_HEIGHT;
+    const ctx = offscreen.getContext('2d');
+    if (!ctx) return;
+
+    if (fogData && fogData.length > 50) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, NATIVE_MAP_WIDTH, NATIVE_MAP_HEIGHT);
+        drawFn(ctx, offscreen);
+        onFogChange(offscreen.toDataURL());
+      };
+      img.src = fogData;
+    } else {
+      drawFn(ctx, offscreen);
+      onFogChange(offscreen.toDataURL());
+    }
+  }, [fogData, onFogChange]);
 
   // Funções globais chamadas pelos botões de cobrir e limpar névoa
   useEffect(() => {
     (window as any).__vtt_cover_all_fog = () => {
-      if (!fogCanvasRef.current) return;
-      const canvas = fogCanvasRef.current;
-      const ctx = canvas.getContext('2d');
+      const offscreen = document.createElement('canvas');
+      offscreen.width = NATIVE_MAP_WIDTH;
+      offscreen.height = NATIVE_MAP_HEIGHT;
+      const ctx = offscreen.getContext('2d');
       if (!ctx) return;
       coverEntireMapFog(ctx, NATIVE_MAP_WIDTH, NATIVE_MAP_HEIGHT, fogSettings);
-      onFogChange(canvas.toDataURL());
+      onFogChange(offscreen.toDataURL());
     };
 
     (window as any).__vtt_clear_all_fog = () => {
-      if (!fogCanvasRef.current) return;
-      const canvas = fogCanvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      clearEntireMapFog(ctx, NATIVE_MAP_WIDTH, NATIVE_MAP_HEIGHT);
       onFogChange('');
     };
 
@@ -335,6 +410,25 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     setPan({ x: newPanX, y: newPanY });
   };
 
+  // Início de toque/clique no Marcador Central da Área de Visão
+  const handleVisionPointerDown = (e: React.PointerEvent, visionId: string) => {
+    e.stopPropagation();
+    if (isReadOnly) return;
+    if (e.button !== 0) return;
+
+    const mapPos = getMapCoordinates(e.clientX, e.clientY);
+    const area = visionAreas.find(v => v.id === visionId);
+    if (!area) return;
+
+    setIsDraggingVision(true);
+    setDraggingVisionId(visionId);
+    setDragVisionOffset({
+      x: mapPos.x - area.x,
+      y: mapPos.y - area.y
+    });
+    onSelectObject?.({ id: visionId, type: 'vision' });
+  };
+
   // Início de toque/clique no Canvas
   const handlePointerDown = (e: React.PointerEvent) => {
     if (isReadOnly) return;
@@ -355,6 +449,18 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       setMeasurePoints({
         start: mapPos,
         current: mapPos
+      });
+      return;
+    }
+
+    // 3. Ferramenta Área de Visão: Adiciona nova área no clique do Mestre
+    if (activeTool === 'fog-vision') {
+      const radius = selectedVisionRadius || 10;
+      onAddVisionArea?.({
+        x: Math.round(mapPos.x),
+        y: Math.round(mapPos.y),
+        radiusMeters: radius,
+        label: `Visão ${radius}m`
       });
       return;
     }
@@ -418,6 +524,17 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
     const mapPos = getMapCoordinates(e.clientX, e.clientY);
 
+    // Arrasto de Área de Visão
+    if (isDraggingVision && draggingVisionId) {
+      const newX = Math.max(0, Math.min(NATIVE_MAP_WIDTH, mapPos.x - dragVisionOffset.x));
+      const newY = Math.max(0, Math.min(NATIVE_MAP_HEIGHT, mapPos.y - dragVisionOffset.y));
+      onUpdateVisionArea?.(draggingVisionId, {
+        x: Math.round(newX),
+        y: Math.round(newY)
+      });
+      return;
+    }
+
     // Atualiza Régua de Medição
     if (measurePoints) {
       setMeasurePoints(prev => prev ? { ...prev, current: mapPos } : null);
@@ -472,6 +589,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       setIsPanning(false);
     }
 
+    if (isDraggingVision) {
+      setIsDraggingVision(false);
+      setDraggingVisionId(null);
+    }
+
     // Finalizar Desenho Livre
     if (isDrawingActive) {
       setIsDrawingActive(false);
@@ -504,43 +626,37 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       setActiveShapePreview(null);
     }
 
-    // Finalizar Névoa Retangular
+    // Finalizar Névoa Retangular na camada base
     if (selectionBox) {
       const left = Math.min(selectionBox.startX, selectionBox.currentX);
       const top = Math.min(selectionBox.startY, selectionBox.currentY);
       const width = Math.abs(selectionBox.currentX - selectionBox.startX);
       const height = Math.abs(selectionBox.currentY - selectionBox.startY);
 
-      if (width >= 4 && height >= 4 && fogCanvasRef.current) {
-        const canvas = fogCanvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
+      if (width >= 4 && height >= 4) {
+        modifyBaseFog((ctx) => {
           const rect = { x: left, y: top, width, height };
           if (currentFogMode === 'reveal') {
             revealOrganicFogRect(ctx, rect, fogSettings);
           } else {
             applyOrganicFogRect(ctx, rect, fogSettings);
           }
-          onFogChange(canvas.toDataURL());
-        }
+        });
       }
       setSelectionBox(null);
     }
 
-    // Finalizar Névoa Livre (Lasso)
+    // Finalizar Névoa Livre (Lasso) na camada base
     if (isDrawingFreehand) {
       setIsDrawingFreehand(false);
-      if (freehandPoints.length >= 3 && fogCanvasRef.current) {
-        const canvas = fogCanvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
+      if (freehandPoints.length >= 3) {
+        modifyBaseFog((ctx) => {
           if (currentFogMode === 'reveal') {
             revealOrganicFogPolygon(ctx, freehandPoints, fogSettings);
           } else {
             applyOrganicFogPolygon(ctx, freehandPoints, fogSettings);
           }
-          onFogChange(canvas.toDataURL());
-        }
+        });
       }
       setFreehandPoints([]);
     }
@@ -548,7 +664,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   // Cursor CSS dinâmico
   const getCursorClass = () => {
-    if (isPanning) return 'cursor-grabbing';
+    if (isPanning || isDraggingVision) return 'cursor-grabbing';
     switch (activeTool) {
       case 'pan': return 'cursor-grab';
       case 'measure': return 'cursor-crosshair';
@@ -558,7 +674,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       case 'eraser': return 'cursor-not-allowed';
       case 'fog':
       case 'fog-paint':
-      case 'fog-reveal': return 'cursor-crosshair';
+      case 'fog-reveal':
+      case 'fog-vision': return 'cursor-crosshair';
       default: return 'cursor-default';
     }
   };
@@ -837,6 +954,161 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           style={{ opacity: isReadOnly ? (fogSettings.density ?? 1) : (fogSettings.density ?? 0.95) }}
         />
 
+        {/* 7.1. Camada de Áreas de Visão: Aura de Luz Suave e Controles Interativos */}
+        {visionAreas && visionAreas.length > 0 && (
+          <div className="absolute inset-0 w-full h-full pointer-events-none z-18">
+            <svg
+              className="absolute inset-0 w-full h-full overflow-visible"
+              width={NATIVE_MAP_WIDTH}
+              height={NATIVE_MAP_HEIGHT}
+              viewBox={`0 0 ${NATIVE_MAP_WIDTH} ${NATIVE_MAP_HEIGHT}`}
+            >
+              <defs>
+                {visionAreas.map((area) => (
+                  <radialGradient
+                    key={`grad-aura-${area.id}`}
+                    id={`vision-aura-grad-${area.id}`}
+                    cx="50%"
+                    cy="50%"
+                    r="50%"
+                  >
+                    <stop offset="0%" stopColor="#fef08a" stopOpacity="0.14" />
+                    <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.07" />
+                    <stop offset="85%" stopColor="#d97706" stopOpacity="0.02" />
+                    <stop offset="100%" stopColor="#b45309" stopOpacity="0" />
+                  </radialGradient>
+                ))}
+              </defs>
+
+              {visionAreas.map((area) => {
+                const cellSize = gridSettings.size || 50;
+                const effectiveScale = scaleMeters || gridSettings.scaleMeters || 3;
+                const radiusPx = (area.radiusMeters || 10) * (cellSize / effectiveScale);
+                const isSelected = !isReadOnly && (selectedObject?.type === 'vision' && selectedObject.id === area.id);
+
+                return (
+                  <g key={`vision-group-${area.id}`} className="transition-all">
+                    {/* Efeito discreto de Luz / Aura Quente da Tocha/Visão */}
+                    <circle
+                      cx={area.x}
+                      cy={area.y}
+                      r={radiusPx}
+                      fill={`url(#vision-aura-grad-${area.id})`}
+                    />
+
+                    {/* Borda circular suave com brilho e traçado tático */}
+                    <circle
+                      cx={area.x}
+                      cy={area.y}
+                      r={radiusPx}
+                      fill="none"
+                      stroke={isSelected ? '#fbbf24' : 'rgba(245, 158, 11, 0.45)'}
+                      strokeWidth={isSelected ? '2.5' : '1.5'}
+                      strokeDasharray={isSelected ? '6 3' : '5 4'}
+                      style={{
+                        filter: isSelected 
+                          ? 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))' 
+                          : 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.4))'
+                      }}
+                    />
+
+                    {/* Raio visual secundário suave para sensação de profundidade de luz */}
+                    <circle
+                      cx={area.x}
+                      cy={area.y}
+                      r={Math.max(10, radiusPx * 0.65)}
+                      fill="none"
+                      stroke="rgba(254, 240, 138, 0.15)"
+                      strokeWidth="1"
+                      strokeDasharray="3 3"
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Controles Interativos e Marcadores Centrais das Áreas de Visão (apenas na visão do Mestre) */}
+            {!isReadOnly && visionAreas.map((area) => {
+              const isSelected = selectedObject?.type === 'vision' && selectedObject.id === area.id;
+
+              return (
+                <div
+                  key={`vision-interactive-${area.id}`}
+                  style={{
+                    left: area.x,
+                    top: area.y,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                  className="absolute pointer-events-auto flex flex-col items-center justify-center select-none"
+                >
+                  {/* Marcador Central Draggable (Ícone de Olho Místico) */}
+                  <div
+                    onPointerDown={(e) => handleVisionPointerDown(e, area.id)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing transition-transform hover:scale-110 shadow-xl ${
+                      isSelected
+                        ? 'bg-amber-500 text-stone-950 ring-4 ring-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.8)]'
+                        : 'bg-stone-950/90 border border-amber-500/80 text-amber-400 hover:bg-stone-900 shadow-[0_0_12px_rgba(0,0,0,0.8)]'
+                    }`}
+                    title="Arraste para mover a Área de Visão"
+                  >
+                    <span className="text-sm">👁️</span>
+                  </div>
+
+                  {/* Badge de Metros e Controles Rápidos */}
+                  <div
+                    className={`mt-1.5 px-2 py-0.5 rounded-md flex items-center gap-1.5 shadow-lg backdrop-blur-sm border transition-all ${
+                      isSelected
+                        ? 'bg-stone-950/95 border-amber-400 text-amber-200'
+                        : 'bg-stone-950/80 border-amber-900/60 text-amber-300/90 hover:bg-stone-950'
+                    }`}
+                  >
+                    <span className="text-[10px] font-cinzel font-bold tracking-wider whitespace-nowrap">
+                      {area.radiusMeters}m
+                    </span>
+
+                    {isSelected && (
+                      <div className="flex items-center gap-1 pl-1 border-l border-amber-900/60">
+                        {/* Botões Rápidos de Raio 5m, 10m, 15m */}
+                        {[5, 10, 15].map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onUpdateVisionArea?.(area.id, { radiusMeters: r, label: `Visão ${r}m` });
+                            }}
+                            className={`px-1 py-0.2 rounded text-[9px] font-mono font-bold ${
+                              area.radiusMeters === r
+                                ? 'bg-amber-500 text-stone-950'
+                                : 'bg-stone-900 text-stone-300 hover:text-amber-200'
+                            }`}
+                          >
+                            {r}m
+                          </button>
+                        ))}
+
+                        {/* Botão de Excluir */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteVisionArea?.(area.id);
+                            onSelectObject?.(null);
+                          }}
+                          className="p-0.5 text-stone-400 hover:text-red-400 hover:bg-red-950/40 rounded transition-colors ml-0.5"
+                          title="Remover Área de Visão"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* 8. Caixa de Seleção Retangular de Névoa */}
         {boxRect && (
           <div
@@ -922,6 +1194,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           }}
           onUpdateMarkerPosition={onUpdateMarkerPosition}
           isInteractive={!isReadOnly && (activeTool === 'select' || activeTool === 'marker')}
+          hideLabels={isTvMode}
         />
       </div>
 

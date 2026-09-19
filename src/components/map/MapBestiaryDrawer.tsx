@@ -117,6 +117,7 @@ export const MapBestiaryDrawer: React.FC<MapBestiaryDrawerProps> = ({
         race: generated.type,
         role: generated.role,
         combatRole: generated.combatRole,
+        realmorScale: generated.realmorScale || (generated.rank as any) || 'normal',
         rank: generated.rank,
         nd: generated.nd,
         theme: generated.theme,
@@ -336,10 +337,34 @@ export const MapBestiaryDrawer: React.FC<MapBestiaryDrawerProps> = ({
           ) : (
             filteredMonsters.map((monster) => {
               const ndVal = monster.nd || '1';
-              const rankVal = monster.rank || 'Solo';
-              const raceVal = monster.race || 'Monstro';
               const hpVal = monster.stats?.hp ?? (monster as any).hp ?? '-';
               const acVal = monster.stats?.ac ?? (monster as any).defense ?? '-';
+
+              // Extração do Papel T20 real salvo/associado ao monstro (SOLO / LACAIO / ESPECIAL)
+              const rawRole = (
+                monster.combatRole || 
+                (monster.role && ['solo', 'lacaio', 'especial'].includes(monster.role.toLowerCase()) ? monster.role : null) ||
+                (monster.rank && ['solo', 'lacaio', 'especial'].includes(monster.rank.toLowerCase()) ? monster.rank : null) ||
+                (monster.description?.match(/Papel:\s*(solo|lacaio|especial)/i)?.[1]) ||
+                'solo'
+              );
+              const roleDisplay = rawRole.toUpperCase() === 'LACAIO' 
+                ? 'LACAIO' 
+                : rawRole.toUpperCase() === 'ESPECIAL' 
+                  ? 'ESPECIAL' 
+                  : 'SOLO';
+
+              // Escala salva/associada (NORMAL / ELITE / CHEFE)
+              const rawScale = (
+                monster.realmorScale ||
+                (monster.rank && ['normal', 'elite', 'chefe'].includes(monster.rank.toLowerCase()) ? monster.rank : null) ||
+                (monster.description?.match(/Rank:\s*(normal|elite|chefe)/i)?.[1]) ||
+                'NORMAL'
+              );
+              const scaleDisplay = rawScale.toUpperCase();
+
+              // Tipo/Raça do monstro
+              const raceDisplay = (monster.race || 'MONSTRO').toUpperCase();
 
               return (
                 <div
@@ -373,7 +398,7 @@ export const MapBestiaryDrawer: React.FC<MapBestiaryDrawerProps> = ({
                       </div>
 
                       <p className="text-[10px] text-stone-400 font-cinzel truncate mt-0.5">
-                        {raceVal} • <span className="text-stone-500">{rankVal}</span>
+                        {raceDisplay} • {scaleDisplay} • {roleDisplay}
                       </p>
 
                       {/* Quick stat preview */}

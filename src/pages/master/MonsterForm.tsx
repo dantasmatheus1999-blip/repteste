@@ -31,6 +31,7 @@ import {
   Upload,
   Loader2,
   BookOpen,
+  ShieldAlert,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -138,6 +139,7 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   const [storageMonsters, setStorageMonsters] = useState<StorageMonster[]>([]);
   const [loadingStorage, setLoadingStorage] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [libraryFilter, setLibraryFilter] = useState('');
 
   // Image Generation State
@@ -403,11 +405,13 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
     setIsLibraryModalOpen(true);
     if (storageMonsters.length === 0) {
       setLoadingStorage(true);
+      setStorageError(null);
       try {
         const items = await fetchStorageMonsterLibrary();
         setStorageMonsters(items);
       } catch (err: any) {
-        console.info('[MonsterForm] Consulta à biblioteca do Storage:', err?.message);
+        console.error('[MonsterForm] Erro ao carregar biblioteca do storage:', err);
+        setStorageError(err?.message || 'Erro de permissão no Firebase Storage');
       } finally {
         setLoadingStorage(false);
       }
@@ -844,7 +848,7 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
                     onClick={handleOpenLibrary}
                     icon={BookOpen}
                   >
-                    📚 Escolher da Biblioteca (mostro/)
+                    📚 Escolher da Biblioteca (monstro/)
                   </Button>
 
                   <input
@@ -2135,7 +2139,7 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
         </div>
       </div>
 
-      {/* Modal da Biblioteca de Monstros (Firebase Storage mostro/) */}
+      {/* Modal da Biblioteca de Monstros (Firebase Storage monstro/) */}
       <AnimatePresence>
         {isLibraryModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -2156,7 +2160,7 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
                       Biblioteca de Monstros
                     </h3>
                     <p className="text-xs text-gold/60 font-cinzel">
-                      Imagens da pasta <code className="text-amber-300 font-mono">mostro/</code> no Firebase Storage
+                      Imagens da pasta <code className="text-amber-300 font-mono">monstro/</code> no Firebase Storage
                     </p>
                   </div>
                 </div>
@@ -2196,12 +2200,47 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
                       Carregando acervo de criaturas do Firebase Storage...
                     </p>
                   </div>
+                ) : storageError ? (
+                  <div className="py-12 px-4 max-w-lg mx-auto text-center space-y-4">
+                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto shadow">
+                      <ShieldAlert size={24} />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-cinzel font-bold text-amber-300">
+                        Erro ao Acessar Biblioteca do Storage
+                      </h4>
+                      <p className="text-xs text-amber-200/90 mt-1.5 p-2 rounded bg-amber-950/40 border border-amber-500/20 font-mono break-words text-left">
+                        {storageError}
+                      </p>
+                      <p className="text-xs text-gold/60 font-cinzel mt-2">
+                        Verifique se o usuário possui permissão de leitura na pasta <code className="text-amber-300 font-mono">monstro/</code> no Firebase Console.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoadingStorage(true);
+                        setStorageError(null);
+                        fetchStorageMonsterLibrary(true)
+                          .then(setStorageMonsters)
+                          .catch((err: any) => {
+                            console.error('[MonsterForm] Erro ao recarregar storage:', err);
+                            setStorageError(err?.message || 'Erro de permissão no Firebase Storage');
+                          })
+                          .finally(() => setLoadingStorage(false));
+                      }}
+                      className="px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/40 text-gold text-xs font-cinzel rounded-lg transition-colors cursor-pointer inline-flex items-center gap-2"
+                    >
+                      <RefreshCw size={14} className={loadingStorage ? 'animate-spin' : ''} />
+                      Tentar Novamente
+                    </button>
+                  </div>
                 ) : storageMonsters.length === 0 ? (
                   <div className="py-16 text-center space-y-3">
                     <Skull className="w-12 h-12 text-gold/20 mx-auto" />
-                    <p className="text-gold/60 font-cinzel font-bold">Nenhum arquivo .png encontrado na pasta mostro/</p>
+                    <p className="text-gold/60 font-cinzel font-bold">Nenhum arquivo .png encontrado na pasta monstro/</p>
                     <p className="text-xs text-gold/40 font-cinzel max-w-md mx-auto">
-                      Certifique-se de que os arquivos .png foram enviados para a pasta mostro/ no Firebase Storage.
+                      Certifique-se de que os arquivos .png foram enviados para a pasta monstro/ no Firebase Storage.
                     </p>
                   </div>
                 ) : (
@@ -2223,6 +2262,9 @@ export const MonsterForm: React.FC<MonsterFormProps> = ({
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                           <div className="absolute bottom-0 inset-x-0 p-3">
+                            <span className="inline-block px-1.5 py-0.5 rounded bg-black/80 border border-gold/30 text-[9px] font-cinzel font-bold text-amber-300 uppercase tracking-wider mb-1 shadow-sm">
+                              MOSTRO • {(formData.rank || 'NORMAL').toUpperCase()} • {(formData.role || 'SOLO').toUpperCase()}
+                            </span>
                             <p className="text-xs font-cinzel font-bold text-gold drop-shadow leading-tight line-clamp-2">
                               {monster.name}
                             </p>
