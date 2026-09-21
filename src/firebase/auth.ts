@@ -2,6 +2,8 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signOut, 
   setPersistence, 
   browserLocalPersistence,
@@ -22,6 +24,9 @@ setPersistence(auth, browserLocalPersistence).catch(err => {
 });
 
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
 
 export const signInAnon = async () => {
   return signInAnonymously(auth);
@@ -31,6 +36,8 @@ export {
   auth, 
   googleProvider, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signOut, 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,

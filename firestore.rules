@@ -116,6 +116,14 @@ service cloud.firestore {
              data.createdAt is timestamp;
     }
 
+    function isValidDiceSkin(data) {
+      return hasRequiredFields(['id', 'name', 'diceType', 'textureUrl']) &&
+             data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.diceType in ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'] &&
+             isValidUrl(data.textureUrl);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -369,6 +377,13 @@ service cloud.firestore {
       allow read: if isAuthenticated() || true;
       allow create: if true;
       allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Dice Skins Collection (Skins Cosméticas com Texturas Planificadas)
+    match /dice_skins/{skinId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated() && isValidDiceSkin(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
     }
   }
 }

@@ -424,9 +424,11 @@ export function getStoredTvState(): TvSyncState | null {
  * Transmite o estado completo do mapa atual para a TV:
  * - Publica diretamente no documento do Firestore test_tv_sync/current (Fonte da Verdade)
  * - Transmite via BroadcastChannel exclusivo para atualização instantânea na mesma máquina
+ * - Persiste em localStorage para sincronização entre abas
  */
 export async function broadcastToTv(state: TvSyncState): Promise<void> {
   const sanitized = sanitizeForFirestore(state);
+  let localTransmitted = false;
 
   // 1. Envio local imediato via BroadcastChannel seguro
   try {
@@ -435,15 +437,21 @@ export async function broadcastToTv(state: TvSyncState): Promise<void> {
         type: 'tv_sync_update',
         state: sanitized
       });
+      localTransmitted = true;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[TvSync] BroadcastChannel aviso:', e);
+  }
 
-  // 2. Armazenamento local auxiliar
+  // 2. Armazenamento local auxiliar (notifica outras abas via evento de storage)
   try {
     localStorage.setItem(TV_LOCAL_KEY, JSON.stringify(sanitized));
-  } catch (e) {}
+    localTransmitted = true;
+  } catch (e) {
+    console.warn('[TvSync] LocalStorage aviso:', e);
+  }
 
-  // 3. Firestore como Fonte de Verdade para sincronização (com proteção de cota)
+  // 3. Firestore como Fonte de Verdade para sincronização remota
   try {
     const docRef = doc(db, 'test_tv_sync', 'current');
     await setDoc(docRef, {
@@ -454,18 +462,21 @@ export async function broadcastToTv(state: TvSyncState): Promise<void> {
     });
   } catch (err: any) {
     if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota limit exceeded')) {
-      // Ignora erro de cota pois a transmissão local já foi concluída
-      return;
+      console.warn('[TvSync] Cota do Firestore atingida, sincronização mantida localmente.');
+    } else {
+      console.warn('[TvSync] Aviso na sincronização remota do Firestore:', err?.message || err);
     }
-    console.error('[TvSync] Erro ao transmitir para a TV no Firestore:', err);
-    throw err;
+    // Se a transmissão local já foi concluída com sucesso no navegador, não propaga erro falso
+    if (!localTransmitted) {
+      throw err;
+    }
   }
 }
 
 /**
  * Escuta atualizações de transmissão da TV em tempo real:
  * - FONTE DA VERDADE: Firestore onSnapshot no documento test_tv_sync/current
- * - SUPORTE LOCAL: BroadcastChannel (filtrado estritamente para não aceitar dados espúrios)
+ * - SUPORTE LOCAL: BroadcastChannel e Storage Event para sincronização instantânea
  * A TV é estritamente de leitura (não faz escritas nem heartbeats no Firestore).
  */
 export function subscribeTvSync(callback: (state: TvSyncState | null) => void): () => void {
@@ -477,7 +488,7 @@ export function subscribeTvSync(callback: (state: TvSyncState | null) => void): 
     } catch (e) {}
   }
 
-  // Listener seguro do BroadcastChannel (mesma máquina)
+  // 1. Listener seguro do BroadcastChannel (mesma máquina)
   const handleBroadcast = (event: MessageEvent) => {
     if (event.data && event.data.type === 'tv_sync_update') {
       const bState = event.data.state as TvSyncState;
@@ -491,7 +502,20 @@ export function subscribeTvSync(callback: (state: TvSyncState | null) => void): 
     localTvChannel.addEventListener('message', handleBroadcast);
   }
 
-  // Listener principal do Firestore onSnapshot (Fonte da Verdade)
+  // 2. Listener de Storage Event (entre abas na mesma origem)
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === TV_LOCAL_KEY && event.newValue) {
+      try {
+        const parsed = JSON.parse(event.newValue) as TvSyncState;
+        if (parsed && (parsed.imageUrl || (parsed.quadrants && parsed.quadrants.length > 0))) {
+          callback(parsed);
+        }
+      } catch (e) {}
+    }
+  };
+  window.addEventListener('storage', handleStorage);
+
+  // 3. Listener principal do Firestore onSnapshot (Fonte da Verdade remota)
   let unsubFirestore = () => {};
   try {
     const docRef = doc(db, 'test_tv_sync', 'current');
@@ -516,6 +540,7 @@ export function subscribeTvSync(callback: (state: TvSyncState | null) => void): 
     if (localTvChannel) {
       localTvChannel.removeEventListener('message', handleBroadcast);
     }
+    window.removeEventListener('storage', handleStorage);
     unsubFirestore();
   };
 }

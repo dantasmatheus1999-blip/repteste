@@ -6,13 +6,14 @@ import {
   signOut, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  sendPasswordResetEmail,
-  updateProfile,
+  sendPasswordResetEmail, 
+  updateProfile, 
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   googleProvider
 } from '../firebase/auth';
 import { db, doc, setDoc, getDoc, serverTimestamp, OperationType, handleFirestoreError } from '../firebase/firestore';
-import { storage, ref, uploadBytes, getDownloadURL } from '../firebase/storage';
 import { StorageService } from '../services/storageService';
 
 export type AppUserRole = "player" | "master" | "admin";
@@ -54,6 +55,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Processa retorno de redirect auth (caso o navegador tenha bloqueado popup e usado redirect)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result && result.user) {
+          const docRef = doc(db, 'users', result.user.uid);
+          const docSnap = await getDoc(docRef);
+          if (!docSnap.exists()) {
+            await createUserProfile(
+              result.user.uid,
+              result.user.displayName || 'Herói',
+              result.user.email || '',
+              result.user.photoURL || ''
+            );
+          }
+        }
+      })
+      .catch((err) => {
+        console.debug('[Firebase Auth] Verificação de redirect:', err);
+      });
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -146,17 +169,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const docRef = doc(db, 'users', result.user.uid);
-      const docSnap = await getDoc(docRef);
-      
-      if (!docSnap.exists()) {
-        await createUserProfile(
-          result.user.uid, 
-          result.user.displayName || 'Herói', 
-          result.user.email || '', 
-          result.user.photoURL || ''
-        );
+      let result;
+      try {
+        result = await signInWithPopup(auth, googleProvider);
+      } catch (popupErr: any) {
+        // Se popup foi bloqueado pelo navegador ou pelo iframe
+        if (popupErr?.code === 'auth/popup-blocked' || popupErr?.code === 'auth/cancelled-popup-request') {
+          console.warn('[Firebase Auth] Pop-up bloqueado. Tentando autenticação via redirecionamento...', popupErr);
+          try {
+            await signInWithRedirect(auth, googleProvider);
+            return;
+          } catch (redirectErr) {
+            console.error('[Firebase Auth] Falha ao redirecionar:', redirectErr);
+            throw popupErr;
+          }
+        }
+        throw popupErr;
+      }
+
+      if (result && result.user) {
+        const docRef = doc(db, 'users', result.user.uid);
+        const docSnap = await getDoc(docRef);
+        
+        if (!docSnap.exists()) {
+          await createUserProfile(
+            result.user.uid, 
+            result.user.displayName || 'Herói', 
+            result.user.email || '', 
+            result.user.photoURL || ''
+          );
+        }
       }
     } catch (error: any) {
       console.error('Google login error:', error);

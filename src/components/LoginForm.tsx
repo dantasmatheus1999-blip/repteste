@@ -46,8 +46,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggle }) => {
       await loginWithGoogle();
       navigate('/select-profile');
     } catch (err: any) {
-      console.error(err);
-      setError('Erro ao acessar via Google. Tente novamente.');
+      console.error('Google login error:', err);
+      if (err?.code === 'auth/popup-blocked' || err?.message?.includes('popup-blocked')) {
+        setError('O navegador bloqueou a janela pop-up do Google. Permita pop-ups para este site ou entre usando email e senha.');
+      } else if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+        setError('Login com Google cancelado.');
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        setError('Este domínio ainda não foi autorizado no Firebase Authentication.');
+      } else {
+        setError('Não foi possível autenticar com Google. Tente por email/senha.');
+      }
     } finally {
       setLoading(false);
     }

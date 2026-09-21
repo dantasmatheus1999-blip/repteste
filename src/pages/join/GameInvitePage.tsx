@@ -21,6 +21,7 @@ import { CharacterService } from '../../services/characterService';
 import { Game } from '../../types/game';
 import { useAuth } from '../../context/AuthContext';
 import { extractCharacterSummary, getClassEmoji, CharacterSummary } from '../../utils/characterUtils';
+import { RealmorLoading } from '../../components/common/RealmorLoading';
 
 export const GameInvitePage: React.FC = () => {
   const { inviteCode } = useParams<{ inviteCode: string }>();
@@ -142,11 +143,8 @@ export const GameInvitePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-3">
-        <div className="w-10 h-10 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
-        <p className="font-cinzel text-amber-300 text-sm tracking-widest uppercase">
-          Localizando Aventura...
-        </p>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-4">
+        <RealmorLoading message="Localizando Aventura..." subtitle="Conectando aos anais da mesa de jogo" size="lg" />
       </div>
     );
   }

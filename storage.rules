@@ -75,6 +75,12 @@ service firebase.storage {
       allow write: if isAuthenticated();
     }
 
+    // Imagens de capa e assets visuais (img-capas)
+    match /img-capas/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() || isAdmin();
+    }
+
     // Library assets
     match /library/{category}/{allPaths=**} {
       allow read: if true;

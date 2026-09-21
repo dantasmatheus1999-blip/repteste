@@ -189,8 +189,22 @@ export const TvMapView: React.FC = () => {
 
 // Subcomponente de Canvas Isolado para cada Quadrante da TV
 const TvQuadrantCanvas: React.FC<{ item: any }> = ({ item }) => {
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(item.viewport?.zoom || 1);
+  const [pan, setPan] = useState({ 
+    x: item.viewport?.panX || 0, 
+    y: item.viewport?.panY || 0 
+  });
+
+  useEffect(() => {
+    if (item.viewport) {
+      if (typeof item.viewport.zoom === 'number') {
+        setZoom(item.viewport.zoom);
+      }
+      if (typeof item.viewport.panX === 'number' && typeof item.viewport.panY === 'number') {
+        setPan({ x: item.viewport.panX, y: item.viewport.panY });
+      }
+    }
+  }, [item.viewport?.zoom, item.viewport?.panX, item.viewport?.panY]);
 
   if (!item.imageUrl) {
     return (

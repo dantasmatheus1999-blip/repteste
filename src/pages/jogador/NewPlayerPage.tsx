@@ -21,6 +21,7 @@ import { CharacterService } from '../../services/characterService';
 import { Game, GamePlayer } from '../../types/game';
 import { JoinGameFlowModal } from '../../components/games/JoinGameFlowModal';
 import { extractCharacterSummary, getClassEmoji, CharacterSummary } from '../../utils/characterUtils';
+import { RealmorLoading } from '../../components/common/RealmorLoading';
 
 export const NewPlayerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -89,8 +90,8 @@ export const NewPlayerPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pb-16 pt-3 px-3 sm:px-6 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {/* Topo / Barra de Navegação do Jogador */}
+    <div className="min-h-screen pb-20 pt-3 px-3 sm:px-6 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Topo / Barra de Navegação */}
       <div className="flex items-center justify-between border-b border-amber-900/30 pb-4">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-700/30 to-amber-950 border border-amber-500/50 flex items-center justify-center text-amber-300 shadow-md">
@@ -99,25 +100,25 @@ export const NewPlayerPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] uppercase tracking-widest text-amber-400/90 font-cinzel font-bold">
-                REALMOR • TORMENTA 20
+                REALMOR
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60" />
-              <span className="text-[10px] text-stone-400 font-cinzel">SALA DO JOGADOR</span>
+              <span className="text-[10px] text-stone-400 font-cinzel">Tormenta 20</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-cinzel font-black text-amber-100 tracking-wide uppercase">
-              🧙 MODO JOGADOR
+              MESAS DE RPG
             </h1>
           </div>
         </div>
 
-        {/* Botão Principal: [ + ENTRAR EM UM JOGO ] */}
+        {/* Botão: Entrar com Código */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleOpenJoinModal}
             className="py-2.5 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-500 text-stone-950 font-cinzel font-bold tracking-wider uppercase text-xs sm:text-sm shadow-[0_0_20px_rgba(217,119,6,0.3)] transition-all flex items-center gap-2 active:scale-95 border border-amber-400/60 cursor-pointer"
           >
             <Plus size={16} className="text-stone-950 stroke-[3]" />
-            <span>+ ENTRAR EM UM JOGO</span>
+            <span>Código da Mesa</span>
           </button>
         </div>
       </div>
@@ -138,9 +139,8 @@ export const NewPlayerPage: React.FC = () => {
         </div>
 
         {loadingGames ? (
-          <div className="p-10 rounded-2xl border border-amber-900/30 bg-[#120e0b]/80 text-center space-y-3">
-            <div className="w-8 h-8 rounded-full border-2 border-amber-500 border-t-transparent animate-spin mx-auto" />
-            <p className="text-xs font-cinzel text-amber-200/70">Buscando suas aventuras...</p>
+          <div className="p-10 rounded-2xl border border-amber-900/30 bg-[#120e0b]/80 flex justify-center">
+            <RealmorLoading message="Buscando suas aventuras..." size="sm" />
           </div>
         ) : playerGames.length === 0 ? (
           <div 
@@ -254,13 +254,13 @@ export const NewPlayerPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Botão Entrar no Lobby */}
+                    {/* Botão Entrar na Mesa */}
                     <button
                       onClick={() => navigate(`/campaigns/${game.campaignId}/games/${game.id}`)}
                       className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-700 to-amber-800 hover:from-amber-600 hover:to-amber-700 text-stone-950 font-cinzel font-bold text-xs uppercase tracking-wider shadow transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                     >
                       <Sword size={14} className="text-stone-950" />
-                      <span>ENTRAR NO LOBBY</span>
+                      <span>ENTRAR NA MESA</span>
                       <ArrowRight size={13} className="text-stone-950" />
                     </button>
                   </div>

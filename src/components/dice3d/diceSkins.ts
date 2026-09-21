@@ -1,0 +1,102 @@
+import { DiceSkin, DiceSkinConfig } from './types';
+
+export const DICE_SKINS: Record<DiceSkin, DiceSkinConfig> = {
+  tormenta: {
+    id: 'tormenta',
+    name: 'Rubi da Tormenta',
+    description: 'Rubi escarlate com entalhes dourados sagrados de Realmor',
+    baseColor: '#881313',
+    edgeColor: '#4a0808',
+    numberColor: '#f6d860',
+    highlightColor: '#ff4d4d',
+    roughness: 0.25,
+    metalness: 0.35,
+    specular: '#ffddaa',
+    glow: 'rgba(239, 68, 68, 0.4)',
+    badgeBg: 'bg-gradient-to-br from-red-700 to-red-950 border-red-500/50'
+  },
+  black_obsidian: {
+    id: 'black_obsidian',
+    name: 'Obsidiana Sombria',
+    description: 'Preto fosco com números carmesim (estilo vídeo de referência)',
+    baseColor: '#121316',
+    edgeColor: '#0a0a0c',
+    numberColor: '#e63946',
+    highlightColor: '#ff1a2a',
+    roughness: 0.38,
+    metalness: 0.2,
+    specular: '#444444',
+    glow: 'rgba(230, 57, 70, 0.3)',
+    badgeBg: 'bg-gradient-to-br from-stone-900 to-black border-red-800/60'
+  },
+  golden: {
+    id: 'golden',
+    name: 'Ouro Imperial',
+    description: 'Ouro polido reluzente com algarismos em ônix puro',
+    baseColor: '#d4af37',
+    edgeColor: '#8c6d1f',
+    numberColor: '#1a1608',
+    highlightColor: '#fff2a8',
+    roughness: 0.15,
+    metalness: 0.85,
+    specular: '#ffffff',
+    glow: 'rgba(212, 175, 55, 0.4)',
+    badgeBg: 'bg-gradient-to-br from-amber-500 to-yellow-800 border-amber-400/60'
+  },
+  arcane: {
+    id: 'arcane',
+    name: 'Safira Arcana',
+    description: 'Cristal místico de mana azul com glifos ciano fluorescentes',
+    baseColor: '#0c2340',
+    edgeColor: '#061326',
+    numberColor: '#38bdf8',
+    highlightColor: '#7dd3fc',
+    roughness: 0.2,
+    metalness: 0.4,
+    specular: '#99e6ff',
+    glow: 'rgba(56, 189, 248, 0.45)',
+    badgeBg: 'bg-gradient-to-br from-sky-800 to-blue-950 border-sky-400/50'
+  },
+  medieval: {
+    id: 'medieval',
+    name: 'Aço Forjado',
+    description: 'Ferro envelhecido forjado em batalha com numeração em marfim',
+    baseColor: '#363d47',
+    edgeColor: '#1e232a',
+    numberColor: '#f1f1e6',
+    highlightColor: '#8d99ae',
+    roughness: 0.45,
+    metalness: 0.6,
+    specular: '#cccccc',
+    glow: 'rgba(160, 174, 192, 0.25)',
+    badgeBg: 'bg-gradient-to-br from-slate-700 to-slate-900 border-slate-500/50'
+  },
+  emerald: {
+    id: 'emerald',
+    name: 'Esmeralda Ancestral',
+    description: 'Jade profunda com incrustações de latão nobre',
+    baseColor: '#064e3b',
+    edgeColor: '#022c22',
+    numberColor: '#fbbf24',
+    highlightColor: '#34d399',
+    roughness: 0.22,
+    metalness: 0.3,
+    specular: '#a7f3d0',
+    glow: 'rgba(16, 185, 129, 0.35)',
+    badgeBg: 'bg-gradient-to-br from-emerald-800 to-emerald-950 border-emerald-500/50'
+  },
+  amethyst: {
+    id: 'amethyst',
+    name: 'Ametista Etérea',
+    description: 'Gema violeta celestial com entalhes de prata estelar',
+    baseColor: '#4c1d95',
+    edgeColor: '#2e1065',
+    numberColor: '#e9d5ff',
+    highlightColor: '#c084fc',
+    roughness: 0.2,
+    metalness: 0.4,
+    specular: '#f3e8ff',
+    glow: 'rgba(192, 132, 252, 0.4)',
+    badgeBg: 'bg-gradient-to-br from-purple-800 to-purple-950 border-purple-400/50'
+  }
+};

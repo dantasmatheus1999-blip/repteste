@@ -14,6 +14,8 @@ import { ClassPickerModal } from '../components/character/ClassPickerModal';
 import { T20_CLASSES_DETAILED } from '../data/t20ClassesDetailed';
 import { useAuth } from '../context/AuthContext';
 import { CharacterService } from '../services/characterService';
+import { RealmorLoading } from '../components/common/RealmorLoading';
+import { SheetDiceRoller } from '../components/character/sheet/SheetDiceRoller';
 
 export const CharacterSheet = () => {
   const location = useLocation();
@@ -781,9 +783,8 @@ export const CharacterSheet = () => {
 
   if (isLoadingChar) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] text-gold">
-        <Loader2 size={48} className="animate-spin mb-4 opacity-50" />
-        <p className="font-cinzel italic">Invocando ficha do plano espiritual...</p>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 animate-in fade-in duration-300">
+        <RealmorLoading message="Invocando ficha do plano espiritual..." subtitle="Sincronizando atributos e magias" size="md" />
       </div>
     );
   }
@@ -882,6 +883,9 @@ export const CharacterSheet = () => {
           </button>
         ))}
       </nav>
+
+      {/* Rolador de Dados 3D Flutuante */}
+      <SheetDiceRoller />
     </div>
   );
 };

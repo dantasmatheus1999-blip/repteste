@@ -1,0 +1,240 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">
+  <defs>
+    <!-- Filtros de Brilho e Luz -->
+    <filter id="glow-red" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="intense-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="20" result="bigGlow"/>
+      <feGaussianBlur stdDeviation="8" result="midGlow"/>
+      <feMerge>
+        <feMergeNode in="bigGlow"/>
+        <feMergeNode in="midGlow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Gradientes da Lâmina da Espada -->
+    <linearGradient id="blade-edge-left" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#e2e8f0"/>
+      <stop offset="70%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+
+    <linearGradient id="blade-edge-right" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5e1"/>
+      <stop offset="40%" stop-color="#64748b"/>
+      <stop offset="80%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <!-- Gradiente Ouro Envelhecido / Metal Nobre -->
+    <linearGradient id="gold-metal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="25%" stop-color="#d97706"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="75%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#451a03"/>
+    </linearGradient>
+
+    <linearGradient id="wood-staff" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b45309"/>
+      <stop offset="30%" stop-color="#78350f"/>
+      <stop offset="70%" stop-color="#451a03"/>
+      <stop offset="100%" stop-color="#260e02"/>
+    </linearGradient>
+
+    <!-- Gradientes Vermelhos de Rubi / Fogo -->
+    <radialGradient id="ruby-orb" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="15%" stop-color="#fca5a5"/>
+      <stop offset="35%" stop-color="#ef4444"/>
+      <stop offset="70%" stop-color="#b91c1c"/>
+      <stop offset="90%" stop-color="#7f1d1d"/>
+      <stop offset="100%" stop-color="#450a0a"/>
+    </radialGradient>
+
+    <radialGradient id="core-flare" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#f87171"/>
+      <stop offset="80%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+
+    <linearGradient id="ruby-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fca5a5"/>
+      <stop offset="30%" stop-color="#dc2626"/>
+      <stop offset="70%" stop-color="#991b1b"/>
+      <stop offset="100%" stop-color="#450a0a"/>
+    </linearGradient>
+
+    <linearGradient id="fire-trail" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#f97316" stop-opacity="0.9"/>
+      <stop offset="80%" stop-color="#fef08a" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ========================================================= -->
+  <!-- 1. CÍRCULO ARCANO E ESTRELAS VERMELHAS DE FUNDO          -->
+  <!-- ========================================================= -->
+  <g filter="url(#glow-red)">
+    <!-- Círculo Central Vermelho Rúnico -->
+    <circle cx="400" cy="400" r="230" fill="none" stroke="#dc2626" stroke-width="8" stroke-dasharray="2 0" />
+    <circle cx="400" cy="400" r="230" fill="none" stroke="#fca5a5" stroke-width="2" />
+    <circle cx="400" cy="400" r="242" fill="none" stroke="#b91c1c" stroke-width="2" stroke-opacity="0.6" />
+
+    <!-- 4 Estrelas Cardinais Maiores (Norte, Sul, Leste, Oeste) -->
+    <!-- Norte -->
+    <path d="M400 40 L416 145 L400 170 L384 145 Z" fill="url(#ruby-grad)" stroke="#fca5a5" stroke-width="1.5" />
+    <path d="M400 40 L400 170" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.8" />
+    
+    <!-- Sul -->
+    <path d="M400 760 L416 655 L400 630 L384 655 Z" fill="url(#ruby-grad)" stroke="#fca5a5" stroke-width="1.5" />
+    <path d="M400 760 L400 630" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.8" />
+
+    <!-- Oeste -->
+    <path d="M40 400 L145 384 L170 400 L145 416 Z" fill="url(#ruby-grad)" stroke="#fca5a5" stroke-width="1.5" />
+    <path d="M40 400 L170 400" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.8" />
+
+    <!-- Leste -->
+    <path d="M760 400 L655 384 L630 400 L655 416 Z" fill="url(#ruby-grad)" stroke="#fca5a5" stroke-width="1.5" />
+    <path d="M760 400 L630 400" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.8" />
+
+    <!-- 4 Diamantes/Estrelas Menores Diagonais -->
+    <path d="M150 250 L160 262 L150 274 L140 262 Z" fill="#ef4444" stroke="#fca5a5" stroke-width="1"/>
+    <path d="M650 250 L660 262 L650 274 L640 262 Z" fill="#ef4444" stroke="#fca5a5" stroke-width="1"/>
+    <path d="M185 640 L195 650 L185 660 L175 650 Z" fill="#ef4444" stroke="#fca5a5" stroke-width="1"/>
+    <path d="M665 500 L673 508 L665 516 L657 508 Z" fill="#ef4444" stroke="#fca5a5" stroke-width="1"/>
+    <path d="M535 125 L542 132 L535 139 L528 132 Z" fill="#ef4444" stroke="#fca5a5" stroke-width="1"/>
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 2. CAJADO MÁGICO COM ORBE CELESTIAL (Diagonal /)          -->
+  <!-- ========================================================= -->
+  <g transform="rotate(45, 400, 400)">
+    <!-- Base / Cabo Inferior do Cajado -->
+    <!-- Pommel Dourado com Rubi na Base -->
+    <g transform="translate(400, 680)">
+      <path d="M-15 -30 L15 -30 L22 10 L0 45 L-22 10 Z" fill="url(#gold-metal)" stroke="#fef08a" stroke-width="1.5" />
+      <path d="M-8 0 L8 0 L0 30 Z" fill="url(#ruby-grad)" stroke="#fca5a5" stroke-width="1" />
+      <!-- Pequena Chama na Base -->
+      <path d="M-12 15 Q-20 40 -6 55 Q-2 42 0 35 Q4 48 10 40 Q4 25 -12 15 Z" fill="url(#fire-trail)" filter="url(#glow-red)" />
+    </g>
+
+    <!-- Haste / Madeira com Empunhadura de Couro Negro e Fios de Ouro -->
+    <rect x="386" y="240" width="28" height="420" rx="6" fill="url(#wood-staff)" stroke="#78350f" stroke-width="2" />
+    
+    <!-- Padrão Trançado de Couro e Aneis Dourados -->
+    <g stroke="#d97706" stroke-width="3" opacity="0.9">
+      <line x1="386" y1="520" x2="414" y2="535" />
+      <line x1="386" y1="550" x2="414" y2="565" />
+      <line x1="386" y1="580" x2="414" y2="595" />
+      <line x1="386" y1="610" x2="414" y2="625" />
+      <line x1="386" y1="640" x2="414" y2="655" />
+    </g>
+    <!-- Anel Central Dourado -->
+    <rect x="382" y="490" width="36" height="14" rx="3" fill="url(#gold-metal)" stroke="#fef08a" stroke-width="1.5"/>
+
+    <!-- Cabeça do Cajado: Raízes Torcidas de Madeira Ancestral & Ouro -->
+    <g>
+      <!-- Braços de Madeira Torcida envolvendo o Orbe -->
+      <path d="M386 260 C370 200, 330 180, 350 120 C365 75, 420 85, 410 130 C400 170, 420 210, 414 260 Z" fill="url(#wood-staff)" stroke="#d97706" stroke-width="2"/>
+      <path d="M414 250 C435 190, 470 170, 450 110 C435 65, 380 75, 390 120 C400 160, 380 200, 386 250 Z" fill="url(#gold-metal)" stroke="#fef08a" stroke-width="2"/>
+
+      <!-- Chamas e Eflúvios Mágicos ao Redor do Orbe -->
+      <g filter="url(#intense-glow)">
+        <path d="M400 60 Q440 20 460 70 Q480 30 450 10 Q410 40 400 60 Z" fill="#ef4444"/>
+        <path d="M450 90 Q500 70 470 140 Q510 110 490 60 Q450 70 450 90 Z" fill="#f97316"/>
+        <path d="M350 90 Q300 70 330 140 Q290 110 310 60 Q350 70 350 90 Z" fill="#f97316"/>
+      </g>
+
+      <!-- O ORBE RUBI MÁGICO / CELESTIAL -->
+      <circle cx="400" cy="130" r="54" fill="url(#ruby-orb)" filter="url(#intense-glow)"/>
+      <circle cx="400" cy="130" r="54" fill="none" stroke="#fef08a" stroke-width="2" stroke-opacity="0.8"/>
+
+      <!-- Brilho Interno e Estrela Cósmica dentro do Orbe -->
+      <g filter="url(#glow-red)">
+        <!-- Estrela de 4 Pontas Radiante no Centro do Orbe -->
+        <path d="M400 95 L406 124 L435 130 L406 136 L400 165 L394 136 L365 130 L394 124 Z" fill="#ffffff"/>
+        <circle cx="400" cy="130" r="14" fill="url(#core-flare)"/>
+        <circle cx="400" cy="130" r="6" fill="#ffffff"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ========================================================= -->
+  <!-- 3. ESPADA LENDÁRIA DE AÇO E OURO (Diagonal \)             -->
+  <!-- ========================================================= -->
+  <g transform="rotate(-45, 400, 400)">
+    <!-- Lâmina de Aço Prateado com Bisel e Ranhura Central -->
+    <g>
+      <!-- Lado Esquerdo da Lâmina (Iluminado) -->
+      <path d="M400 40 L365 95 L372 400 L400 400 Z" fill="url(#blade-edge-left)" stroke="#cbd5e1" stroke-width="1.5"/>
+      <!-- Lado Direito da Lâmina (Sombreado) -->
+      <path d="M400 40 L435 95 L428 400 L400 400 Z" fill="url(#blade-edge-right)" stroke="#64748b" stroke-width="1.5"/>
+
+      <!-- Linha Central da Lâmina com Brilho -->
+      <line x1="400" y1="42" x2="400" y2="400" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+
+      <!-- Gravuras / Cristais na Lâmina -->
+      <!-- Diamante Superior da Lâmina -->
+      <path d="M400 90 L408 108 L400 126 L392 108 Z" fill="url(#ruby-grad)" stroke="#fca5a5" stroke-width="1.5" filter="url(#glow-red)"/>
+      <circle cx="400" cy="108" r="2.5" fill="#ffffff"/>
+
+      <!-- Diamante Médio da Lâmina -->
+      <path d="M400 240 L406 254 L400 268 L394 254 Z" fill="url(#ruby-grad)" stroke="#fca5a5" stroke-width="1.5" filter="url(#glow-red)"/>
+    </g>
+
+    <!-- Guarda-Mão / Crossguard Ornamental de Ouro e Asas Esculpidas -->
+    <g transform="translate(400, 400)">
+      <!-- Asas Curvadas da Guarda -->
+      <path d="M-85 -8 C-60 25, -25 15, 0 32 C25 15, 60 25, 85 -8 C65 -2, 35 -16, 0 -8 C-35 -16, -65 -2, -85 -8 Z" fill="url(#gold-metal)" stroke="#fef08a" stroke-width="2"/>
+      
+      <!-- Detalhes Esculpidos nos Gavilhões -->
+      <path d="M-85 -8 Q-95 -25 -70 -15 Q-55 10 -85 -8 Z" fill="url(#gold-metal)" stroke="#fef08a" stroke-width="1.5"/>
+      <path d="M85 -8 Q95 -25 70 -15 Q55 10 85 -8 Z" fill="url(#gold-metal)" stroke="#fef08a" stroke-width="1.5"/>
+
+      <!-- GEMA RUBI CENTRAL NO CORAÇÃO DA GUARDA -->
+      <g filter="url(#intense-glow)">
+        <path d="M0 0 L20 20 L0 44 L-20 20 Z" fill="url(#ruby-grad)" stroke="#fef08a" stroke-width="2"/>
+        <path d="M0 6 L12 20 L0 36 L-12 20 Z" fill="#ef4444"/>
+        <circle cx="0" cy="20" r="4" fill="#ffffff"/>
+      </g>
+    </g>
+
+    <!-- Empunhadura / Cabo da Espada -->
+    <g>
+      <!-- Haste Central Envolta em Couro Negro com Fios Dourados Trançados -->
+      <rect x="388" y="440" width="24" height="220" rx="4" fill="#1e1b18" stroke="#78350f" stroke-width="2"/>
+      
+      <!-- Fita Espiral de Ouro no Punho -->
+      <path d="M388 455 L412 475" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+      <path d="M388 495 L412 515" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+      <path d="M388 535 L412 555" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+      <path d="M388 575 L412 595" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+      <path d="M388 615 L412 635" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+    </g>
+
+    <!-- Pomo / Pommel da Espada -->
+    <g transform="translate(400, 660)">
+      <path d="M-18 0 L18 0 L24 28 L0 60 L-24 28 Z" fill="url(#gold-metal)" stroke="#fef08a" stroke-width="2"/>
+      
+      <!-- Rubi Facetado no Pomo -->
+      <path d="M0 12 L14 28 L0 48 L-14 28 Z" fill="url(#ruby-grad)" stroke="#fca5a5" stroke-width="1.5" filter="url(#glow-red)"/>
+      <circle cx="0" cy="28" r="3" fill="#ffffff"/>
+
+      <!-- Labareda de Fogo Sagrado no Pomo -->
+      <path d="M-10 35 Q-20 60 -5 70 Q0 55 4 48 Q8 62 14 52 Q8 38 -10 35 Z" fill="url(#fire-trail)" filter="url(#glow-red)"/>
+    </g>
+  </g>
+</svg>

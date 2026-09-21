@@ -38,7 +38,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
     if (!authLoading && !isLoading && !activeProfile && user && location.pathname !== '/select-profile') {
       navigate('/select-profile');
     }
-  }, [activeProfile, isLoading, authLoading, user, location, navigate]);
+  }, [activeProfile, isLoading, authLoading, user, location.pathname, navigate]);
 
   // Itens de Navegação do Mestre para Desktop Sidebar
   // 📖 Grimório, 🏰 Campanhas, ⚔️ Mesa do Mestre, 🗺️ Mapas, 📚 Compêndio, ⚙️ Configurações
@@ -237,91 +237,42 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
       }`}>
         {/* Header Superior Responsivo (Oculto no editor de mapa, que já tem sua barra 16:9) */}
         {!isMapRoute && (
-          <header className="h-16 border-b border-gold/20 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-mythos-card/95 backdrop-blur-md sticky top-0 z-30 shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full">
-            {/* Lado Esquerdo: Identidade do App e Badge Mobile */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link to="/" className="flex items-center gap-2 group">
-                <h1 className="text-xl sm:text-2xl font-cinzel text-gold tracking-tight font-black uppercase text-gold-gradient drop-shadow-sm">
+          <header className="h-16 border-b border-gold/20 relative flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-mythos-card/95 backdrop-blur-md sticky top-0 z-30 shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full">
+            {/* Lado Esquerdo: Espaço balanceador para manter REALMOR perfeitamente no centro */}
+            <div className="w-9 sm:w-10 flex items-center justify-start pointer-events-none shrink-0" />
+
+            {/* REALMOR Centralizado Horizontalmente */}
+            <div className="flex-1 flex items-center justify-center text-center">
+              <Link to="/" className="inline-flex items-center justify-center group">
+                <h1 className="text-xl sm:text-2xl font-cinzel text-gold tracking-widest font-black uppercase text-gold-gradient drop-shadow-sm">
                   REALMOR
                 </h1>
               </Link>
-
-              {/* Badge Indicador de Modo no Mobile */}
-              <span className={`text-[9px] font-cinzel font-black px-2 py-0.5 rounded border uppercase tracking-widest ${
-                isMaster 
-                  ? 'bg-gold/15 text-gold border-gold/40' 
-                  : 'bg-arcane/15 text-arcane border-arcane/40'
-              }`}>
-                {isMaster ? 'Mestre' : 'Jogador'}
-              </span>
             </div>
             
-            {/* Lado Direito: Troca Rápida, Perfil e Botões */}
-            <div className="flex items-center gap-2 sm:gap-4">
+            {/* Lado Direito: Avatar do Usuário (T) */}
+            <div className="w-9 sm:w-10 flex items-center justify-end shrink-0">
               {user ? (
-                <>
-                  {/* Botão de Troca Rápida de Modo (Mobile & Desktop) */}
-                  <button
-                    id="header-toggle-mode-btn"
-                    onClick={() => {
-                      toggleMode();
-                      navigate('/');
-                    }}
-                    className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded border text-[10px] sm:text-xs font-cinzel font-bold tracking-wider transition-all cursor-pointer ${
-                      isMaster 
-                        ? 'bg-gold/10 border-gold/40 text-gold hover:bg-gold/20' 
-                        : 'bg-arcane/10 border-arcane/40 text-arcane hover:bg-arcane/20'
-                    }`}
-                    title="Trocar entre Modo Mestre e Modo Jogador"
-                  >
-                    <ArrowLeftRight size={13} />
-                    <span className="hidden xs:inline">Modo</span>
-                    <span>{isMaster ? 'Mestre' : 'Jogador'}</span>
-                  </button>
-
-                  {/* Nome do Usuário no Desktop */}
-                  <div className="text-right hidden sm:block">
-                    <p className="text-[10px] text-gold/60 uppercase font-bold leading-none tracking-widest">
-                      {isMaster ? 'Mestre dos Reinos' : 'Aventureiro'}
-                    </p>
-                    <p className="text-sm font-cinzel text-mythos-text leading-tight truncate max-w-[120px]">
-                      {profile?.name || user.displayName || 'Herói'}
-                    </p>
-                  </div>
-
-                  {/* Avatar do Usuário (no mobile, tocar também abre o menu de ações "Mais") */}
-                  <button
-                    onClick={() => setIsMoreSheetOpen(prev => !prev)}
-                    className="rounded-sm focus:outline-none focus:ring-1 focus:ring-gold/50 cursor-pointer"
-                    title="Perfil e Opções"
-                    aria-label="Abrir perfil e opções"
-                  >
-                    {profile?.photoURL || user.photoURL ? (
-                      <img 
-                        src={profile?.photoURL || user.photoURL || ''} 
-                        alt={profile?.name || user.displayName || 'Avatar'} 
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-sm border-2 border-gold/70 shadow-[0_0_12px_rgba(212,175,55,0.25)] object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-sm bg-mythos-card border-2 border-gold/70 shadow-[0_0_12px_rgba(212,175,55,0.25)] flex items-center justify-center text-gold font-cinzel text-sm sm:text-base font-bold">
-                        {(profile?.name || user.displayName)?.[0] || 'H'}
-                      </div>
-                    )}
-                  </button>
-
-                  {/* Logout direto no Desktop */}
-                  <button 
-                    onClick={() => {
-                      logout();
-                      navigate('/auth');
-                    }}
-                    className="hidden sm:block p-2 text-health/60 hover:text-health hover:bg-health/10 rounded-sm transition-colors cursor-pointer"
-                    title="Sair"
-                  >
-                    <LogOut size={18} />
-                  </button>
-                </>
+                <button
+                  id="header-profile-btn"
+                  onClick={() => setIsMoreSheetOpen(prev => !prev)}
+                  className="rounded-sm focus:outline-none focus:ring-1 focus:ring-gold/50 cursor-pointer shrink-0"
+                  title="Perfil e Opções"
+                  aria-label="Abrir perfil e opções"
+                >
+                  {profile?.photoURL || user.photoURL ? (
+                    <img 
+                      src={profile?.photoURL || user.photoURL || ''} 
+                      alt={profile?.name || user.displayName || 'Avatar'} 
+                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-sm border-2 border-gold/70 shadow-[0_0_12px_rgba(212,175,55,0.25)] object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-sm bg-mythos-card border-2 border-gold/70 shadow-[0_0_12px_rgba(212,175,55,0.25)] flex items-center justify-center text-gold font-cinzel text-sm sm:text-base font-bold">
+                      {(profile?.name || user.displayName)?.[0] || 'T'}
+                    </div>
+                  )}
+                </button>
               ) : (
                 <Link to="/auth">
                   <Button 
@@ -341,15 +292,18 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
         {/* ============================================================ */}
         {/* ÁREA DE CONTEÚDO DA PÁGINA                                  */}
         {/* Para o editor de mapa, ocupa 100% da viewport disponível     */}
-        {/* Para outras páginas, mantém o container centralizado padrão  */}
+        {/* Para a página inicial, ocupa 100% de largura sem margens     */}
+        {/* Para outras páginas, mantém o container com padding padrão   */}
         {/* ============================================================ */}
         {isMapRoute ? (
           <main className="flex-1 w-full h-full p-0 m-0 overflow-hidden bg-stone-950 flex flex-col min-h-0">
             {children}
           </main>
         ) : (
-          <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 pb-24 sm:pb-28 lg:pb-8 scroll-smooth bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')]">
-            <div className="max-w-7xl mx-auto w-full">
+          <main className={`flex-1 overflow-y-auto pb-24 sm:pb-28 lg:pb-8 scroll-smooth ${
+            location.pathname === '/' || location.pathname === '/grimorio' ? 'p-0' : 'p-3 sm:p-5 lg:p-6'
+          } bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')]`}>
+            <div className={`w-full ${location.pathname === '/' || location.pathname === '/grimorio' ? 'max-w-none' : 'max-w-7xl mx-auto'}`}>
               {children}
             </div>
           </main>

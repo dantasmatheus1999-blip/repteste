@@ -25,6 +25,7 @@ import { Campaign, CampaignStatus } from '../../types/master';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { cn } from '../../lib/utils';
+import { RealmorLoading } from '../../components/common/RealmorLoading';
 
 export const CampaignListPage: React.FC = () => {
   const { user } = useAuth();
@@ -41,11 +42,27 @@ export const CampaignListPage: React.FC = () => {
 
   useEffect(() => {
     if (user) {
+      const startTime = Date.now();
+      let timeoutId: NodeJS.Timeout | null = null;
+
+      setLoading(true);
       const unsubscribe = MasterService.subscribeToCampaigns(user.uid, (data) => {
         setCampaigns(data);
-        setLoading(false);
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 2000 - elapsed);
+        if (remaining > 0) {
+          timeoutId = setTimeout(() => {
+            setLoading(false);
+          }, remaining);
+        } else {
+          setLoading(false);
+        }
       });
-      return () => unsubscribe();
+
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        unsubscribe();
+      };
     }
   }, [user]);
 
@@ -210,9 +227,8 @@ export const CampaignListPage: React.FC = () => {
 
       {/* Campaign Content */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-32 space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gold shadow-glow"></div>
-          <p className="text-gold/40 font-cinzel animate-pulse">Consultando os registros...</p>
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <RealmorLoading message="Carregando campanhas..." subtitle="Consultando os registros de Arton" size="lg" />
         </div>
       ) : filteredCampaigns.length === 0 ? (
         <div className="glass-card p-8 sm:p-20 text-center space-y-8 border-dashed border-2 border-gold/10 bg-gold/5 animate-in fade-in zoom-in duration-500">

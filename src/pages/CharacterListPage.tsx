@@ -8,22 +8,19 @@ import {
   Plus, 
   Search, 
   X, 
-  ArrowUpDown, 
   User, 
   Loader2, 
   Sword, 
   AlertTriangle,
-  ChevronDown,
-  FileUp,
-  FileText
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '../components/Button';
-import { CharacterImportModal } from '../components/character/CharacterImportModal';
+import { RealmorLoading } from '../components/common/RealmorLoading';
 
 type SortOption = 'name-asc' | 'name-desc' | 'level-desc' | 'level-asc' | 'recent';
 
 export const CharacterListPage: React.FC = () => {
-  const { user, loginWithGoogle } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [characters, setCharacters] = useState<(T20Character & { id: string })[]>([]);
@@ -35,11 +32,10 @@ export const CharacterListPage: React.FC = () => {
   // Estado para modal de exclusão
   const [charToDelete, setCharToDelete] = useState<(T20Character & { id: string }) | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Carrega personagens do usuário via listener em tempo real
   useEffect(() => {
-    if (user) {
+    if (user?.uid) {
       setIsLoading(true);
       const unsubscribe = CharacterService.subscribeToUserCharacters(user.uid, (chars) => {
         setCharacters(chars);
@@ -49,15 +45,15 @@ export const CharacterListPage: React.FC = () => {
     } else {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user?.uid]);
 
-  // Ação de duplicar herói
+  // Ação de duplicar personagem
   const handleDuplicate = async (char: T20Character & { id: string }) => {
     if (!user) return;
     try {
       await CharacterService.duplicateCharacter(user.uid, char);
     } catch (err) {
-      console.error('Erro ao duplicar herói:', err);
+      console.error('Erro ao duplicar personagem:', err);
     }
   };
 
@@ -69,7 +65,7 @@ export const CharacterListPage: React.FC = () => {
       await CharacterService.deleteCharacter(charToDelete.id);
       setCharToDelete(null);
     } catch (err) {
-      console.error('Erro ao excluir herói:', err);
+      console.error('Erro ao excluir personagem:', err);
     } finally {
       setIsDeleting(false);
     }
@@ -133,11 +129,11 @@ export const CharacterListPage: React.FC = () => {
         <div className="space-y-1.5">
           <h2 className="text-2xl font-cinzel text-gold-gradient font-bold uppercase tracking-wider">Acesso Restrito</h2>
           <p className="text-gold/50 text-xs italic max-w-xs font-sans">
-            "Apenas heróis registrados no grande grimório podem ver suas crônicas."
+            "Apenas personagens registrados no grande grimório podem ver suas crônicas."
           </p>
         </div>
-        <Button onClick={loginWithGoogle} icon={Plus} size="sm">
-          Entrar com Google
+        <Button onClick={() => navigate('/auth')} icon={Plus} size="sm">
+          Acessar Codex / Entrar
         </Button>
       </div>
     );
@@ -146,85 +142,61 @@ export const CharacterListPage: React.FC = () => {
   // Estado de carregamento
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-gold/70 animate-in fade-in duration-300">
-        <Loader2 size={36} className="animate-spin mb-3 text-gold/60" />
-        <p className="font-cinzel text-xs uppercase tracking-widest text-gold/60">
-          Consultando os registros de Arton...
-        </p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] p-6 animate-in fade-in duration-300">
+        <RealmorLoading message="Consultando os registros de Arton..." subtitle="Recuperando fichas de personagens" size="md" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-xl mx-auto w-full px-2 sm:px-3 space-y-3 animate-in fade-in duration-300 pb-6">
+    <div className="max-w-md mx-auto w-full px-3 sm:px-4 space-y-3 animate-in fade-in duration-300 pb-36">
       {/* ============================================================ */}
-      {/* CABEÇALHO COMPACTO (Estilo D&D Beyond / REALMOR)             */}
+      {/* CABEÇALHO CENTRALIZADO: MEUS PERSONAGENS & ORDENAÇÃO         */}
       {/* ============================================================ */}
-      <div className="flex items-center justify-between pt-1 pb-1">
-        {/* Esquerda / Centro: Título e Ordenação Compacta */}
-        <div className="flex flex-col">
-          <h1 className="text-xl sm:text-2xl font-cinzel font-bold text-gold tracking-wide uppercase leading-tight">
-            Meus Heróis
-          </h1>
+      <div className="text-center pt-2 pb-1 space-y-1">
+        {/* Título Principal Centralizado */}
+        <h1 className="text-xl sm:text-2xl font-cinzel font-bold text-gold tracking-widest uppercase leading-tight drop-shadow-sm">
+          Meus Personagens
+        </h1>
 
-          {/* Botão de Ordenação Clicável (como "Name: A - Z" na referência) */}
-          <div className="relative inline-block mt-0.5">
-            <button
-              id="sort-characters-button"
-              onClick={() => setShowSortMenu(prev => !prev)}
-              className="flex items-center gap-1 text-[11px] font-sans text-amber-400/90 hover:text-amber-200 transition-colors focus:outline-none cursor-pointer"
-            >
-              <span className="font-semibold">{sortLabelMap[sortOption]}</span>
-              <ChevronDown size={13} className={`transition-transform duration-200 ${showSortMenu ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Menu Dropdown de Ordenação */}
-            {showSortMenu && (
-              <>
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setShowSortMenu(false)} 
-                />
-                <div className="absolute left-0 top-6 w-36 bg-[#0e0e14] border border-gold/30 rounded-lg shadow-[0_8px_20px_rgba(0,0,0,0.9)] z-50 py-1 animate-in fade-in zoom-in-95 duration-150">
-                  {(Object.keys(sortLabelMap) as SortOption[]).map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => {
-                        setSortOption(opt);
-                        setShowSortMenu(false);
-                      }}
-                      className={`w-full text-left px-3 py-1.5 text-xs font-sans transition-colors ${
-                        sortOption === opt 
-                          ? 'text-amber-300 font-bold bg-gold/15' 
-                          : 'text-stone-400 hover:text-stone-200 hover:bg-white/5'
-                      }`}
-                    >
-                      {sortLabelMap[opt]}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Lado Direito: Botão Importar e Pill Badge com Slots */}
-        <div className="flex items-center gap-2">
+        {/* Ordenação Compacta Centralizada Logo Abaixo do Título */}
+        <div className="relative inline-block">
           <button
-            id="import-character-header-button"
-            onClick={() => setIsImportModalOpen(true)}
-            className="px-2.5 py-1 rounded-lg bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/50 text-amber-300 hover:text-amber-200 text-[11px] font-cinzel font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            id="sort-characters-button"
+            onClick={() => setShowSortMenu(prev => !prev)}
+            className="flex items-center justify-center gap-1 text-[11px] sm:text-xs font-sans text-amber-400/90 hover:text-amber-200 transition-colors focus:outline-none cursor-pointer py-0.5 px-2 rounded hover:bg-white/5"
           >
-            <FileUp size={13} className="text-amber-400" />
-            <span>Importar Ficha</span>
+            <span className="font-semibold">{sortLabelMap[sortOption]}</span>
+            <ChevronDown size={13} className={`transition-transform duration-200 ${showSortMenu ? 'rotate-180' : ''}`} />
           </button>
 
-          <div className="px-2.5 py-1 rounded-full bg-red-950/70 border border-red-800/60 shadow-[0_0_10px_rgba(239,68,68,0.15)] flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-[11px] font-sans font-bold text-red-200 tracking-wide">
-              Slots: {characters.length}
-            </span>
-          </div>
+          {/* Menu Dropdown de Ordenação */}
+          {showSortMenu && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowSortMenu(false)} 
+              />
+              <div className="absolute left-1/2 -translate-x-1/2 top-7 w-38 bg-[#0e0e14] border border-amber-900/40 rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.95)] z-50 py-1 animate-in fade-in zoom-in-95 duration-150">
+                {(Object.keys(sortLabelMap) as SortOption[]).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => {
+                      setSortOption(opt);
+                      setShowSortMenu(false);
+                    }}
+                    className={`w-full text-center px-3 py-1.5 text-xs font-sans transition-colors cursor-pointer ${
+                      sortOption === opt 
+                        ? 'text-amber-300 font-bold bg-amber-500/15' 
+                        : 'text-stone-400 hover:text-stone-200 hover:bg-white/5'
+                    }`}
+                  >
+                    {sortLabelMap[opt]}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -233,7 +205,7 @@ export const CharacterListPage: React.FC = () => {
       {/* ============================================================ */}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
-          <Search size={16} />
+          <Search size={15} />
         </div>
         <input
           id="character-search-input"
@@ -241,12 +213,12 @@ export const CharacterListPage: React.FC = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Buscar personagens..."
-          className="w-full pl-9 pr-8 py-2 bg-[#101015] border border-stone-800 focus:border-gold/50 rounded-lg text-xs sm:text-sm text-stone-200 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-gold/30 transition-all shadow-inner"
+          className="w-full pl-9 pr-8 py-2 bg-[#101016]/90 border border-amber-900/30 focus:border-amber-500/60 rounded-xl text-xs sm:text-sm text-stone-200 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-amber-500/30 transition-all shadow-inner"
         />
         {searchTerm && (
           <button
             onClick={() => setSearchTerm('')}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-200"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-200 cursor-pointer"
             aria-label="Limpar busca"
           >
             <X size={14} />
@@ -255,56 +227,39 @@ export const CharacterListPage: React.FC = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* LISTA COMPACTA DE HERÓIS                                     */}
+      {/* LISTA COMPACTA DE PERSONAGENS                                */}
       {/* ============================================================ */}
       {characters.length === 0 ? (
         /* Estado Vazio */
-        <div className="bg-[#121217] border border-dashed border-gold/20 rounded-xl p-8 text-center space-y-4 my-4">
-          <div className="w-14 h-14 rounded-xl bg-gold/5 border border-gold/20 flex items-center justify-center mx-auto text-gold/40">
-            <Sword size={26} />
+        <div className="bg-[#121217]/80 border border-dashed border-amber-900/40 rounded-xl p-8 text-center space-y-4 my-4">
+          <div className="w-13 h-13 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400/50">
+            <Sword size={24} />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-cinzel font-bold text-gold/80 uppercase">
-              Nenhum herói consagrado
+            <h3 className="text-sm sm:text-base font-cinzel font-bold text-amber-200/90 uppercase">
+              Nenhum personagem criado
             </h3>
-            <p className="text-xs text-stone-400 italic">
-              "Toda grande lenda começa com um único passo."
+            <p className="text-xs text-stone-400 italic font-sans">
+              "Toda grande lenda começa com a criação do seu primeiro personagem."
             </p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
-            <Button 
-              icon={Plus} 
-              size="sm" 
-              onClick={() => navigate('/characters/sheet')}
-              className="w-full sm:w-auto"
-            >
-              Criar Manualmente
-            </Button>
-            <button
-              onClick={() => setIsImportModalOpen(true)}
-              className="w-full sm:w-auto px-4 py-2 rounded-lg bg-gold/15 hover:bg-gold/25 border border-gold/40 text-amber-300 font-cinzel font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-sm"
-            >
-              <FileUp size={15} />
-              <span>Importar Ficha (PDF)</span>
-            </button>
           </div>
         </div>
       ) : filteredAndSortedCharacters.length === 0 ? (
         /* Busca Sem Resultados */
-        <div className="text-center py-8 space-y-2 bg-[#101015] rounded-xl border border-stone-800">
+        <div className="text-center py-8 space-y-2 bg-[#101015]/80 rounded-xl border border-stone-800">
           <p className="text-xs text-stone-400 font-sans">
             Nenhum personagem encontrado para "<span className="text-amber-300">{searchTerm}</span>".
           </p>
           <button
             onClick={() => setSearchTerm('')}
-            className="text-[11px] text-gold underline font-cinzel uppercase"
+            className="text-[11px] text-amber-400 hover:text-amber-300 underline font-cinzel uppercase cursor-pointer"
           >
             Limpar Filtro
           </button>
         </div>
       ) : (
-        /* Lista dos Cards */
-        <div className="space-y-2 sm:space-y-2.5">
+        /* Lista dos Cards Compactos */
+        <div className="space-y-2">
           {filteredAndSortedCharacters.map((char) => (
             <CharacterListItem
               key={char.id}
@@ -317,34 +272,19 @@ export const CharacterListPage: React.FC = () => {
       )}
 
       {/* ============================================================ */}
-      {/* BOTÕES DE AÇÃO INFERIORES: NOVO HERÓI / IMPORTAR FICHA       */}
+      {/* BOTÃO FLUTUANTE: + NOVO PERSONAGEM                           */}
+      {/* Fica próximo à parte inferior, acima da barra de navegação   */}
       {/* ============================================================ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+      <div className="fixed bottom-19 sm:bottom-20 lg:bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
         <button
-          id="create-new-character-button"
+          id="create-new-character-floating-btn"
           onClick={() => navigate('/characters/sheet')}
-          className="w-full py-2.5 px-4 rounded-lg bg-[#0e1626] hover:bg-[#132038] border border-sky-500/40 hover:border-sky-400 text-sky-300 hover:text-sky-200 font-cinzel font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(0,0,0,0.6)] cursor-pointer group"
+          className="py-2 px-5 rounded-lg bg-[#0e1726]/95 hover:bg-[#14233a] border border-sky-500/60 hover:border-sky-400 text-sky-300 hover:text-sky-100 font-cinzel font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_8px_25px_rgba(0,0,0,0.85),0_0_15px_rgba(14,165,233,0.3)] backdrop-blur-md active:scale-95 cursor-pointer group"
         >
           <Plus size={16} className="text-sky-400 group-hover:scale-110 transition-transform" />
-          <span>Novo Herói</span>
-        </button>
-
-        <button
-          id="import-character-bottom-button"
-          onClick={() => setIsImportModalOpen(true)}
-          className="w-full py-2.5 px-4 rounded-lg bg-[#18140c] hover:bg-[#241c10] border border-amber-500/40 hover:border-amber-400 text-amber-300 hover:text-amber-200 font-cinzel font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(0,0,0,0.6)] cursor-pointer group"
-        >
-          <FileUp size={16} className="text-amber-400 group-hover:scale-110 transition-transform" />
-          <span>Importar Ficha (PDF)</span>
+          <span>Novo Personagem</span>
         </button>
       </div>
-
-      {/* Modal de Importação de Ficha Tormenta 20 */}
-      <CharacterImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        existingCharacters={characters}
-      />
 
       {/* ============================================================ */}
       {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO                             */}
@@ -373,21 +313,21 @@ export const CharacterListPage: React.FC = () => {
             </div>
 
             <p className="text-xs text-stone-300 leading-relaxed font-sans">
-              Tem certeza que deseja apagar a crônica de <span className="font-bold text-amber-200 font-cinzel">{charToDelete.name || 'este herói'}</span>? O herói será removido permanentemente do seu grimório.
+              Tem certeza que deseja apagar a crônica de <span className="font-bold text-amber-200 font-cinzel">{charToDelete.name || 'este personagem'}</span>? O personagem será removido permanentemente do seu grimório.
             </p>
 
             <div className="flex gap-2 pt-2">
               <button
                 disabled={isDeleting}
                 onClick={() => setCharToDelete(null)}
-                className="flex-1 py-2 px-3 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 text-xs font-cinzel font-semibold transition-colors disabled:opacity-50"
+                className="flex-1 py-2 px-3 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 text-xs font-cinzel font-semibold transition-colors disabled:opacity-50 cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 disabled={isDeleting}
                 onClick={handleConfirmDelete}
-                className="flex-1 py-2 px-3 rounded-lg bg-red-950/80 hover:bg-red-900 border border-red-700/60 text-red-200 text-xs font-cinzel font-bold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 py-2 px-3 rounded-lg bg-red-950/80 hover:bg-red-900 border border-red-700/60 text-red-200 text-xs font-cinzel font-bold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 {isDeleting ? (
                   <Loader2 size={14} className="animate-spin" />

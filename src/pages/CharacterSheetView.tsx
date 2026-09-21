@@ -28,6 +28,7 @@ import { SheetPowers } from '../components/character/sheet/SheetPowers';
 import { SheetSpells } from '../components/character/sheet/SheetSpells';
 import { SheetInventory } from '../components/character/sheet/SheetInventory';
 import { SheetBiography } from '../components/character/sheet/SheetBiography';
+import { RealmorLoading } from '../components/common/RealmorLoading';
 import { SheetConditionsModal } from '../components/character/sheet/SheetConditionsModal';
 import { SheetRestModal } from '../components/character/sheet/SheetRestModal';
 import { SheetDiceRoller } from '../components/character/sheet/SheetDiceRoller';
@@ -308,11 +309,8 @@ export const CharacterSheetView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-3">
-        <Loader2 size={32} className="animate-spin text-stone-400" />
-        <p className="font-sans text-xs uppercase tracking-wider text-stone-500">
-          Carregando ficha do personagem...
-        </p>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 animate-in fade-in duration-300">
+        <RealmorLoading message="Carregando ficha do personagem..." subtitle="Preparando dados de combate e magias" size="md" />
       </div>
     );
   }

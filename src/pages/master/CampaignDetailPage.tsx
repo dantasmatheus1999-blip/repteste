@@ -35,6 +35,7 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { cn } from '../../lib/utils';
 import { GameList } from '../../components/games/GameList';
+import { RealmorLoading } from '../../components/common/RealmorLoading';
 
 export const CampaignDetailPage: React.FC = () => {
   const { user } = useAuth();
@@ -108,8 +109,8 @@ export const CampaignDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gold"></div>
+      <div className="flex justify-center py-24">
+        <RealmorLoading message="Carregando crônicas da campanha..." subtitle="Consultando anotações e fichas do mestre" size="lg" />
       </div>
     );
   }

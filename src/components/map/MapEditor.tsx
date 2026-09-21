@@ -70,6 +70,7 @@ import {
 } from './mapService';
 import { Game } from '../../types/game';
 import { GameService } from '../../services/gameService';
+import { auth } from '../../firebase/auth';
 
 interface HistorySnapshot {
   mapId: string;
@@ -966,13 +967,31 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       e.preventDefault();
       e.stopPropagation();
     }
-    const tvUrl = `${window.location.origin}/tv`;
+
+    // Diagnóstico antes da abertura da TV
+    console.log('[ABRIR TV - DIAGNÓSTICO ANTES]', {
+      uid: auth.currentUser?.uid || null,
+      activeMode: localStorage.getItem('realmor_active_mode'),
+      activeProfile: localStorage.getItem('mythos_active_profile')
+    });
+
     try {
-      window.open(tvUrl, '_blank', 'noopener,noreferrer');
+      if (tvWindowRef.current && !tvWindowRef.current.closed) {
+        tvWindowRef.current.focus();
+      } else {
+        tvWindowRef.current = window.open('/tv', '_blank');
+      }
       setIsTvConnected(true);
     } catch (err) {
       console.warn('Não foi possível abrir a janela da TV:', err);
     }
+
+    // Diagnóstico após abertura da TV na aba do Mestre (deve permanecer idêntico)
+    console.log('[ABRIR TV - DIAGNÓSTICO DEPOIS]', {
+      uid: auth.currentUser?.uid || null,
+      activeMode: localStorage.getItem('realmor_active_mode'),
+      activeProfile: localStorage.getItem('mythos_active_profile')
+    });
   };
 
   // ============================================================
