@@ -163,6 +163,7 @@ export const CharacterCreationWizard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [showSelectionScreen, setShowSelectionScreen] = useState<boolean>(true);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [data, setData] = useState<WizardData>(() => {
     const base = { ...INITIAL_WIZARD_DATA };
@@ -193,12 +194,15 @@ export const CharacterCreationWizard: React.FC = () => {
     setErrorMessage(null);
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1);
+    } else if (currentStep === 0) {
+      setShowSelectionScreen(true);
     }
   };
 
   const handleJumpToStep = (stepIndex: number) => {
     if (stepIndex >= 0 && stepIndex < WIZARD_STEPS.length) {
       setErrorMessage(null);
+      setShowSelectionScreen(false);
       setCurrentStep(stepIndex);
       setIsStepsMenuOpen(false);
     }
@@ -351,6 +355,22 @@ export const CharacterCreationWizard: React.FC = () => {
 
   const currentStepMeta = WIZARD_STEPS[currentStep];
   const progressPercent = Math.round(((currentStep + 1) / WIZARD_STEPS.length) * 100);
+
+  // Tela Inicial Cinematográfica: SELEÇÃO DE PERSONAGENS 3D
+  if (showSelectionScreen) {
+    return (
+      <CharacterSelectionScreen3D
+        data={data}
+        onChange={handleUpdateData}
+        onNext={() => {
+          setErrorMessage(null);
+          setShowSelectionScreen(false);
+          setCurrentStep(0);
+        }}
+        onExit={() => navigate('/characters')}
+      />
+    );
+  }
 
   return (
     <div className="h-[100dvh] max-h-[100dvh] w-full bg-[#06080d] text-stone-100 flex flex-col overflow-hidden relative select-none font-sans">
@@ -505,8 +525,7 @@ export const CharacterCreationWizard: React.FC = () => {
         <button
           type="button"
           onClick={handleBack}
-          disabled={currentStep === 0}
-          className="px-5 py-2.5 sm:px-6 sm:py-2.5 rounded-xl border border-[#262c3b] bg-[#0d1017] hover:border-amber-600/40 text-stone-300 hover:text-amber-200 disabled:opacity-20 disabled:cursor-not-allowed text-xs sm:text-sm font-cinzel font-semibold tracking-wider flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+          className="px-5 py-2.5 sm:px-6 sm:py-2.5 rounded-xl border border-[#262c3b] bg-[#0d1017] hover:border-amber-600/40 text-stone-300 hover:text-amber-200 text-xs sm:text-sm font-cinzel font-semibold tracking-wider flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
           <span>ANTERIOR</span>

@@ -295,7 +295,8 @@ export default function App() {
                   </ProtectedRoute>
                 } />
 
-                <Route path="/" element={<ProtectedRoute><AppLayout><GrimoireCentralPage /></AppLayout></ProtectedRoute>} />
+                {/* Rota inicial principal: Seleção de Personagens / Criação de Herói */}
+                <Route path="/" element={<ProtectedRoute><CharacterCreationWizard /></ProtectedRoute>} />
                 <Route path="/grimorio" element={<ProtectedRoute><AppLayout><GrimoireCentralPage /></AppLayout></ProtectedRoute>} />
                 <Route path="/select-profile" element={<ProtectedRoute><AppLayout><ProfileSelection /></AppLayout></ProtectedRoute>} />
                 

@@ -474,12 +474,8 @@ export const CharacterSelectionScreen3D: React.FC<CharacterSelectionScreen3DProp
     }
   };
 
-  // Avançar para a próxima etapa (solicita nome caso não preenchido)
+  // Avançar para a próxima etapa (Criação de Personagem — Etapa 1/13 — Identidade do Herói)
   const handleProceed = () => {
-    if (!data.name || !data.name.trim()) {
-      setShowNamePrompt(true);
-      return;
-    }
     onNext();
   };
 

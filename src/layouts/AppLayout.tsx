@@ -70,7 +70,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
                       location.pathname.startsWith('/join') ||
                       location.pathname.includes('/games/');
 
-  if (location.pathname === '/select-profile' || location.pathname === '/characters/sheet' || isMapRoute || isGameRoute) {
+  if (location.pathname === '/select-profile' || location.pathname === '/characters/sheet' || location.pathname === '/' || isMapRoute || isGameRoute) {
     return <>{children}</>;
   }
 
