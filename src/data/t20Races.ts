@@ -7,26 +7,30 @@ export const T20_RACES: T20RaceDetail[] = [
     name: 'Humano',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Versáteis e ambiciosos, os humanos são a raça mais comum em Arton.',
+    summary: 'O povo mais numeroso em Arton, humanos são considerados os escolhidos dos deuses, exploradores ambiciosos em sua variedade e adaptabilidade.',
     iconName: 'Users',
     attributeModifiers: [
-      { attribute: 'Três atributos à sua escolha', value: 1 }
+      { attribute: 'Três atributos diferentes à sua escolha', value: 1 }
     ],
     racialAbilities: [
+      {
+        name: '+1 em Três Atributos Diferentes',
+        description: 'Filhos de Valkaria, Deusa da Ambição, humanos podem se destacar em qualquer caminho que escolherem.'
+      },
       {
         name: 'Versátil',
         description: 'Você se torna treinado em duas perícias a sua escolha (não precisam ser da sua classe). Você pode trocar uma dessas perícias por um poder geral a sua escolha.'
       }
     ],
     playstyle: [
-      'Qualquer papel no grupo devido à sua versatilidade extrema.',
-      'Excelente para builds que precisam de muitos poderes gerais cedo.'
+      'Versatilidade total para qualquer classe ou conceito.',
+      'Excelente para atingir pré-requisitos de poderes e perícias mais cedo.'
     ],
     synergies: {
-      classes: ['Todas', 'Guerreiro', 'Arcanista', 'Paladino'],
-      builds: ['Qualquer build que dependa de múltiplos talentos/poderes.']
+      classes: ['Todas as classes', 'Guerreiro', 'Arcanista', 'Paladino', 'Ladino'],
+      builds: ['Qualquer build que se beneficie de um poder geral ou perícias extras no 1º nível.']
     },
-    description: 'Humanos são a raça mais numerosa e diversificada de Arton. Sua ambição e capacidade de adaptação os levam a todos os cantos do mundo.'
+    description: 'Humanos são como uma praga: espalham-se por todo o mundo de Arton. São tão variados quanto suas ambições, tão diversos quanto as ideias que têm a cada instante.'
   },
   {
     id: 'anao',
@@ -34,7 +38,7 @@ export const T20_RACES: T20RaceDetail[] = [
     name: 'Anão',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Resistentes e tradicionais, mestres da forja e do combate subterrâneo.',
+    summary: 'O mais resiliente dos povos. Em suas cidadelas subterrâneas, trabalham duro escavando minas e forjando metal em belas armas, armaduras e joias.',
     iconName: 'Mountain',
     attributeModifiers: [
       { attribute: 'Constituição', value: 2 },
@@ -43,31 +47,68 @@ export const T20_RACES: T20RaceDetail[] = [
     ],
     racialAbilities: [
       {
-        name: 'Conhecimento de Rochas',
-        description: '+2 em testes de Percepção para notar armadilhas e passagens secretas em terrenos de pedra ou subterrâneos.'
+        name: 'Conhecimento das Rochas',
+        description: 'Você recebe visão no escuro e +2 em testes de Percepção e Sobrevivência realizados no subterrâneo.'
       },
       {
         name: 'Devagar e Sempre',
-        description: 'Seu deslocamento é 6m (em vez de 9m), mas não é reduzido por uso de armadura pesada ou excesso de carga.'
+        description: 'Seu deslocamento é 6m (em vez de 9m). Porém, seu deslocamento não é reduzido por uso de armadura ou excesso de carga.'
       },
       {
         name: 'Duro como Pedra',
-        description: 'Você recebe +3 pontos de vida no 1º nível e +1 PV por nível seguinte.'
+        description: 'Você recebe +3 pontos de vida no 1º nível e +1 por nível seguinte.'
       },
       {
-        name: 'Tradição de Heredrim',
-        description: 'Você é treinado em uma perícia de ofício a sua escolha. Além disso, para você, todos os machados e martelos são armas simples.'
+        name: 'Tradição de Heredrimm',
+        description: 'Você é perito nas armas tradicionais anãs, seja por ter treinado com elas, seja por usá-las como ferramentas de ofício. Para você, todos os machados, martelos, marretas e picaretas são armas simples. Você recebe +2 em ataques com essas armas.'
       }
     ],
     playstyle: [
-      'Tanques extremamente resistentes.',
-      'Combatentes de linha de frente que ignoram penalidades de armadura.'
+      'Excelente tanque e combatente de linha de frente devido à alta vida e imunidade a reduções de movimento por armadura.',
+      'Ótima sinergia com classes divinas como Clérigo.'
     ],
     synergies: {
-      classes: ['Guerreiro', 'Clérigo', 'Bárbaro', 'Cavaleiro'],
-      builds: ['Builds de alta defesa (CA) e muitos Pontos de Vida.']
+      classes: ['Guerreiro', 'Clérigo', 'Cavaleiro', 'Lutador', 'Bárbaro'],
+      builds: ['Tanque Pesado', 'Clérigo de Khalmyr', 'Guerreiro de Machado/Martelo']
     },
-    description: 'Anões são conhecidos por sua coragem, teimosia e ligação profunda com as montanhas e a forja.'
+    description: 'Anões são troncudos, maciços, resistentes como os pedaços de minério pelos quais são apaixonados. A justiça e a tradição são fundamentais para sua honra.'
+  },
+  {
+    id: 'dahllan',
+    slug: 'dahllan',
+    name: 'Dahllan',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Parte humanas, parte fadas, as dahllan são uma raça de mulheres com a seiva de árvores correndo nas veias, capazes de controlar plantas e falar com animais.',
+    iconName: 'Leaf',
+    attributeModifiers: [
+      { attribute: 'Sabedoria', value: 2 },
+      { attribute: 'Destreza', value: 1 },
+      { attribute: 'Inteligência', value: -1 }
+    ],
+    racialAbilities: [
+      {
+        name: 'Amiga das Plantas',
+        description: 'Você pode lançar a magia Controlar Plantas (atributo-chave Sabedoria). Caso aprenda novamente essa magia, seu custo diminui em –1 PM.'
+      },
+      {
+        name: 'Armadura de Allihanna',
+        description: 'Você pode gastar uma ação de movimento e 1 PM para transformar sua pele em casca de árvore, recebendo +2 na Defesa até o fim da cena.'
+      },
+      {
+        name: 'Empatia Selvagem',
+        description: 'Você pode se comunicar com animais por meio de linguagem corporal e vocalizações. Você pode usar Adestramento para mudar atitude e persuasão com animais (veja Diplomacia, na página 118). Caso receba esta habilidade novamente, recebe +2 em Adestramento.'
+      }
+    ],
+    playstyle: [
+      'Foco em Sabedoria para conjuração divina e controle de campo com magias vegetais.',
+      'Defesa adicional flexível com casca de árvore.'
+    ],
+    synergies: {
+      classes: ['Druida', 'Clérigo', 'Caçador', 'Bárbaro'],
+      builds: ['Druida da Primavera/Selvagem', 'Clériga de Allihanna', 'Caçadora Mateira']
+    },
+    description: 'Dahllan são ágeis e sábias, com a seiva de árvores correndo nas veias. Flores e filamentos feéricos brotam em seus cabelos, mantendo forte vínculo com a Deusa da Natureza.'
   },
   {
     id: 'elfo',
@@ -75,8 +116,8 @@ export const T20_RACES: T20RaceDetail[] = [
     name: 'Elfo',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Graciosos e longevos, mestres da magia e do arco.',
-    iconName: 'Trees',
+    summary: 'Seres feitos para a beleza e para a guerra, tão habilidosos com magia quanto com espadas e arcos, com sentidos aguçados e deslocamento superior.',
+    iconName: 'Sparkles',
     attributeModifiers: [
       { attribute: 'Inteligência', value: 2 },
       { attribute: 'Destreza', value: 1 },
@@ -84,31 +125,27 @@ export const T20_RACES: T20RaceDetail[] = [
     ],
     racialAbilities: [
       {
-        name: 'Herança Arfana',
-        description: 'Você recebe +1 ponto de mana por nível.'
-      },
-      {
-        name: 'Sentidos Élficos',
-        description: 'Você recebe +2 em testes de Percepção e Visão na Penumbra.'
-      },
-      {
-        name: 'Graça Élfica',
+        name: 'Graça de Glórienn',
         description: 'Seu deslocamento é 12m (em vez de 9m).'
       },
       {
         name: 'Sangue Mágico',
-        description: 'A CD para resistir às suas magias aumenta em +1.'
+        description: 'Você recebe +1 ponto de mana por nível.'
+      },
+      {
+        name: 'Sentidos Élficos',
+        description: 'Você recebe visão na penumbra e +2 em Misticismo e Percepção.'
       }
     ],
     playstyle: [
-      'Magos e feiticeiros poderosos com alta reserva de mana.',
-      'Arqueiros ágeis que aproveitam o deslocamento superior.'
+      'Conjuradores excepcionais de alta reserva de Mana.',
+      'Combatentes rápidos à distância com bônus de deslocamento e Destreza.'
     ],
     synergies: {
-      classes: ['Arcanista', 'Caçador', 'Bardo'],
-      builds: ['Builds focadas em controle de grupo através de magias com CD alta.']
+      classes: ['Arcanista', 'Bardo', 'Caçador', 'Ladino', 'Inventor'],
+      builds: ['Mago Arcano', 'Arqueiro Caçador', 'Bardo Ilusionista']
     },
-    description: 'Os elfos são um povo antigo e melancólico, outrora governantes de um grande império, agora espalhados pelo mundo.'
+    description: 'Elfos são belos, esguios e longevos. Após a queda de Lenórienn e de sua deusa, tornaram-se um povo livre em busca de reconstruir seu destino em Arton.'
   },
   {
     id: 'goblin',
@@ -116,8 +153,8 @@ export const T20_RACES: T20RaceDetail[] = [
     name: 'Goblin',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Pequenos, ágeis e engenhosos, sobreviventes natos.',
-    iconName: 'Ghost',
+    summary: 'Pequenos, engenhosos e perseverantes, especialistas em improvisação, escalada e sobrevivência urbana.',
+    iconName: 'Zap',
     attributeModifiers: [
       { attribute: 'Destreza', value: 2 },
       { attribute: 'Inteligência', value: 1 },
@@ -126,30 +163,149 @@ export const T20_RACES: T20RaceDetail[] = [
     racialAbilities: [
       {
         name: 'Engenhoso',
-        description: 'Você não sofre penalidade em testes de perícia por não possuir um kit de ferramentas.'
+        description: 'Você não sofre penalidades em testes de perícia por não usar ferramentas. Se usar a ferramenta necessária, recebe +2 no teste de perícia.'
       },
       {
-        name: 'Espalhafatoso',
-        description: 'Você recebe +2 em testes de Ladinagem e Furtividade. Além disso, pode usar Destreza em vez de Força para testes de Atletismo.'
+        name: 'Espelunqueiro',
+        description: 'Você recebe visão no escuro e deslocamento de escalada igual ao seu deslocamento terrestre.'
       },
       {
-        name: 'Rato de Esgoto',
-        description: 'Você recebe +2 em testes de Fortitude e é imune a doenças.'
+        name: 'Peste Esguia',
+        description: 'Seu tamanho é Pequeno (veja a página 106), mas seu deslocamento se mantém 9m. Apesar de pequenos, goblins são rápidos.'
       },
       {
-        name: 'Visão no Escuro',
-        description: 'Você enxerga no escuro total a até 18m.'
+        name: 'Rato das Ruas',
+        description: 'Você recebe +2 em Fortitude e sua recuperação de PV e PM nunca é inferior ao seu nível.'
       }
     ],
     playstyle: [
-      'Especialistas em perícias e infiltração.',
-      'Inventores e alquimistas geniais.'
+      'Mestres em testes de perícias e inventos.',
+      'Excelente mobilidade vertical e resistência de recuperação.'
     ],
     synergies: {
-      classes: ['Ladino', 'Inventor', 'Caçador'],
-      builds: ['Builds de venenos, bombas e ataques furtivos.']
+      classes: ['Inventor', 'Ladino', 'Bucaneiro', 'Arcanista'],
+      builds: ['Engenhoqueiro Goblin', 'Ladino Especialista', 'Baloeiro']
     },
-    description: 'Goblins são frequentemente subestimados, mas sua inteligência prática e agilidade os tornam aventureiros excepcionais.'
+    description: 'Goblins vivem nas frestas do mundo civilizado e sobrevivem graças à sua incomparável capacidade de inventar soluções inesperadas a partir de sucatas.'
+  },
+  {
+    id: 'golem',
+    slug: 'golem',
+    name: 'Golem',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Construtos sem vida forjados por mortais e movidos por espíritos elementais selados em corpos de pedra e metal.',
+    iconName: 'Cpu',
+    attributeModifiers: [
+      { attribute: 'Força', value: 2 },
+      { attribute: 'Constituição', value: 1 },
+      { attribute: 'Carisma', value: -1 }
+    ],
+    racialAbilities: [
+      {
+        name: 'Chassi',
+        description: 'Seu corpo artificial é resistente, mas rígido. Seu deslocamento é 6m, mas não é reduzido por uso de armadura ou excesso de carga. Você recebe +2 na Defesa, mas possui penalidade de armadura –2. Você leva um dia para vestir ou remover uma armadura (pois precisa acoplar as peças dela a seu chassi). Por ser acoplada, sua armadura não conta no limite de itens que você pode usar (mas você continua só podendo usar uma armadura).'
+      },
+      {
+        name: 'Criatura Artificial',
+        description: 'Você é uma criatura do tipo construto. Recebe visão no escuro e imunidade a efeitos de cansaço, metabólicos e de veneno. Além disso, não precisa respirar, alimentar-se ou dormir, mas não se beneficia de cura mundana e de itens da categoria alimentação. Você precisa ficar inerte por oito horas por dia para recarregar sua fonte de energia. Se fizer isso, recupera PV e PM por descanso em condições normais (golens não são afetados por condições boas ou ruins de descanso). Por fim, a perícia Cura não funciona em você, mas Ofício (artesão) pode ser usada no lugar dela.'
+      },
+      {
+        name: 'Fonte Elemental',
+        description: 'Você possui um espírito elemental preso em seu corpo. Escolha entre água (frio), ar (eletricidade), fogo (fogo) e terra (ácido). Você é imune a dano desse tipo. Se fosse sofrer dano mágico desse tipo, em vez disso cura PV em quantidade igual à metade do dano.'
+      },
+      {
+        name: 'Propósito de Criação',
+        description: 'Você foi construído “pronto” para um propósito específico e não teve uma infância. Você não tem direito a escolher uma origem, mas recebe um poder geral a sua escolha.'
+      }
+    ],
+    playstyle: [
+      'Tanques inabaláveis imunes a venenos, fadiga e metabólicos.',
+      'Cura reativa mediante absorção de dano mágico elemental.'
+    ],
+    synergies: {
+      classes: ['Cavaleiro', 'Guerreiro', 'Lutador', 'Paladino', 'Arcanista'],
+      builds: ['Tanque Elemental', 'Guardião de Ferro', 'Guerreiro Chassi Pesado']
+    },
+    description: 'Movidos por forças vivas e espíritos elementais engaiolados em armaduras de metal e rocha, buscam seu propósito e identidade em Arton.'
+  },
+  {
+    id: 'hynne',
+    slug: 'hynne',
+    name: 'Hynne',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Apreciadores de boa comida e aconchego, pequenos, simpáticos, ágeis e abençoados com extraordinária sorte.',
+    iconName: 'Smile',
+    attributeModifiers: [
+      { attribute: 'Destreza', value: 2 },
+      { attribute: 'Carisma', value: 1 },
+      { attribute: 'Força', value: -1 }
+    ],
+    racialAbilities: [
+      {
+        name: 'Arremessador',
+        description: 'Quando faz um ataque à distância com uma funda ou uma arma de arremesso, seu dano aumenta em um passo.'
+      },
+      {
+        name: 'Pequeno e Rechonchudo',
+        description: 'Seu tamanho é Pequeno (veja a página 106) e seu deslocamento é 6m. Você recebe +2 em Enganação e pode usar Destreza como atributo-chave de Atletismo (em vez de Força).'
+      },
+      {
+        name: 'Sorte Salvadora',
+        description: 'Quando faz um teste de resistência, você pode gastar 1 PM para rolar este teste novamente.'
+      }
+    ],
+    playstyle: [
+      'Especialistas em ataques de funda e arremesso.',
+      'Alta evasão e segurança em testes de resistência com rerolagem.'
+    ],
+    synergies: {
+      classes: ['Ladino', 'Bardo', 'Bucaneiro', 'Nobre'],
+      builds: ['Atirador de Funda', 'Ladino Trapaceiro', 'Bardo Negociante']
+    },
+    description: 'Halflings artonianos que combinam gentileza e culinária refinada com agilidade surpreendente e instinto de sobrevivência apurado.'
+  },
+  {
+    id: 'kliren',
+    slug: 'kliren',
+    name: 'Kliren',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Visitantes de outro mundo combinando a curiosidade humana com o intelecto gnômico e talento natural para mecânica e armas de fogo.',
+    iconName: 'Wrench',
+    attributeModifiers: [
+      { attribute: 'Inteligência', value: 2 },
+      { attribute: 'Carisma', value: 1 },
+      { attribute: 'Força', value: -1 }
+    ],
+    racialAbilities: [
+      {
+        name: 'Engenhosidade',
+        description: 'Quando faz um teste de perícia, você pode gastar 2 PM para somar sua Inteligência no teste. Você não pode usar esta habilidade em testes de ataque. Caso receba esta habilidade novamente, seu custo é reduzido em –1 PM.'
+      },
+      {
+        name: 'Híbrido',
+        description: 'Sua natureza multifacetada fez com que você aprendesse conhecimentos variados. Você se torna treinado em uma perícia a sua escolha (não precisa ser da sua classe).'
+      },
+      {
+        name: 'Ossos Frágeis',
+        description: 'Você sofre 1 ponto de dano adicional por dado de dano de impacto. Por exemplo, se for atingido por uma clava (dano 1d6), sofre 1d6+1 pontos de dano. Se cair de 3m de altura (dano 2d6), sofre 2d6+2 pontos de dano.'
+      },
+      {
+        name: 'Vanguardista',
+        description: 'Você recebe proficiência em armas de fogo e +2 em Ofício (um qualquer, a sua escolha).'
+      }
+    ],
+    playstyle: [
+      'Potencial absoluto para inventores e conjuradores baseados em Inteligência.',
+      'Uso eficiente de armas de fogo e versatilidade em testes de perícia.'
+    ],
+    synergies: {
+      classes: ['Inventor', 'Arcanista (Mago)', 'Bardo', 'Ladino'],
+      builds: ['Inventor Balístico', 'Mago Vanguardista', 'Pistoleiro de Engenhosidade']
+    },
+    description: 'Frutos da união entre humanos e a extinta essência gnômica, são inventores brilhantes, impulsivos e apaixonados pela vanguarda do progresso.'
   },
   {
     id: 'lefou',
@@ -157,181 +313,71 @@ export const T20_RACES: T20RaceDetail[] = [
     name: 'Lefou',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Tocados pela Tormenta, carregam deformidades e poderes aberrantes.',
-    iconName: 'Skull',
+    summary: 'Tocados pela Tormenta, estes meio-demônios carregam deformidades aberrantes que concedem poderes singulares.',
+    iconName: 'Flame',
     attributeModifiers: [
-      { attribute: 'Três atributos (exceto Carisma)', value: 1 },
+      { attribute: 'Três atributos diferentes à sua escolha (exceto Carisma)', value: 1 },
       { attribute: 'Carisma', value: -1 }
     ],
     racialAbilities: [
       {
+        name: '+1 em Três Atributos Diferentes (exceto Carisma)',
+        description: 'Lefou podem desenvolver seu vigor e capacidades físicas e mentais, com exceção de sua presença social pura.'
+      },
+      {
+        name: 'Cria da Tormenta',
+        description: 'Você é uma criatura do tipo monstro e recebe +5 em testes de resistência contra efeitos causados por lefeu e pela Tormenta.'
+      },
+      {
         name: 'Deformidade',
-        description: 'Você recebe um poder da Tormenta a sua escolha. Você não perde Carisma por este poder, mas ainda sofre a penalidade em perícias de interação.'
-      },
-      {
-        name: 'Filho da Tormenta',
-        description: 'Você é considerado um monstro. Recebe +2 em testes de Fortitude contra efeitos da Tormenta e não sofre dano por sua atmosfera ácida.'
+        description: 'Todo lefou possui defeitos físicos que, embora desagradáveis, conferem certas vantagens. Você recebe +2 em duas perícias a sua escolha. Cada um desses bônus conta como um poder da Tormenta (exceto para perda de Carisma). Você pode trocar um desses bônus por um poder da Tormenta a sua escolha (ele também não conta para perda de Carisma).'
       }
     ],
     playstyle: [
-      'Combatentes focados em poderes da Tormenta.',
-      'Personagens de alta customização inicial.'
+      'Combatentes letais potencializados por poderes aberrantes sem perda de Carisma inicial.',
+      'Monstros resistentes à corrupção da tempestade rubra.'
     ],
     synergies: {
-      classes: ['Lutador', 'Bárbaro', 'Guerreiro'],
-      builds: ['Builds de "Combo de Tormenta" para maximizar bônus de múltiplos poderes aberrantes.']
+      classes: ['Guerreiro', 'Lutador', 'Bárbaro', 'Caçador', 'Arcanista Rubro'],
+      builds: ['Combatente Rubro', 'Lutador Deformado', 'Algoz da Tormenta']
     },
-    description: 'Lefou são seres nascidos em áreas de Tormenta ou de pais corrompidos, carregando a marca da anti-criação em seus corpos.'
+    description: 'Nascidos com a mácula rubra, enfrentam o preconceito da sociedade e usam a familiaridade com o inimigo para expurgá-lo ou dominar suas armas.'
   },
   {
-    id: 'dahllan',
-    slug: 'dahllan',
-    name: 'Dahllan',
+    id: 'medusa',
+    slug: 'medusa',
+    name: 'Medusa',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Meio-dríades com uma ligação profunda com a natureza e as plantas.',
-    iconName: 'Trees',
+    summary: 'Criaturas com serpentes na cabeça, portadoras de veneno letal nas armas e um olhar capaz de atordoar adversários.',
+    iconName: 'Eye',
     attributeModifiers: [
-      { attribute: 'Sabedoria', value: 2 },
-      { attribute: 'Constituição', value: 1 },
-      { attribute: 'Inteligência', value: -1 }
+      { attribute: 'Destreza', value: 2 },
+      { attribute: 'Carisma', value: 1 }
     ],
     racialAbilities: [
       {
-        name: 'Amiga das Plantas',
-        description: 'Você pode lançar a magia Controlar Plantas (custo –1 PM). Caso aprenda esta magia novamente, seu custo diminui em –1 PM adicional.'
+        name: 'Cria de Megalokk',
+        description: 'Você é uma criatura do tipo monstro e recebe visão no escuro.'
       },
       {
-        name: 'Armadura de Carvalho',
-        description: 'Você pode gastar 1 PM para receber +2 na Defesa até o fim da cena.'
+        name: 'Natureza Venenosa',
+        description: 'Você recebe resistência a veneno +5 e pode gastar uma ação de movimento e 1 PM para envenenar uma arma que esteja usando. A arma causa perda de 1d12 pontos de vida. O veneno dura até você acertar um ataque ou até o fim da cena (o que acontecer primeiro). Veneno.'
       },
       {
-        name: 'Empatia Selvagem',
-        description: 'Você pode usar Adestramento para diplomacia com animais. Além disso, você pode falar com animais (como se estivesse sob efeito da magia Falar com Animais).'
+        name: 'Olhar Atordoante',
+        description: 'Você pode gastar uma ação de movimento e 1 PM para forçar uma criatura em alcance curto a fazer um teste de Fortitude (CD Car). Se a criatura falhar, fica atordoada por uma rodada (apenas uma vez por cena).'
       }
     ],
     playstyle: [
-      'Conjuradores divinos focados em suporte e controle.',
-      'Personagens com alta sobrevivência na natureza.'
+      'Excelente controle com atordoamento por Carisma e veneno constante.',
+      'Altos bônus de agilidade e combate furtivo.'
     ],
     synergies: {
-      classes: ['Druida', 'Clérigo', 'Caçador'],
-      builds: ['Builds de controle de terreno e suporte defensivo.']
+      classes: ['Ladino', 'Bardo', 'Bucaneiro', 'Guerreiro'],
+      builds: ['Assassina Venenosa', 'Barda Sedutora', 'Duelista de Megalokk']
     },
-    description: 'As dahllan são descendentes de dríades com humanos, possuindo uma conexão mística com o mundo vegetal.'
-  },
-  {
-    id: 'kallyanach',
-    slug: 'kallyanach',
-    name: 'Kallyanach',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Crias de Kallyadranoch, os kallyanach possuem o sangue e o sopro dos dragões.',
-    iconName: 'Flame',
-    attributeModifiers: [
-      { attribute: 'Três atributos à sua escolha', value: 1 }
-    ],
-    racialAbilities: [
-      {
-        name: 'Caminho do Dragão',
-        description: 'Escolha um tipo de dano: ácido, eletricidade, fogo, frio ou veneno. Você recebe resistência 5 a esse tipo de dano.'
-      },
-      {
-        name: 'Herança Dracônica',
-        description: 'Você recebe +1 PM por nível.'
-      },
-      {
-        name: 'Sopro de Dragão',
-        description: 'Você pode gastar 1 PM para soprar uma área de cone de 6m que causa 2d6 pontos de dano do tipo escolhido em Caminho do Dragão (Reflexos reduz à metade). O dano aumenta em +1d6 para cada 2 níveis.'
-      }
-    ],
-    playstyle: [
-      'Conjuradores que precisam de muita mana.',
-      'Combatentes com dano em área elemental.'
-    ],
-    synergies: {
-      classes: ['Arcanista', 'Feiticeiro', 'Paladino'],
-      builds: ['Builds de "Gish" (combate e magia) que aproveitam a mana extra.']
-    },
-    description: 'Os kallyanach são humanos cujas linhagens foram tocadas pelo Deus dos Dragões, manifestando escamas e poderes elementais.'
-  },
-  {
-    id: 'qareen',
-    slug: 'qareen',
-    name: 'Qareen',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Descendentes de gênios, os qareen são naturalmente mágicos e generosos.',
-    iconName: 'Zap',
-    attributeModifiers: [
-      { attribute: 'Carisma', value: 2 },
-      { attribute: 'Inteligência', value: 1 },
-      { attribute: 'Sabedoria', value: -1 }
-    ],
-    racialAbilities: [
-      {
-        name: 'Desejos',
-        description: 'Se você lançar uma magia que alguém pediu, o custo da magia diminui em –1 PM (mínimo 1 PM). Você não pode pedir desejos para si mesmo.'
-      },
-      {
-        name: 'Pequenos Desejos',
-        description: 'Você pode lançar a magia Prestidigitação. Caso aprenda esta magia novamente, seu custo diminui em –1 PM.'
-      },
-      {
-        name: 'Resistência Elemental',
-        description: 'Conforme sua ascendência (escolha uma), você recebe resistência 10 a um tipo de dano: frio (água), eletricidade (ar), fogo (fogo) ou ácido (terra).'
-      }
-    ],
-    playstyle: [
-      'Melhores conjuradores baseados em Carisma.',
-      'Suportes mágicos que economizam mana através de pedidos do grupo.'
-    ],
-    synergies: {
-      classes: ['Bardo', 'Feiticeiro', 'Nobre'],
-      builds: ['Builds de suporte total ou controle social.']
-    },
-    description: 'Os qareen são meio-gênios conhecidos por sua pele sedosa e disposição para ajudar, canalizando a magia de seus ancestrais planares.'
-  },
-  {
-    id: 'trog',
-    slug: 'trog',
-    name: 'Trog',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Homens-lagarto brutais, resistentes e temidos por seu mau cheiro.',
-    iconName: 'Shield',
-    attributeModifiers: [
-      { attribute: 'Constituição', value: 2 },
-      { attribute: 'Força', value: 1 },
-      { attribute: 'Inteligência', value: -1 }
-    ],
-    racialAbilities: [
-      {
-        name: 'Mau Cheiro',
-        description: 'Você pode gastar 2 PM para emitir um odor terrível. Todos os inimigos em alcance curto devem fazer um teste de Fortitude (CD Con) ou ficarão enjoados por 1d6 rodadas.'
-      },
-      {
-        name: 'Mordida',
-        description: 'Você possui uma arma natural de mordida (dano 1d6, crítico x2, perfuração). Você pode atacar com a mordida como uma ação extra se usar a ação agredir.'
-      },
-      {
-        name: 'Pele Dura',
-        description: 'Você recebe +2 na Defesa.'
-      },
-      {
-        name: 'Sangue Frio',
-        description: 'Você sofre vulnerabilidade a frio. Além disso, pode prender a respiração por muito mais tempo.'
-      }
-    ],
-    playstyle: [
-      'Tanques de linha de frente com alta defesa natural.',
-      'Combatentes corpo a corpo que usam ataques extras.'
-    ],
-    synergies: {
-      classes: ['Bárbaro', 'Lutador', 'Guerreiro'],
-      builds: ['Builds de "Grappler" ou tanques de alta Constituição.']
-    },
-    description: 'Trogs são reptilianos robustos que vivem em sociedades tribais, muitas vezes em conflito com outras raças civilizadas.'
+    description: 'Reclusas por natureza, jovens medusas por vezes se aventuram no Reinado camuflando seus cabelos ofídicos sob lenços e capuzes.'
   },
   {
     id: 'minotauro',
@@ -339,7 +385,7 @@ export const T20_RACES: T20RaceDetail[] = [
     name: 'Minotauro',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Poderosos e imponentes, os minotauros valorizam a força e a hierarquia.',
+    summary: 'Povo guerreiro, orgulhoso e poderoso, dotado de força bruta, chifres pontiagudos e pele resistente como couro.',
     iconName: 'Shield',
     attributeModifiers: [
       { attribute: 'Força', value: 2 },
@@ -349,70 +395,146 @@ export const T20_RACES: T20RaceDetail[] = [
     racialAbilities: [
       {
         name: 'Chifres',
-        description: 'Você possui uma arma natural de chifres (dano 1d6, crítico x2, perfuração). Quando usa a ação agredir, pode gastar 1 PM para fazer um ataque extra com os chifres.'
+        description: 'Você possui uma arma natural de chifres (dano 1d6, crítico x2, perfuração). Uma vez por rodada, quando usa a ação agredir para atacar com outra arma, pode gastar 1 PM para fazer um ataque corpo a corpo extra com os chifres.'
       },
       {
         name: 'Couro Rígido',
-        description: 'Você recebe +1 na Defesa.'
+        description: 'Sua pele é dura como a de um touro. Você recebe +1 na Defesa.'
       },
       {
         name: 'Faro',
-        description: 'Você recebe +2 em testes de Percepção para ouvir ou cheirar e ignora camuflagem leve por estes sentidos.'
+        description: 'Você tem olfato apurado. Contra inimigos em alcance curto que não possa ver, você não fica desprevenido e camuflagem total lhe causa apenas 20% de chance de falha.'
       },
       {
         name: 'Medo de Altura',
-        description: 'Se estiver adjacente a um precipício ou em um lugar alto sem proteção, você fica abalado.'
+        description: 'Se estiver adjacente a uma queda de 3m ou mais de altura (como um buraco ou penhasco), você fica abalado.'
       }
     ],
     playstyle: [
-      'Combatentes brutais de linha de frente.',
-      'Personagens focados em Força bruta e intimidação.'
+      'Combatentes pesados com múltiplos ataques na rodada.',
+      'Excelente resistência física e proteção natural.'
     ],
     synergies: {
-      classes: ['Guerreiro', 'Bárbaro', 'Lutador'],
-      builds: ['Builds de dano massivo corpo a corpo.']
+      classes: ['Guerreiro', 'Bárbaro', 'Lutador', 'Cavaleiro'],
+      builds: ['Guerreiro de Duas Mãos', 'Bárbaro Feroz', 'Lutador Chifrada']
     },
-    description: 'Minotauros são uma raça de humanoides com cabeça de touro, conhecidos por seu Império e sua crença na lei do mais forte.'
+    description: 'Disciplinados, sisudos e orgulhosos de sua força, os minotauros lutam para reerguer sua glória e proteger os aliados com lealdade de aço.'
   },
   {
-    id: 'suraggel',
-    slug: 'suraggel',
-    name: 'Suraggel',
+    id: 'osteon',
+    slug: 'osteon',
+    name: 'Osteon',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Descendentes de seres planares, divididos entre Aggelus (celestiais) e Herdeiros (abissais).',
-    iconName: 'Sparkles',
+    summary: 'Esqueletos inteligentes dotados de consciência, protegidos por armadura óssea e imunes a fadiga e veneno.',
+    iconName: 'Skull',
     attributeModifiers: [
-      { attribute: 'Sabedoria (Aggelus) ou Destreza (Herdeiro)', value: 2 },
-      { attribute: 'Carisma', value: 1 }
+      { attribute: 'Três atributos diferentes à sua escolha (exceto Constituição)', value: 1 },
+      { attribute: 'Constituição', value: -1 }
     ],
     racialAbilities: [
       {
-        name: 'Herança Planar',
-        description: 'Você é considerado um espírito. Escolha entre Aggelus (Sabedoria +4) ou Herdeiro (Destreza +4).'
+        name: 'Armadura Óssea',
+        description: 'Você recebe redução de corte, frio e perfuração 5.'
       },
       {
-        name: 'Luz ou Trevas',
-        description: 'Aggelus podem lançar Luz (ou outra magia de 1º círculo se já a conhecerem). Herdeiros podem lançar Escuridão (ou outra magia de 1º círculo).'
+        name: 'Memória Póstuma',
+        description: 'Você se torna treinado em uma perícia (não precisa ser da sua classe) ou recebe um poder geral a sua escolha. Como alternativa, você pode ser um osteon de outra raça humanoide que não humano. Neste caso, você ganha uma habilidade dessa raça a sua escolha. Se a raça era de tamanho diferente de Médio, você também possui sua categoria de tamanho.'
       },
       {
-        name: 'Resistência Planar',
-        description: 'Você recebe resistência 5 a ácido, eletricidade e frio.'
+        name: 'Natureza Esquelética',
+        description: 'Você é uma criatura do tipo morto-vivo. Recebe visão no escuro e imunidade a efeitos de cansaço, metabólicos, de trevas e de veneno. Além disso, não precisa respirar, alimentar-se ou dormir. Por fim, efeitos mágicos de cura de luz causam dano a você e você não se beneficia de itens da categoria alimentação, mas dano de trevas recupera seus PV.'
       },
       {
-        name: 'Visão no Escuro',
-        description: 'Você enxerga no escuro total a até 18m.'
+        name: 'Preço da Não Vida',
+        description: 'Você precisa passar oito horas sob a luz de estrelas ou no subterrâneo. Se fizer isso, recupera PV e PM por descanso em condições normais (osteon não são afetados por condições boas ou ruins de descanso). Caso contrário, sofre os efeitos de fome.'
       }
     ],
     playstyle: [
-      'Aggelus são excelentes clérigos e druidas.',
-      'Herdeiros são ótimos ladinos e caçadores.'
+      'Imunidades completas a fadiga, doenças e venenos.',
+      'Redução passiva de dano contra corte, frio e perfuração.'
     ],
     synergies: {
-      classes: ['Clérigo', 'Ladino', 'Paladino', 'Bardo'],
-      builds: ['Builds que aproveitam bônus altos em Sabedoria ou Destreza.']
+      classes: ['Arcanista (Necromante)', 'Ladino', 'Clérigo de Tenebra', 'Guerreiro'],
+      builds: ['Necromante Não-Vivo', 'Cavaleiro Esquelético', 'Ladino Imortal']
     },
-    description: 'Suraggel carregam o sangue de anjos ou demônios, manifestando características físicas e poderes de seus ancestrais extraplanares.'
+    description: 'Esqueletos conscientes e sencientes que desafiam o estigma da não-vida, conservando habilidades de sua existência pregressa.'
+  },
+  {
+    id: 'qareen',
+    slug: 'qareen',
+    name: 'Qareen',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Meios-gênios benevolentes e carismáticos, abençoados por Wynna com tatuagens místicas e poder amplificado ao realizar desejos.',
+    iconName: 'Sparkles',
+    attributeModifiers: [
+      { attribute: 'Carisma', value: 2 },
+      { attribute: 'Inteligência', value: 1 },
+      { attribute: 'Sabedoria', value: -1 }
+    ],
+    racialAbilities: [
+      {
+        name: 'Desejos',
+        description: 'Se lançar uma magia que alguém tenha pedido desde seu último turno, o custo da magia diminui em –1 PM. Fazer um desejo ao qareen é uma ação livre.'
+      },
+      {
+        name: 'Resistência Elemental',
+        description: 'Conforme sua ascendência, você recebe redução 10 a um tipo de dano. Escolha uma: frio (qareen da água), eletricidade (do ar), fogo (do fogo), ácido (da terra), luz (da luz) ou trevas (qareen das trevas).'
+      },
+      {
+        name: 'Tatuagem Mística',
+        description: 'Você pode lançar uma magia de 1º círculo a sua escolha (atributo-chave Carisma). Caso aprenda novamente essa magia, seu custo diminui em –1 PM.'
+      }
+    ],
+    playstyle: [
+      'Conjuradores arcanos e bardos de altíssimo Carisma.',
+      'Economia de Mana ao cooperar com desejos do grupo.'
+    ],
+    synergies: {
+      classes: ['Arcanista (Feiticeiro)', 'Bardo', 'Nobre', 'Paladino'],
+      builds: ['Feiticeiro Dracônico/Feérico', 'Bardo Suporte', 'Nobre Encantador']
+    },
+    description: 'Filhos dos gênios e de mortais, exibem marcas místicas brilhantes e canalizam magias com graça e generosidade incomparáveis.'
+  },
+  {
+    id: 'sereia-tritao',
+    slug: 'sereia-tritao',
+    name: 'Sereia/Tritão',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Povo marinho capaz de alternar entre cauda de peixe para natação veloz e pernas bípedes para caminhar em terra firme.',
+    iconName: 'Waves',
+    attributeModifiers: [
+      { attribute: 'Três atributos diferentes à sua escolha', value: 1 }
+    ],
+    racialAbilities: [
+      {
+        name: '+1 em Três Atributos Diferentes',
+        description: 'Sereias e tritões adaptam-se com facilidade tanto aos mistérios do oceano quanto aos desafios da terra emersa.'
+      },
+      {
+        name: 'Canção dos Mares',
+        description: 'Você pode lançar duas das magias a seguir: Amedrontar, Comando, Despedaçar, Enfeitiçar, Hipnotismo ou Sono (atributo-chave Carisma). Caso aprenda novamente uma dessas magias, seu custo diminui em –1 PM.'
+      },
+      {
+        name: 'Mestre do Tridente',
+        description: 'Para você, o tridente é uma arma simples. Além disso, você recebe +2 em rolagens de dano com azagaias, lanças e tridentes.'
+      },
+      {
+        name: 'Transformação Anfíbia',
+        description: 'Você pode respirar debaixo d’água e possui uma cauda que fornece deslocamento de natação 12m. Quando fora d’água, sua cauda desaparece e dá lugar a pernas (deslocamento 9m). Se permanecer mais de um dia sem contato com água, você não recupera PM com descanso até voltar para a água (ou, pelo menos, tomar um bom banho!).'
+      }
+    ],
+    playstyle: [
+      'Conjuradores e combatentes anfíbios com arsenal de magias de controle mental.',
+      'Bônus expressivo no uso de armas de haste marítimas.'
+    ],
+    synergies: {
+      classes: ['Bardo', 'Bucaneiro', 'Druida', 'Nobre', 'Guerreiro'],
+      builds: ['Bardo da Canção dos Mares', 'Bucaneiro do Tridente', 'Druida do Oceano']
+    },
+    description: 'Com canto hipnótico e maestria nas profundezas do Grande Oceano, exploram o continente em busca de novas façanhas e alianças.'
   },
   {
     id: 'silfide',
@@ -420,7 +542,7 @@ export const T20_RACES: T20RaceDetail[] = [
     name: 'Sílfide',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Pequenas fadas aladas, curiosas e repletas de magia natural.',
+    summary: 'Fadas minúsculas com asas de borboleta, capazes de pairar, voar com facilidade e encantar através da magia natural das fadas.',
     iconName: 'Sparkles',
     attributeModifiers: [
       { attribute: 'Carisma', value: 2 },
@@ -430,270 +552,101 @@ export const T20_RACES: T20RaceDetail[] = [
     racialAbilities: [
       {
         name: 'Asas de Borboleta',
-        description: 'Você possui deslocamento de voo 12m.'
+        description: 'Seu tamanho é Minúsculo. Você pode pairar a 1,5m do chão com deslocamento 9m. Isso permite que você ignore terreno difícil e o torna imune a dano por queda (a menos que esteja inconsciente). Você pode gastar 1 PM por rodada para voar com deslocamento de 12m.'
       },
       {
         name: 'Espírito da Natureza',
-        description: 'Você é considerado um espírito e recebe +2 em testes de Misticismo e Adestramento.'
+        description: 'Você é uma criatura do tipo espírito, recebe visão na penumbra e pode falar com animais livremente.'
       },
       {
         name: 'Magia das Fadas',
-        description: 'Você pode lançar duas magias de 1º círculo de ilusão ou encantamento a sua escolha.'
-      },
-      {
-        name: 'Tamanho Minúsculo',
-        description: 'Você recebe +5 em Furtividade, mas seu alcance natural é 0m.'
+        description: 'Você pode lançar duas das magias a seguir (atributo-chave Carisma): Criar Ilusão, Enfeitiçar, Luz (como uma magia arcana) e Sono. Caso aprenda novamente uma dessas magias, seu custo diminui em –1 PM.'
       }
     ],
     playstyle: [
-      'Conjuradores furtivos e intocáveis.',
-      'Especialistas em controle e ilusão.'
+      'Evasão e Furtividade extremas devido ao tamanho Minúsculo.',
+      'Voo ágil e magia inata feérica.'
     ],
     synergies: {
-      classes: ['Bardo', 'Feiticeiro', 'Ladino'],
-      builds: ['Builds de conjuração aérea e debuff.']
+      classes: ['Arcanista', 'Bardo', 'Ladino', 'Nobre'],
+      builds: ['Feiticeira Feérica Voadora', 'Ladina Ilusionista', 'Barda Sedutora']
     },
-    description: 'Sílfides são fadas minúsculas que vivem em comunidades escondidas na natureza ou viajam por curiosidade pura.'
+    description: 'Criaturas esvoaçantes de grandes olhos escuros e asas delicadas, trazem a espontaneidade e os truques mágicos da Pondsmânia para suas jornadas.'
   },
   {
-    id: 'sereia-tritao',
-    slug: 'sereia-tritao',
-    name: 'Sereia/Tritão',
+    id: 'suraggel',
+    slug: 'suraggel',
+    name: 'Suraggel',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Povo das águas, capazes de assumir forma humana em terra firme.',
-    iconName: 'Waves',
+    summary: 'Descendentes de extraplanares divinos celestiais (Aggelus) ou abissais (Sulfure), manifestando a herança da luz ou das trevas.',
+    iconName: 'Sun',
     attributeModifiers: [
-      { attribute: 'Três atributos à sua escolha', value: 1 }
+      { attribute: 'Sabedoria +2, Carisma +1 (Aggelus) OU Destreza +2, Inteligência +1 (Sulfure)', value: 1 }
     ],
     racialAbilities: [
       {
-        name: 'Canção das Sereias',
-        description: 'Você recebe +2 em Atuação e pode lançar a magia Enfeitiçar (custo –1 PM).'
+        name: 'Herança Divina',
+        description: 'Você é uma criatura do tipo espírito e recebe visão no escuro.'
       },
       {
-        name: 'Mestre das Ondas',
-        description: 'Você possui deslocamento de natação 12m e pode respirar embaixo d\'água.'
+        name: 'Luz Sagrada (Aggelus)',
+        description: 'Você recebe +2 em Diplomacia e Intuição. Além disso, pode lançar Luz (como uma magia divina; atributo-chave Carisma). Caso aprenda novamente essa magia, seu custo diminui em –1 PM.'
       },
       {
-        name: 'Transformação Anfíbia',
-        description: 'Você pode gastar uma ação completa para alternar entre forma com cauda (água) e forma com pernas (terra).'
-      },
-      {
-        name: 'Visão na Penumbra',
-        description: 'Você enxerga duas vezes mais longe que um humano na penumbra.'
+        name: 'Sombras Profanas (Sulfure)',
+        description: 'Você recebe +2 em Enganação e Furtividade. Além disso, pode lançar Escuridão (como uma magia divina; atributo-chave Inteligência). Caso aprenda novamente essa magia, seu custo diminui em –1 PM.'
       }
     ],
     playstyle: [
-      'Personagens versáteis em campanhas marítimas.',
-      'Bardos e Nobres com alta capacidade de persuasão.'
+      'Aggelus: foco em Sabedoria e Carisma para clérigos, paladinos e diplomatas.',
+      'Sulfure: foco em Destreza e Inteligência para ladinos, arcanistas e especialistas sombrios.'
     ],
     synergies: {
-      classes: ['Bardo', 'Nobre', 'Clérigo'],
-      builds: ['Builds de diplomacia e controle mental.']
+      classes: ['Clérigo', 'Paladino', 'Ladino', 'Arcanista', 'Nobre'],
+      builds: ['Aggelus Clérigo da Luz', 'Sulfure Ladino das Sombras', 'Aggelus Paladino da Justiça']
     },
-    description: 'O povo do mar é misterioso e belo, vivendo em cidades submersas mas mantendo contato constante com a superfície.'
+    description: 'Marcados pelo sangue dos Mundos dos Deuses, suraggel carregam traços luminosos (aggelus) ou feições e chifres sombrios (sulfure).'
   },
   {
-    id: 'osteon',
-    slug: 'osteon',
-    name: 'Osteon',
+    id: 'trog',
+    slug: 'trog',
+    name: 'Trog',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Mortos-vivos que mantiveram sua consciência e buscam um novo propósito.',
-    iconName: 'Skull',
+    summary: 'Homens-lagarto resistentes e primitivos, dotados de mau cheiro incapacitante, mordida letal e camuflagem natural.',
+    iconName: 'ShieldAlert',
     attributeModifiers: [
-      { attribute: 'Três atributos (exceto Constituição)', value: 1 }
+      { attribute: 'Constituição', value: 2 },
+      { attribute: 'Força', value: 1 },
+      { attribute: 'Inteligência', value: -1 }
     ],
     racialAbilities: [
       {
-        name: 'Armadura Óssea',
-        description: 'Você recebe resistência 5 a corte, perfuração e frio.'
+        name: 'Mau Cheiro',
+        description: 'Você pode gastar uma ação padrão e 2 PM para expelir um gás fétido. Todas as criaturas (exceto trogs) em alcance curto devem passar em um teste de Fortitude contra veneno (CD Con) ou ficarão enjoadas durante 1d6 rodadas. Uma criatura que passe no teste de resistência fica imune a esta habilidade por um dia.'
       },
       {
-        name: 'Memória Póstuma',
-        description: 'Você recebe uma habilidade racial de outra raça (exceto habilidades que dependam de fisiologia viva).'
+        name: 'Mordida',
+        description: 'Você possui uma arma natural de mordida (dano 1d6, crítico x2, perfuração). Uma vez por rodada, quando usa a ação agredir para atacar com outra arma, pode gastar 1 PM para fazer um ataque corpo a corpo extra com a mordida.'
       },
       {
-        name: 'Natureza Esquelética',
-        description: 'Você é um morto-vivo. Não possui valor de Constituição e é imune a efeitos que pedem testes de Fortitude (exceto objetos).'
+        name: 'Reptiliano',
+        description: 'Você é uma criatura do tipo monstro e recebe visão no escuro, +1 na Defesa e, se estiver sem armadura ou roupas pesadas, +5 em Furtividade.'
       },
       {
-        name: 'Preço da Não Vida',
-        description: 'Você não recupera PV por descanso e magias de cura causam dano em você. Deve ser curado por magias de trevas ou reparos.'
+        name: 'Sangue Frio',
+        description: 'Você sofre 1 ponto de dano adicional por dado de dano de frio.'
       }
     ],
     playstyle: [
-      'Personagens extremamente resilientes a dano físico.',
-      'Ideal para quem busca imunidades de morto-vivo.'
+      'Tanques brutais capazes de debilitar grupos de inimigos com Mau Cheiro.',
+      'Ataque extra na rodada com mordida natural.'
     ],
     synergies: {
-      classes: ['Guerreiro', 'Arcanista (Necromante)', 'Cavaleiro'],
-      builds: ['Builds de tanque que aproveitam as imunidades de morto-vivo.']
+      classes: ['Bárbaro', 'Lutador', 'Guerreiro', 'Druida'],
+      builds: ['Bárbaro Fedorento', 'Lutador Primitivo', 'Guerreiro Réptil']
     },
-    description: 'Osteon são esqueletos reanimados que, por algum motivo, não se tornaram servos irracionais de necromantes.'
-  },
-  {
-    id: 'medusa',
-    slug: 'medusa',
-    name: 'Medusa',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Seres com serpentes no lugar de cabelos, capazes de paralisar com o olhar.',
-    iconName: 'Zap',
-    attributeModifiers: [
-      { attribute: 'Destreza', value: 2 },
-      { attribute: 'Carisma', value: 1 }
-    ],
-    racialAbilities: [
-      {
-        name: 'Natureza Venenosa',
-        description: 'Você recebe resistência 10 a veneno e +2 em testes de Fortitude contra venenos.'
-      },
-      {
-        name: 'Olhar Atordoante',
-        description: 'Você pode gastar 1 PM para forçar um alvo em alcance curto a fazer um teste de Fortitude (CD Car) ou ficar atordoado por 1 rodada.'
-      },
-      {
-        name: 'Serpentes',
-        description: 'Suas serpentes podem atacar como uma arma natural (dano 1d4, crítico x2, veneno). O veneno causa 1d6 de dano de veneno por 3 rodadas.'
-      },
-      {
-        name: 'Visão na Penumbra',
-        description: 'Você enxerga duas vezes mais longe que um humano na penumbra.'
-      }
-    ],
-    playstyle: [
-      'Personagens focados em controle de alvo único.',
-      'Ladinos e combatentes ágeis.'
-    ],
-    synergies: {
-      classes: ['Ladino', 'Bardo', 'Caçador'],
-      builds: ['Builds de "Lockdown" (paralisar inimigos).']
-    },
-    description: 'Medusas são temidas por sua aparência e poderes, mas muitas buscam integrar-se à sociedade como artistas ou espiãs.'
-  },
-  {
-    id: 'kliren',
-    slug: 'kliren',
-    name: 'Kliren',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Híbridos de humanos e gnomos, obcecados por tecnologia e lógica.',
-    iconName: 'Zap',
-    attributeModifiers: [
-      { attribute: 'Inteligência', value: 2 },
-      { attribute: 'Destreza', value: 1 },
-      { attribute: 'Força', value: -1 }
-    ],
-    racialAbilities: [
-      {
-        name: 'Engenhosidade',
-        description: 'Você recebe +2 em testes de Ofício e pode usar Inteligência em vez de Carisma para testes de Diplomacia.'
-      },
-      {
-        name: 'Mente Lógica',
-        description: 'Você recebe +2 em testes de Vontade contra ilusões e encantamentos.'
-      },
-      {
-        name: 'Ossos Frágeis',
-        description: 'Você sofre –2 em testes de Fortitude e Atletismo.'
-      },
-      {
-        name: 'Vanguardista',
-        description: 'Você recebe um poder de Inventor ou uma perícia de Ofício adicional.'
-      }
-    ],
-    playstyle: [
-      'Os melhores Inventores do sistema.',
-      'Personagens focados em perícias técnicas e intelecto.'
-    ],
-    synergies: {
-      classes: ['Inventor', 'Arcanista'],
-      builds: ['Builds de criação de itens e suporte tecnológico.']
-    },
-    description: 'Kliren são nativos de ordens tecnológicas ou cidades avançadas, sempre buscando a próxima grande descoberta.'
-  },
-  {
-    id: 'hynne',
-    slug: 'hynne',
-    name: 'Hynne',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Pequenos, ágeis e amantes da boa vida, famosos por sua pontaria.',
-    iconName: 'Zap',
-    attributeModifiers: [
-      { attribute: 'Destreza', value: 2 },
-      { attribute: 'Carisma', value: 1 },
-      { attribute: 'Força', value: -1 }
-    ],
-    racialAbilities: [
-      {
-        name: 'Arremessador',
-        description: 'Você recebe +2 em testes de ataque com armas de arremesso e fundas. O dano dessas armas aumenta em um passo.'
-      },
-      {
-        name: 'Pequeno e Ágil',
-        description: 'Você recebe +2 em Defesa e +5 em Furtividade.'
-      },
-      {
-        name: 'Sorte de Hynne',
-        description: 'Você pode gastar 1 PM para rolar novamente um teste de perícia recém-feito.'
-      },
-      {
-        name: 'Tamanho Pequeno',
-        description: 'Você recebe +2 em Furtividade e –2 em testes de manobra.'
-      }
-    ],
-    playstyle: [
-      'Especialistas em armas de arremesso.',
-      'Ladinos extremamente difíceis de detectar.'
-    ],
-    synergies: {
-      classes: ['Ladino', 'Caçador', 'Bardo'],
-      builds: ['Builds de arremesso de facas ou fundas.']
-    },
-    description: 'Hynne são conhecidos por sua hospitalidade, pés peludos e uma sorte sobrenatural que os tira de enrascadas.'
-  },
-  {
-    id: 'golem',
-    slug: 'golem',
-    name: 'Golem',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Constructos animados por magia, resistentes e incansáveis.',
-    iconName: 'Shield',
-    attributeModifiers: [
-      { attribute: 'Força', value: 2 },
-      { attribute: 'Constituição', value: 1 },
-      { attribute: 'Carisma', value: -1 }
-    ],
-    racialAbilities: [
-      {
-        name: 'Canalizar Energia',
-        description: 'Você possui um núcleo elemental (escolha um tipo de dano). Você recebe resistência 10 a esse tipo e recupera PV se for atingido por ele.'
-      },
-      {
-        name: 'Chassi',
-        description: 'Você recebe +2 na Defesa, mas não pode usar armaduras.'
-      },
-      {
-        name: 'Natureza Artificial',
-        description: 'Você é um constructo. Não precisa comer, dormir ou respirar. É imune a efeitos de cansaço, venenos e doenças.'
-      },
-      {
-        name: 'Sem Cura Natural',
-        description: 'Você não recupera PV por descanso e magias de cura não funcionam. Deve ser reparado com Ofício (artesão) ou magias de conserto.'
-      }
-    ],
-    playstyle: [
-      'Tanques puros com imunidades críticas.',
-      'Combatentes que ignoram necessidades biológicas.'
-    ],
-    synergies: {
-      classes: ['Guerreiro', 'Cavaleiro', 'Lutador'],
-      builds: ['Builds de alta resistência elemental e física.']
-    },
-    description: 'Golems são estátuas ou armaduras animadas por núcleos mágicos, servindo como guardiões ou buscando sua própria identidade.'
+    description: 'Trogloditas fortes e resilientes, acostumados ao subterrâneo, que encontram na vida de aventuras uma oportunidade de superar os preconceitos da superfície.'
   }
 ];

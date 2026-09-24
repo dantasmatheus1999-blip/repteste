@@ -66,6 +66,8 @@ import { ImmersiveRPGPage } from './pages/ImmersiveRPGPage';
 import { GrimoireCentralPage } from './pages/GrimoireCentralPage';
 import { NewMasterPage } from './pages/master/NewMasterPage';
 import { NewPlayerPage } from './pages/jogador/NewPlayerPage';
+import { ThreeDModelTestPage } from './pages/test/ThreeDModelTestPage';
+import { MakeHumanTestPage } from './pages/test/MakeHumanTestPage';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -278,6 +280,9 @@ export default function App() {
                 {/* Public Routes */}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/test/3d" element={<ThreeDModelTestPage />} />
+                <Route path="/teste-3d" element={<ThreeDModelTestPage />} />
+                <Route path="/test/makehuman" element={<MakeHumanTestPage />} />
                 <Route path="/join/:inviteCode" element={<AppLayout><GameInvitePage /></AppLayout>} />
                 <Route path="/campaigns/:campaignId/games/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
                 <Route path="/mesa/:campaignId/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />

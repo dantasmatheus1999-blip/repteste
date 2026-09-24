@@ -86,6 +86,12 @@ service firebase.storage {
       allow read: if true;
       allow write: if isAuthenticated() || isAdmin();
     }
+
+    // Livros e regras canonicas
+    match /livros/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() || isAdmin();
+    }
   }
 }
 

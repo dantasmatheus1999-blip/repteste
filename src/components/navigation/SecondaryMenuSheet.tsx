@@ -16,7 +16,8 @@ import {
   User as UserIcon,
   ChevronRight,
   Shield,
-  BookOpen
+  BookOpen,
+  Box
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../context/ProfileContext';
@@ -87,6 +88,13 @@ export const SecondaryMenuSheet: React.FC<SecondaryMenuSheetProps> = ({
       icon: Plus,
       path: '/master/campaigns/new',
       color: 'text-emerald-400'
+    },
+    {
+      label: 'Teste 3D',
+      description: 'Validação e visualização de modelos 3D',
+      icon: Box,
+      path: '/test/3d',
+      color: 'text-amber-400'
     }
   ];
 
@@ -119,6 +127,13 @@ export const SecondaryMenuSheet: React.FC<SecondaryMenuSheetProps> = ({
       icon: Shield,
       path: '/codex/classes',
       color: 'text-amber-300'
+    },
+    {
+      label: 'Teste 3D',
+      description: 'Validação e visualização de modelos 3D',
+      icon: Box,
+      path: '/test/3d',
+      color: 'text-amber-400'
     }
   ];
 

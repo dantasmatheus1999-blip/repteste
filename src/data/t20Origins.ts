@@ -7,398 +7,37 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Acólito',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você foi criado em um templo, servindo a uma divindade.',
-    startingItems: ['Símbolo sagrado', 'Traje de Sacerdote'],
+    summary: 'Neste mundo agraciado com tantos deuses e igrejas, você ingressou cedo em uma ordem religiosa.',
+    startingItems: ['Símbolo sagrado', 'Traje de sacerdote'],
     skills: ['Cura', 'Religião', 'Vontade'],
-    availablePowers: ['Medicina', 'Membro da Igreja', 'Vontade de Ferro', 'Presente de Wynlla'],
+    availablePowers: ['Medicina', 'Membro da Igreja', 'Vontade de Ferro'],
     originPowers: [
       {
         name: 'Membro da Igreja',
         description: 'Você consegue hospedagem confortável e informação em qualquer templo de sua divindade, para você e seus aliados.'
       }
     ],
-    description: 'Você passou sua vida servindo a um templo e agora busca levar a palavra de sua divindade para o mundo.',
-    iconName: 'Sun'
+    description: 'Você passou boa parte de sua vida em um templo, monastério ou santuário, aprendendo as escrituras sagradas e prestando auxílio aos fiéis e sacerdotes.',
+    iconName: 'Sparkles'
   },
   {
-    id: 'artesao',
-    slug: 'artesao',
-    name: 'Artesão',
+    id: 'amigo-dos-animais',
+    slug: 'amigo-dos-animais',
+    name: 'Amigo dos Animais',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você ganha a vida fabricando itens úteis ou belos.',
-    startingItems: ['Ferramentas de artesão (um ofício)', 'Item de sua fabricação (até T$ 50)'],
-    skills: ['Ofício', 'Vontade'],
-    availablePowers: ['Foco em Perícia (Ofício)', 'Mestre Artesão', 'Sortudo'],
-    originPowers: [
-      {
-        name: 'Frutos do Trabalho',
-        description: 'Você pode usar a perícia Ofício para sustento com o dobro do valor normal.'
-      }
-    ],
-    description: 'Sua vida foi dedicada à maestria de um ofício, transformando matéria-prima em obras de utilidade ou arte.',
-    iconName: 'Hammer'
-  },
-  {
-    id: 'artista',
-    slug: 'artista',
-    name: 'Artista',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Sua arte é sua vida e sua forma de se expressar.',
-    startingItems: ['Instrumento musical ou kit de disfarce', 'Traje de artista'],
-    skills: ['Atuação', 'Enganação'],
-    availablePowers: ['Aparência Inofensiva', 'Atraente', 'Torcida'],
-    originPowers: [
-      {
-        name: 'Fama',
-        description: 'Você é conhecido em sua região. Pode conseguir hospedagem e refeições de graça em troca de uma apresentação.'
-      }
-    ],
-    description: 'Seja através da música, dança ou atuação, você cativa multidões e vive sob os holofotes.',
-    iconName: 'Music'
-  },
-  {
-    id: 'assistente-de-laboratorio',
-    slug: 'assistente-de-laboratorio',
-    name: 'Assistente de Laboratório',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você auxiliou um mestre em experimentos arcanos ou alquímicos.',
-    startingItems: ['Aparato de laboratório', 'Traje de viajante'],
-    skills: ['Misticismo', 'Ofício (alquimia)'],
-    availablePowers: ['Foco em Perícia', 'Vontade de Ferro', 'Estudioso'],
-    originPowers: [
-      {
-        name: 'Esse Cheiro...',
-        description: 'Você recebe +2 em testes de Fortitude e resistência a veneno 5.'
-      }
-    ],
-    description: 'Anos limpando frascos e anotando resultados de experimentos deram a você um conhecimento prático incomum.',
-    iconName: 'FlaskConical'
-  },
-  {
-    id: 'batedor',
-    slug: 'batedor',
-    name: 'Batedor',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você serviu como explorador ou guia em regiões selvagens.',
-    startingItems: ['Barraca', 'Corda', 'Traje de viajante'],
-    skills: ['Adestramento', 'Furtividade', 'Percepção', 'Sobrevivência'],
-    availablePowers: ['Lutar Acuado', 'Sentidos Aguçados', 'Rastreador'],
-    originPowers: [
-      {
-        name: 'À Prova de Tudo',
-        description: 'Você não sofre penalidade em deslocamento por terreno difícil e recebe +2 em testes de Sobrevivência.'
-      }
-    ],
-    description: 'As fronteiras do mundo civilizado são seu lar, e você conhece os segredos da natureza como poucos.',
-    iconName: 'Compass'
-  },
-  {
-    id: 'campones',
-    slug: 'campones',
-    name: 'Camponês',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você trabalhou na terra, vivendo uma vida simples e dura.',
-    startingItems: ['Ferramenta agrícola (arma improvisada)', 'Animal de fazenda (galinha, porco, etc.)'],
-    skills: ['Adestramento', 'Sobrevivência'],
-    availablePowers: ['Fortitude Maior', 'Vontade de Ferro', 'Pé no Chão'],
-    originPowers: [
-      {
-        name: 'Cultura Popular',
-        description: 'Você pode usar Sabedoria em vez de Inteligência para testes de Conhecimento e Nobreza.'
-      }
-    ],
-    description: 'A lida no campo forjou seu corpo e sua mente para a resiliência e a paciência.',
-    iconName: 'Sprout'
-  },
-  {
-    id: 'charlatao',
-    slug: 'charlatao',
-    name: 'Charlatão',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você vive de enganar os outros com truques e lábia.',
-    startingItems: ['Kit de disfarce', 'Baralho ou dados viciados'],
-    skills: ['Enganação', 'Jogatina'],
-    availablePowers: ['Aparência Inofensiva', 'Atraente', 'Impostor'],
-    originPowers: [
-      {
-        name: 'Lábia',
-        description: 'Você pode usar Enganação para criar uma distração como uma ação de movimento (em vez de padrão).'
-      }
-    ],
-    description: 'A verdade é relativa para você, e uma boa história vale mais do que qualquer moeda de ouro.',
-    iconName: 'Theater'
-  },
-  {
-    id: 'criminoso',
-    slug: 'criminoso',
-    name: 'Criminoso',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você viveu fora da lei, seja por necessidade ou escolha.',
-    startingItems: ['Kit de ladrão', 'Traje de viajante'],
-    skills: ['Enganação', 'Furtividade', 'Ladinagem'],
-    availablePowers: ['Pivete', 'Sutileza', 'Veneno Potente'],
-    originPowers: [
-      {
-        name: 'Contatos no Submundo',
-        description: 'Você sabe onde encontrar mercados negros e pode conseguir informações sobre crimes em qualquer cidade.'
-      }
-    ],
-    description: 'As sombras das vielas foram sua escola, e a lei é apenas um obstáculo a ser contornado.',
-    iconName: 'Skull'
-  },
-  {
-    id: 'curandeiro',
-    slug: 'curandeiro',
-    name: 'Curandeiro',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você dedica sua vida a aliviar o sofrimento alheio.',
-    startingItems: ['Bálsamo restaurador', 'Kit de medicamentos'],
-    skills: ['Cura', 'Vontade'],
-    availablePowers: ['Medicina', 'Vontade de Ferro', 'Médico de Campo'],
-    originPowers: [
-      {
-        name: 'Mãos de Cura',
-        description: 'Você soma seu bônus de Sabedoria aos PV restaurados por seus cuidados médicos.'
-      }
-    ],
-    description: 'Onde há dor, você leva alívio. Seu conhecimento de ervas e anatomia salvou muitas vidas.',
-    iconName: 'HeartPulse'
-  },
-  {
-    id: 'eremita',
-    slug: 'eremita',
-    name: 'Eremita',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você viveu isolado do mundo, buscando autoconhecimento ou paz.',
-    startingItems: ['Cajado', 'Traje de viajante'],
-    skills: ['Misticismo', 'Religião', 'Sobrevivência'],
-    availablePowers: ['Foco em Perícia', 'Vontade de Ferro', 'Lobo Solitário'],
-    originPowers: [
-      {
-        name: 'Busca Interior',
-        description: 'Você recebe +2 em testes de Vontade e pode meditar para recuperar PM em metade do tempo.'
-      }
-    ],
-    description: 'O silêncio das montanhas ou das florestas profundas revelou segredos que a civilização esqueceu.',
-    iconName: 'Mountain'
-  },
-  {
-    id: 'estudioso',
-    slug: 'estudioso',
-    name: 'Estudioso',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você passou anos em bibliotecas e academias.',
-    startingItems: ['Livro de estudos', 'Tinta e pena'],
-    skills: ['Conhecimento', 'Misticismo', 'Nobreza'],
-    availablePowers: ['Foco em Perícia', 'Vontade de Ferro', 'Palpite'],
-    originPowers: [
-      {
-        name: 'Biblioteca Ambulante',
-        description: 'Você pode fazer testes de Conhecimento como se fosse treinado, mesmo que não seja.'
-      }
-    ],
-    description: 'O conhecimento é a arma mais poderosa, e você acumulou uma vasta quantidade dele ao longo dos anos.',
-    iconName: 'BookOpen'
-  },
-  {
-    id: 'gladiador',
-    slug: 'gladiador',
-    name: 'Gladiador',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você lutou em arenas para o entretenimento das massas.',
-    startingItems: ['Arma marcial', 'Escudo leve ou rede'],
-    skills: ['Adestramento', 'Atletismo', 'Luta'],
-    availablePowers: ['Atraente', 'Torcida', 'Pão e Circo'],
-    originPowers: [
-      {
-        name: 'Sangue e Glória',
-        description: 'Quando você derrota um inimigo, recebe +1 em testes de ataque e Defesa até o fim da cena.'
-      }
-    ],
-    description: 'A arena foi seu berço e seu campo de provas. Você sabe como lutar e como dar um show.',
-    iconName: 'Swords'
-  },
-  {
-    id: 'guarda',
-    slug: 'guarda',
-    name: 'Guarda',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você serviu na milícia ou guarda de uma cidade.',
-    startingItems: ['Arma marcial', 'Insígnia da guarda'],
-    skills: ['Investigação', 'Luta', 'Percepção'],
-    availablePowers: ['Investigador', 'Sentidos Aguçados', 'Detetive'],
-    originPowers: [
-      {
-        name: 'Olho Vigilante',
-        description: 'Você recebe +2 em testes de Percepção e Iniciativa.'
-      }
-    ],
-    description: 'Manter a ordem e proteger os cidadãos foi seu dever. Você tem um olho treinado para problemas.',
-    iconName: 'Shield'
-  },
-  {
-    id: 'herdeiro',
-    slug: 'herdeiro',
-    name: 'Herdeiro',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você nasceu em uma família influente ou rica.',
-    startingItems: ['Item de família (até T$ 200)', 'Traje de luxo'],
-    skills: ['Nobreza', 'Adestramento'],
-    availablePowers: ['Comandar', 'Riqueza', 'Herança'],
-    originPowers: [
-      {
-        name: 'Nome de Família',
-        description: 'Você recebe +2 em testes de Diplomacia e Nobreza ao lidar com pessoas de sua região.'
-      }
-    ],
-    description: 'Privilégio e responsabilidade caminham juntos em sua linhagem. Você tem recursos que outros apenas sonham.',
-    iconName: 'Crown'
-  },
-  {
-    id: 'marinheiro',
-    slug: 'marinheiro',
-    name: 'Marinheiro',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'O mar é seu lar e os navios sua paixão.',
-    startingItems: ['Corda', 'Traje de marinheiro'],
-    skills: ['Atletismo', 'Ofício (marinheiro)', 'Pilotagem'],
-    availablePowers: ['Equilíbrio de Combate', 'Natação', 'Lobo do Mar'],
-    originPowers: [
-      {
-        name: 'Passos Firmes',
-        description: 'Você não sofre penalidade em deslocamento por balanço de navio ou superfícies instáveis.'
-      }
-    ],
-    description: 'Ventos salgados e o balanço das ondas são tudo o que você precisa para se sentir vivo.',
-    iconName: 'Anchor'
-  },
-  {
-    id: 'mercador',
-    slug: 'mercador',
-    name: 'Mercador',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você vive de comprar barato e vender caro.',
-    startingItems: ['Carroça ou cavalo', 'Mercadorias (T$ 100)'],
-    skills: ['Diplomacia', 'Mercado'],
-    availablePowers: ['Negociação', 'Riqueza', 'Mestre Mercador'],
-    originPowers: [
-      {
-        name: 'Bom Negócio',
-        description: 'Você pode comprar itens com 10% de desconto e vender itens por 10% a mais do valor normal.'
-      }
-    ],
-    description: 'Tudo tem um preço, e você sabe exatamente qual é. Sua lábia é sua ferramenta de trabalho.',
-    iconName: 'Coins'
-  },
-  {
-    id: 'minerador',
-    slug: 'minerador',
-    name: 'Minerador',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você trabalhou nas profundezas, extraindo riquezas da terra.',
-    startingItems: ['Picareta', 'Lanterna'],
-    skills: ['Atletismo', 'Fortitude'],
-    availablePowers: ['Fortitude Maior', 'Vigoroso', 'Sentido de Direção'],
-    originPowers: [
-      {
-        name: 'Visão na Penumbra',
-        description: 'Você enxerga duas vezes mais longe em condições de pouca luz.'
-      }
-    ],
-    description: 'A escuridão das minas e o peso das rochas forjaram sua resistência física.',
-    iconName: 'Pickaxe'
-  },
-  {
-    id: 'nomade',
-    slug: 'nomade',
-    name: 'Nômade',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você nunca teve um lar fixo, sempre em movimento.',
-    startingItems: ['Cavalo ou camelo', 'Traje de viajante'],
-    skills: ['Sobrevivência', 'Pilotagem'],
-    availablePowers: ['Sentido de Direção', 'Rastreador', 'Viajante'],
-    originPowers: [
-      {
-        name: 'Mochileiro',
-        description: 'Sua carga máxima aumenta em +2 e você recebe +2 em testes de Sobrevivência para encontrar comida.'
-      }
-    ],
-    description: 'O horizonte é seu único limite. Você aprendeu a se adaptar a qualquer lugar e a qualquer clima.',
-    iconName: 'Map'
-  },
-  {
-    id: 'selvagem',
-    slug: 'selvagem',
-    name: 'Selvagem',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você cresceu longe da civilização, em harmonia com a natureza.',
-    startingItems: ['Arma simples de madeira', 'Traje de peles'],
-    skills: ['Adestramento', 'Percepção', 'Sobrevivência'],
-    availablePowers: ['Sentidos Aguçados', 'Vida na Selva', 'Instinto Primitivo'],
-    originPowers: [
-      {
-        name: 'Vigiar a Natureza',
-        description: 'Você recebe +2 em testes de Percepção e Sobrevivência em ambientes naturais.'
-      }
-    ],
-    description: 'As leis dos homens não significam nada para você. Você segue os instintos e as leis da floresta.',
-    iconName: 'Trees'
-  },
-  {
-    id: 'soldado',
-    slug: 'soldado',
-    name: 'Soldado',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você serviu em um exército ou companhia mercenária.',
-    startingItems: ['Arma marcial', 'Escudo pesado ou armadura leve'],
-    skills: ['Fortitude', 'Guerra', 'Luta'],
-    availablePowers: ['Combate Montado', 'Tiro Certeiro', 'Veterano'],
-    originPowers: [
-      {
-        name: 'Disciplina Militar',
-        description: 'Você recebe +2 em testes de Iniciativa e Fortitude.'
-      }
-    ],
-    description: 'Marchas longas e o som das trombetas de guerra são sua realidade. Você sabe o valor da disciplina.',
-    iconName: 'Sword'
-  },
-  {
-    id: 'amigos-dos-animais',
-    slug: 'amigos-dos-animais',
-    name: 'Amigos dos Animais',
-    system: 'Tormenta 20',
-    edition: 'Jogo do Ano',
-    summary: 'Você cresceu cercado por animais e aprendeu a entendê-los.',
-    startingItems: ['Cão de guarda ou cavalo', 'Traje de viajante'],
+    summary: 'Desde criança você tem facilidade em lidar com animais, sempre conversou com eles e sentiu ser capaz de compreendê-los.',
+    startingItems: ['Cão de caça, cavalo, pônei ou trobo (escolha um)'],
     skills: ['Adestramento', 'Cavalgar'],
-    availablePowers: ['Amigo Especial', 'Cavaleiro Fiel', 'Ginete'],
+    availablePowers: ['Amigo Especial'],
     originPowers: [
       {
-        name: 'Voz dos Bichos',
-        description: 'Você pode falar com animais (como se estivesse sob efeito da magia Falar com Animais).'
+        name: 'Amigo Especial',
+        description: 'Você recebe +5 em testes de Adestramento com animais. Além disso, possui um animal de estimação que o auxilia e o acompanha em suas aventuras. Em termos de jogo, é um parceiro que fornece +2 em uma perícia a sua escolha (exceto Luta ou Pontaria e aprovada pelo mestre) e não conta em seu limite de parceiros.'
       }
     ],
-    description: 'Sua conexão com o mundo animal é mais forte do que com as pessoas. Eles são seus amigos mais leais.',
-    iconName: 'PawPrint'
+    description: 'Você sempre se deu melhor com bichos do que com pessoas. Compreende os instintos naturais e encontra companheirismo fiel nos animais de Arton.',
+    iconName: 'Heart'
   },
   {
     id: 'amnesico',
@@ -406,17 +45,17 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Amnésico',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você não se lembra de quem era, mas suas habilidades permanecem.',
-    startingItems: ['Nenhum'],
-    skills: ['Duas perícias quaisquer'],
-    availablePowers: ['Dois poderes gerais quaisquer'],
+    summary: 'Você perdeu a maior parte da memória. Sabe apenas o próprio nome ou nem isso.',
+    startingItems: ['Um ou mais itens (somando até T$ 500) aprovados pelo mestre'],
+    skills: ['Uma perícia escolhida pelo mestre'],
+    availablePowers: ['Um poder escolhido pelo mestre', 'Lembranças Graduais'],
     originPowers: [
       {
-        name: 'Lembranças Perdidas',
-        description: 'Uma vez por cena, você pode fazer um teste de uma perícia não treinada como se fosse treinado.'
+        name: 'Lembranças Graduais',
+        description: 'Durante suas aventuras, em determinados momentos a critério do mestre, você pode fazer um teste de Sabedoria (CD 10) para reconhecer pessoas, criaturas ou lugares que tenha encontrado antes de perder a memória.'
       }
     ],
-    description: 'O passado é um borrão, mas seu corpo e mente ainda guardam os reflexos de uma vida esquecida.',
+    description: 'Você acordou sem saber quem era, onde estava ou por que possui dons extraordinários. Cada aventura revela pistas sobre seu verdadeiro passado.',
     iconName: 'HelpCircle'
   },
   {
@@ -425,18 +64,94 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Aristocrata',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você nasceu em berço de ouro e foi educado para liderar.',
-    startingItems: ['Traje de luxo', 'Joia de família (T$ 100)'],
-    skills: ['Diplomacia', 'Nobreza'],
-    availablePowers: ['Comandar', 'Riqueza', 'Sangue Azul'],
+    summary: 'Você nasceu na nobreza e recebeu educação sofisticada em assuntos acadêmicos, política mercantil ou corte.',
+    startingItems: ['Joia de família no valor de T$ 300', 'Traje da corte'],
+    skills: ['Diplomacia', 'Enganação', 'Nobreza'],
+    availablePowers: ['Comandar', 'Sangue Azul'],
     originPowers: [
       {
         name: 'Sangue Azul',
-        description: 'Você recebe +2 em testes de Diplomacia e Nobreza.'
+        description: 'Você tem alguma influência política, suficiente para ser tratado com mais leniência pela guarda, conseguir uma audiência com o nobre local etc.'
       }
     ],
-    description: 'Etiqueta, política e linhagem são seu mundo. Você sabe como se comportar nas cortes mais exigentes.',
-    iconName: 'Gem'
+    description: 'Herdeiro de linhagem nobre, você aprendeu etiqueta, tática e oratória nos salões mais opulentos do Reinado.',
+    iconName: 'Crown'
+  },
+  {
+    id: 'artesao',
+    slug: 'artesao',
+    name: 'Artesão',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Treinado por um parente, mestre ou guilda para fabricar itens importantes no mundo civilizado.',
+    startingItems: ['Instrumentos de ofício (qualquer)', 'Um item que você possa fabricar de até T$ 50'],
+    skills: ['Ofício', 'Vontade'],
+    availablePowers: ['Frutos do Trabalho', 'Sortudo'],
+    originPowers: [
+      {
+        name: 'Frutos do Trabalho',
+        description: 'No início de cada aventura, você recebe até 5 itens gerais que possa fabricar num valor total de até T$ 50. Esse valor aumenta para T$ 100 no patamar aventureiro, T$ 300 no heroico e T$ 500 no lenda.'
+      }
+    ],
+    description: 'Você dedicou anos ao aprendizado de um ofício manual, dominando os segredos da manufatura de itens essenciais.',
+    iconName: 'Hammer'
+  },
+  {
+    id: 'artista',
+    slug: 'artista',
+    name: 'Artista',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você possui talento nato para entreter e produzir alimento para o coração e a alma.',
+    startingItems: ['Estojo de disfarces ou um instrumento musical a sua escolha'],
+    skills: ['Atuação', 'Enganação'],
+    availablePowers: ['Atraente', 'Dom Artístico', 'Sortudo', 'Torcida'],
+    originPowers: [
+      {
+        name: 'Dom Artístico',
+        description: 'Você recebe +2 em testes de Atuação, e recebe o dobro de tibares em apresentações.'
+      }
+    ],
+    description: 'Músico, ator, pintor ou bardo errante. Sua voz e seus dons expressivos atraem aplausos e favores por onde passa.',
+    iconName: 'Music'
+  },
+  {
+    id: 'assistente-de-laboratorio',
+    slug: 'assistente-de-laboratorio',
+    name: 'Assistente de Laboratório',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você atuou como ajudante para um alquimista, inventor ou mago, limpando o laboratório e recolhendo espécimes.',
+    startingItems: ['Instrumentos de Ofício (alquimista)'],
+    skills: ['Ofício (alquimista)', 'Misticismo'],
+    availablePowers: ['Esse Cheiro...', 'Venefício', 'Um poder da Tormenta a sua escolha'],
+    originPowers: [
+      {
+        name: 'Esse Cheiro...',
+        description: 'Você recebe +2 em Fortitude e detecta automaticamente a presença (mas não a localização ou natureza) de itens alquímicos em alcance curto.'
+      }
+    ],
+    description: 'Você sobreviveu a vapores cáusticos, pós mágicos e experimentos arriscados, desenvolvendo sentidos e resistências únicas.',
+    iconName: 'FlaskConical'
+  },
+  {
+    id: 'batedor',
+    slug: 'batedor',
+    name: 'Batedor',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Seja conduzindo caravanas ou rastreando inimigos, você aprendeu a achar caminhos e dirigir outros com segurança.',
+    startingItems: ['Barraca', 'Equipamento de viagem', 'Uma arma simples ou marcial de ataque à distância'],
+    skills: ['Furtividade', 'Percepção', 'Sobrevivência'],
+    availablePowers: ['À Prova de Tudo', 'Estilo de Disparo', 'Sentidos Aguçados'],
+    originPowers: [
+      {
+        name: 'À Prova de Tudo',
+        description: 'Você não sofre penalidade em deslocamento e Sobrevivência por clima ruim e por terreno difícil natural.'
+      }
+    ],
+    description: 'Especialista em patrulha avançada, cartografia de fronteiras e travessia segura de terrenos selvagens.',
+    iconName: 'Compass'
   },
   {
     id: 'capanga',
@@ -444,18 +159,37 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Capanga',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você trabalhou como braço direito de criminosos ou cobrador de dívidas.',
-    startingItems: ['Arma simples', 'Traje de viajante'],
-    skills: ['Intimidação', 'Luta'],
-    availablePowers: ['Assustar', 'Confundir', 'Intimidação'],
+    summary: 'Por ser grande, forte ou mal-encarado, você trabalhou como músculos para algum bandido ou guilda de ladrões.',
+    startingItems: ['Tatuagem ou outro adereço de sua gangue (+1 em Intimidação)', 'Uma arma simples corpo a corpo'],
+    skills: ['Luta', 'Intimidação'],
+    availablePowers: ['Confissão', 'Um poder de combate a sua escolha'],
     originPowers: [
       {
-        name: 'Confundir',
-        description: 'Você pode usar a perícia Intimidação para fintar em combate.'
+        name: 'Confissão',
+        description: 'Você pode usar Intimidação para interrogar sem custo e em uma hora (veja Investigação).'
       }
     ],
-    description: 'Sua presença é intimidadora e você sabe como usar a força para conseguir o que quer.',
-    iconName: 'Grip'
+    description: 'Trabalhou como guarda-costas de chefes do crime, cobrador de dívidas ou leão de chácara em tavernas perigosas.',
+    iconName: 'ShieldAlert'
+  },
+  {
+    id: 'charlatao',
+    slug: 'charlatao',
+    name: 'Charlatão',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você sempre teve talento para resolver problemas com conversa, sincera ou nem tanto.',
+    startingItems: ['Estojo de disfarces', 'Joia falsificada (valor aparente de T$ 100, sem valor real)'],
+    skills: ['Enganação', 'Jogatina'],
+    availablePowers: ['Alpinista Social', 'Aparência Inofensiva', 'Sortudo'],
+    originPowers: [
+      {
+        name: 'Alpinista Social',
+        description: 'Você pode substituir testes de Diplomacia por testes de Enganação.'
+      }
+    ],
+    description: 'Com lábia afiada e olhar atento às fraquezas alheias, você sobreviveu vendendo ilusões e promessas mirabolantes.',
+    iconName: 'Smile'
   },
   {
     id: 'circense',
@@ -463,18 +197,75 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Circense',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você viajou com uma trupe, encantando o público com suas proezas.',
-    startingItems: ['Traje de artista', 'Item de malabarismo'],
-    skills: ['Acrobacia', 'Atuação'],
-    availablePowers: ['Acrobático', 'Atraente', 'Torcida'],
+    summary: 'Você treinou acrobacia, malabarismo, mágica ou outra forma de arte de espetáculo sob a lona.',
+    startingItems: ['Três bolas coloridas para malabarismo (+1 em Atuação)'],
+    skills: ['Acrobacia', 'Atuação', 'Reflexos'],
+    availablePowers: ['Acrobático', 'Torcida', 'Truque de Mágica'],
     originPowers: [
       {
-        name: 'Truque de Mestre',
-        description: 'Você recebe +2 em testes de Acrobacia e Atuação.'
+        name: 'Truque de Mágica',
+        description: 'Você pode lançar Explosão de Chamas, Hipnotismo e Queda Suave, mas apenas com o aprimoramento Truque. Esta não é uma habilidade mágica — os efeitos provêm de prestidigitação.'
       }
     ],
-    description: 'A vida sob a lona ensinou a você agilidade e o valor de um bom espetáculo.',
-    iconName: 'Tent'
+    description: 'Viajou por vilas e cidades encantando multidões com números arriscados, piruetas e truques manuais.',
+    iconName: 'Flame'
+  },
+  {
+    id: 'criminoso',
+    slug: 'criminoso',
+    name: 'Criminoso',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Por necessidade, ambição ou costume, você foi um bandido durante boa parte da juventude.',
+    startingItems: ['Estojo de disfarces ou gazua'],
+    skills: ['Enganação', 'Furtividade', 'Ladinagem'],
+    availablePowers: ['Punguista', 'Venefício'],
+    originPowers: [
+      {
+        name: 'Punguista',
+        description: 'Você pode fazer testes de Ladinagem para sustento (como a perícia Ofício), mas em apenas um dia. Se passar, recebe o dobro do dinheiro, mas, se falhar, pode ter problemas com a lei (a critério do mestre).'
+      }
+    ],
+    description: 'Criado nos becos escuros das grandes cidades, você aprendeu a viver à margem da lei sem ser capturado.',
+    iconName: 'Key'
+  },
+  {
+    id: 'curandeiro',
+    slug: 'curandeiro',
+    name: 'Curandeiro',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você é treinado em curar com remédios, bálsamos e tratamentos naturais sem precisar de magia divina.',
+    startingItems: ['Bálsamo restaurador x2', 'Maleta de medicamentos'],
+    skills: ['Cura', 'Vontade'],
+    availablePowers: ['Medicina', 'Médico de Campo', 'Venefício'],
+    originPowers: [
+      {
+        name: 'Médico de Campo',
+        description: 'Você soma sua Sabedoria aos PV restaurados por suas habilidades e itens mundanos de cura.'
+      }
+    ],
+    description: 'Médico rústico ou estudante do Colégio Real de Salistick, dedicou-se a aliviar o sofrimento dos feridos.',
+    iconName: 'Cross'
+  },
+  {
+    id: 'eremita',
+    slug: 'eremita',
+    name: 'Eremita',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você passou parte da vida isolado da sociedade, em comunhão com o silêncio e as forças místicas.',
+    startingItems: ['Barraca', 'Equipamento de viagem'],
+    skills: ['Misticismo', 'Religião', 'Sobrevivência'],
+    availablePowers: ['Busca Interior', 'Lobo Solitário'],
+    originPowers: [
+      {
+        name: 'Busca Interior',
+        description: 'Quando você e seus companheiros estão diante de um mistério, incapazes de prosseguir, você pode gastar 1 PM para meditar sozinho durante algum tempo e receber uma dica do mestre.'
+      }
+    ],
+    description: 'Você viveu em florestas esquecidas, cavernas ou montanhas inóspitas fortalecendo seu espírito longe da civilização.',
+    iconName: 'Mountain'
   },
   {
     id: 'escravo',
@@ -482,18 +273,37 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Escravo',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você viveu sob o jugo de outro, mas agora é livre.',
-    startingItems: ['Traje de escravo'],
-    skills: ['Atletismo', 'Fortitude'],
-    availablePowers: ['Fortitude Maior', 'Vontade de Ferro', 'Duro de Matar'],
+    summary: 'Você sobreviveu à opressão e ao cativeiro, jurando nunca mais permitir que tirem sua liberdade.',
+    startingItems: ['Algemas', 'Uma ferramenta pesada (mesmas estatísticas de uma maça)'],
+    skills: ['Atletismo', 'Fortitude', 'Furtividade'],
+    availablePowers: ['Desejo de Liberdade', 'Vitalidade'],
     originPowers: [
       {
         name: 'Desejo de Liberdade',
-        description: 'Você recebe +2 em testes de Vontade e Iniciativa.'
+        description: 'Ninguém voltará a torná-lo um escravo! Você recebe +5 em testes contra a manobra agarrar e efeitos de movimento.'
       }
     ],
-    description: 'As correntes foram quebradas, mas as cicatrizes — físicas ou mentais — permanecem como lembrete de sua força.',
-    iconName: 'Link'
+    description: 'Você suportou grilhões e trabalho forçado até conquistar sua liberdade, forjando uma resiliência inabalável.',
+    iconName: 'Shield'
+  },
+  {
+    id: 'estudioso',
+    slug: 'estudioso',
+    name: 'Estudioso',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Longos anos de sua vida foram gastos em meio a livros, pergaminhos e bibliotecas antigas.',
+    startingItems: ['Coleção de livros (+1 em Conhecimento, Guerra, Misticismo ou Nobreza, a sua escolha)'],
+    skills: ['Conhecimento', 'Guerra', 'Misticismo'],
+    availablePowers: ['Aparência Inofensiva', 'Palpite Fundamentado'],
+    originPowers: [
+      {
+        name: 'Palpite Fundamentado',
+        description: 'Você pode gastar 2 PM para substituir um teste de qualquer perícia originalmente baseada em Inteligência ou Sabedoria por um teste de Conhecimento.'
+      }
+    ],
+    description: 'Rato de biblioteca, devorou tomos sobre a história, a magia, a guerra e os mistérios de Arton.',
+    iconName: 'BookOpen'
   },
   {
     id: 'fazendeiro',
@@ -501,18 +311,18 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Fazendeiro',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você gerenciava terras e animais, provendo sustento para muitos.',
-    startingItems: ['Ferramenta agrícola', 'Animal de fazenda'],
-    skills: ['Adestramento', 'Ofício (fazendeiro)'],
-    availablePowers: ['Foco em Perícia', 'Vontade de Ferro', 'Água no Feijão'],
+    summary: 'Cultivando a terra ou criando animais, você viveu em contato com o ritmo das estações e o trabalho rural.',
+    startingItems: ['Carroça', 'Uma ferramenta agrícola (mesmas estatísticas de uma lança)', '10 rações de viagem', 'Um animal não combativo'],
+    skills: ['Adestramento', 'Cavalgar', 'Ofício', 'Sobrevivência'],
+    availablePowers: ['Água no Feijão', 'Ginete'],
     originPowers: [
       {
         name: 'Água no Feijão',
-        description: 'Você pode alimentar até o dobro de pessoas com uma mesma quantidade de comida.'
+        description: 'Você não sofre a penalidade de –5 e não gasta matéria prima adicional para fabricar pratos para cinco pessoas.'
       }
     ],
-    description: 'A terra é generosa para quem trabalha duro. Você conhece os ciclos da natureza e como tirar o melhor dela.',
-    iconName: 'Sprout'
+    description: 'Você conhece a terra, o manejo dos animais e a resiliência necessária para lidar com o clima e o trabalho pesado.',
+    iconName: 'Sun'
   },
   {
     id: 'forasteiro',
@@ -520,18 +330,75 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Forasteiro',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você veio de terras distantes e desconhecidas.',
-    startingItems: ['Traje de viajante', 'Mapa regional'],
-    skills: ['Conhecimento', 'Sobrevivência'],
-    availablePowers: ['Foco em Perícia', 'Sentido de Direção', 'Viajante'],
+    summary: 'Você veio de terras distantes além do Reinado, trazendo consigo costumes e visões de mundo exóticas.',
+    startingItems: ['Equipamento de viagem', 'Instrumento musical exótico (+1 em uma perícia de Carisma aprovada pelo mestre)', 'Traje estrangeiro'],
+    skills: ['Cavalgar', 'Pilotagem', 'Sobrevivência'],
+    availablePowers: ['Cultura Exótica', 'Lobo Solitário'],
     originPowers: [
       {
         name: 'Cultura Exótica',
-        description: 'Você recebe +2 em testes de Conhecimento e Diplomacia ao lidar com estrangeiros.'
+        description: 'Por sua diferente visão de mundo, você encontra soluções inesperadas. Você pode gastar 1 PM para fazer um teste de perícia somente treinada, mesmo sem ser treinado na perícia.'
       }
     ],
-    description: 'Seus costumes e sotaque são estranhos para os locais, mas sua visão de mundo é muito mais ampla.',
+    description: 'Vindo dos desertos, mares do sul ou arquipélagos remotos, você traz tradições incompreendidas pelos locais.',
     iconName: 'Globe'
+  },
+  {
+    id: 'gladiador',
+    slug: 'gladiador',
+    name: 'Gladiador',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você se envolveu no mundo dos torneios e arenas de combate, aprendendo a lutar diante de plateias.',
+    startingItems: ['Uma arma marcial ou exótica', 'Um item sem valor recebido de um admirador'],
+    skills: ['Atuação', 'Luta'],
+    availablePowers: ['Atraente', 'Pão e Circo', 'Torcida', 'Um poder de combate a sua escolha'],
+    originPowers: [
+      {
+        name: 'Pão e Circo',
+        description: 'Por seu treino em combates de exibição, você sabe “bater sem machucar”. Pode escolher causar dano não letal sem sofrer a penalidade de –5.'
+      }
+    ],
+    description: 'Lutador de arena treinado tanto na técnica marcial quanto no espetáculo dramático para entreter as arquibancadas.',
+    iconName: 'Swords'
+  },
+  {
+    id: 'guarda',
+    slug: 'guarda',
+    name: 'Guarda',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você atuou como agente da lei em uma vila ou cidade, patrulhando ruas e mantendo a ordem urbana.',
+    startingItems: ['Apito', 'Insígnia da milícia', 'Uma arma marcial'],
+    skills: ['Investigação', 'Luta', 'Percepção'],
+    availablePowers: ['Detetive', 'Investigador', 'Um poder de combate a sua escolha'],
+    originPowers: [
+      {
+        name: 'Detetive',
+        description: 'Você pode gastar 1 PM para substituir testes de Percepção e Intuição por testes de Investigação até o fim da cena.'
+      }
+    ],
+    description: 'Veterano das rondas da milícia urbana, você sabe como interrogar testemunhas e deter foras da lei.',
+    iconName: 'ShieldCheck'
+  },
+  {
+    id: 'herdeiro',
+    slug: 'herdeiro',
+    name: 'Herdeiro',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você pertence a uma linhagem tradicional ou aristocrática com grandes expectativas sobre seu futuro.',
+    startingItems: ['Um símbolo de sua herança, como um anel de sinete ou manto cerimonial'],
+    skills: ['Misticismo', 'Nobreza', 'Ofício'],
+    availablePowers: ['Comandar', 'Herança'],
+    originPowers: [
+      {
+        name: 'Herança',
+        description: 'Você herdou um item de preço de até T$ 1.000. Você pode escolher este poder duas vezes, para um item de até T$ 2.000.'
+      }
+    ],
+    description: 'Destinado a herdar bens, terras ou legados de seus antepassados, você carrega o peso e as regalias do nome de família.',
+    iconName: 'Gem'
   },
   {
     id: 'heroi-campones',
@@ -539,18 +406,18 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Herói Camponês',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você defendeu sua vila de uma ameaça e se tornou uma lenda local.',
-    startingItems: ['Arma simples', 'Traje de camponês'],
-    skills: ['Adestramento', 'Sobrevivência'],
-    availablePowers: ['Coração Heróico', 'Sortudo', 'Torcida'],
+    summary: 'Você empunhou ferramentas simples para defender seu vilarejo e se tornou o campeão do povo.',
+    startingItems: ['Instrumentos de ofício ou uma arma simples', 'Traje de plebeu'],
+    skills: ['Adestramento', 'Ofício'],
+    availablePowers: ['Coração Heroico', 'Sortudo', 'Surto Heroico', 'Torcida'],
     originPowers: [
       {
-        name: 'Coração Heróico',
-        description: 'Você recebe +2 pontos de vida e +1 ponto de mana.'
+        name: 'Coração Heroico',
+        description: 'Você recebe +3 pontos de mana. Quando atinge um novo patamar (no 5º, 11º e 17º níveis), recebe +3 PM.'
       }
     ],
-    description: 'A coragem não vem do sangue nobre, mas da vontade de proteger o que é certo.',
-    iconName: 'Star'
+    description: 'Defendeu seu povo contra monstros ou bandoleiros, tornando-se o símbolo vivo de esperança para os humildes.',
+    iconName: 'Award'
   },
   {
     id: 'marujo',
@@ -558,18 +425,18 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Marujo',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você serviu em navios, enfrentando tempestades e monstros marinhos.',
-    startingItems: ['Corda', 'Traje de marinheiro'],
-    skills: ['Atletismo', 'Pilotagem'],
-    availablePowers: ['Equilíbrio de Combate', 'Natação', 'Lobo do Mar'],
+    summary: 'Você foi tripulante em uma embarcação que singrou os mares bravios ou rios de Arton.',
+    startingItems: ['T$ 2d6 (seu último salário)', 'Corda'],
+    skills: ['Atletismo', 'Jogatina', 'Pilotagem'],
+    availablePowers: ['Acrobático', 'Passagem de Navio'],
     originPowers: [
       {
-        name: 'Lobo do Mar',
-        description: 'Você recebe +2 em testes de Atletismo e Pilotagem.'
+        name: 'Passagem de Navio',
+        description: 'Você consegue transporte marítimo para você e seus aliados, sem custos, desde que todos paguem com trabalho (passar em pelo menos um teste de perícia adequado durante a viagem).'
       }
     ],
-    description: 'O mar salgado corre em suas veias. Você se sente mais em casa no convés de um navio do que em terra firme.',
-    iconName: 'Ship'
+    description: 'Sua juventude foi forjada entre cordames, conveses balançantes sob tempestades e portos cheios de piratas.',
+    iconName: 'Anchor'
   },
   {
     id: 'mateiro',
@@ -577,18 +444,18 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Mateiro',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você vive nas matas, caçando e rastreando.',
-    startingItems: ['Arco curto', 'Traje de viajante'],
-    skills: ['Furtividade', 'Sobrevivência'],
-    availablePowers: ['Caminho do Caçador', 'Sentidos Aguçados', 'Rastreador'],
+    summary: 'Você aprendeu a abater animais selvagens para colocar comida na mesa e sobreviveu dos recursos da mata.',
+    startingItems: ['Arco curto', 'Barraca', 'Equipamento de viagem', '20 flechas'],
+    skills: ['Atletismo', 'Furtividade', 'Sobrevivência'],
+    availablePowers: ['Lobo Solitário', 'Sentidos Aguçados', 'Vendedor de Carcaças'],
     originPowers: [
       {
-        name: 'Caminho do Caçador',
-        description: 'Você não sofre penalidade em deslocamento por terreno difícil.'
+        name: 'Vendedor de Carcaças',
+        description: 'Você pode extrair recursos de criaturas em um minuto, em vez de uma hora, e recebe +5 no teste.'
       }
     ],
-    description: 'As florestas não têm segredos para você. Você se move como uma sombra entre as árvores.',
-    iconName: 'Axe'
+    description: 'Rastreador e caçador florestal que conhece cada trilha, esconderijo e toca da mata.',
+    iconName: 'Trees'
   },
   {
     id: 'membro-de-guilda',
@@ -596,18 +463,75 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Membro de Guilda',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você faz parte de uma organização comercial ou profissional.',
-    startingItems: ['Símbolo da guilda', 'Traje de viajante'],
-    skills: ['Ofício', 'Diplomacia'],
-    availablePowers: ['Foco em Perícia', 'Negociação', 'Rede de Contatos'],
+    summary: 'Você foi ou é membro atuante em uma grande guilda mercantil, de artesãos ou de aventureiros.',
+    startingItems: ['Gazua ou instrumentos de ofício'],
+    skills: ['Diplomacia', 'Enganação', 'Misticismo', 'Ofício'],
+    availablePowers: ['Foco em Perícia', 'Rede de Contatos'],
     originPowers: [
       {
         name: 'Rede de Contatos',
-        description: 'Você pode conseguir informações e itens com facilidade em cidades onde sua guilda atua.'
+        description: 'Graças à influência de sua guilda, você pode usar Diplomacia para interrogar sem custo e em uma hora (veja Investigação).'
       }
     ],
-    description: 'A união faz a força. Você tem o apoio de uma rede de profissionais que podem ajudar em sua jornada.',
-    iconName: 'Key'
+    description: 'Apoiado pelos acordos e contatos de uma influente corporação de ofício ou comércio.',
+    iconName: 'Users'
+  },
+  {
+    id: 'mercador',
+    slug: 'mercador',
+    name: 'Mercador',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Comerciante experiente que aprendeu a negociar caravanas e mercadorias nos grandes bazares.',
+    startingItems: ['Carroça', 'Trobo', 'Mercadorias para vender no valor de T$ 100'],
+    skills: ['Diplomacia', 'Intuição', 'Ofício'],
+    availablePowers: ['Negociação', 'Proficiência', 'Sortudo'],
+    originPowers: [
+      {
+        name: 'Negociação',
+        description: 'Você pode vender itens 10% mais caro (não cumulativo com barganha).'
+      }
+    ],
+    description: 'Viajou pelos mercados e feiras de Arton acumulando lucros e negociando itens de toda sorte.',
+    iconName: 'Coins'
+  },
+  {
+    id: 'minerador',
+    slug: 'minerador',
+    name: 'Minerador',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você mergulhou nas profundezas da terra extraindo metais preciosos e gemas reluzentes.',
+    startingItems: ['Gemas preciosas no valor de T$ 100', 'Picareta'],
+    skills: ['Atletismo', 'Fortitude', 'Ofício (minerador)'],
+    availablePowers: ['Ataque Poderoso', 'Escavador', 'Sentidos Aguçados'],
+    originPowers: [
+      {
+        name: 'Escavador',
+        description: 'Você se torna proficiente em picaretas, causa +1 de dano com elas e não é afetado por terreno difícil em masmorras e subterrâneos.'
+      }
+    ],
+    description: 'Braços fortes forjados no pó das galerias de mineração, acostumado à escuridão subterrânea.',
+    iconName: 'Pickaxe'
+  },
+  {
+    id: 'nomade',
+    slug: 'nomade',
+    name: 'Nômade',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Você nunca pertenceu a um só lugar, viajando constantemente sob o céu aberto.',
+    startingItems: ['Bordão', 'Equipamento de viagem'],
+    skills: ['Cavalgar', 'Pilotagem', 'Sobrevivência'],
+    availablePowers: ['Lobo Solitário', 'Mochileiro', 'Sentidos Aguçados'],
+    originPowers: [
+      {
+        name: 'Mochileiro',
+        description: 'Seu limite de carga aumenta em 5 espaços.'
+      }
+    ],
+    description: 'Seu lar são as estradas e os ermos, sem raízes ou fronteiras fixas.',
+    iconName: 'Compass'
   },
   {
     id: 'pivete',
@@ -615,18 +539,18 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Pivete',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você cresceu nas ruas, sobrevivendo por conta própria.',
-    startingItems: ['Roupa de mendigo', 'Faca'],
-    skills: ['Furtividade', 'Ladinagem'],
-    availablePowers: ['Aparência Inofensiva', 'Pivete', 'Sutileza'],
+    summary: 'Criança de rua que aprendeu cedo a sobreviver em grandes metrópoles pedindo ou roubando.',
+    startingItems: ['Gazua', 'Traje de plebeu', 'Um animal urbano (como um cão, gato, rato ou pombo)'],
+    skills: ['Furtividade', 'Iniciativa', 'Ladinagem'],
+    availablePowers: ['Acrobático', 'Aparência Inofensiva', 'Quebra-Galho'],
     originPowers: [
       {
-        name: 'Pivete',
-        description: 'Você recebe +2 em testes de Furtividade e Ladinagem.'
+        name: 'Quebra-Galho',
+        description: 'Em cidades ou metrópoles, você pode comprar qualquer item mundano não superior por metade do preço normal. Esses itens não podem ser matérias-primas e não podem ser revendidos (são velhos, sujos, furtados...).'
       }
     ],
-    description: 'As ruas foram sua escola. Você aprendeu cedo a ser rápido, silencioso e esperto.',
-    iconName: 'Baby'
+    description: 'Rápido e sagaz pelas vielas escuras, você aprendeu cada atalho e brecha da guarda urbana.',
+    iconName: 'UserCheck'
   },
   {
     id: 'refugiado',
@@ -634,18 +558,18 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Refugiado',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você fugiu de sua terra natal devido a guerra ou desastre.',
-    startingItems: ['Traje de viajante', 'Lembrança de sua terra'],
-    skills: ['Fortitude', 'Sobrevivência'],
-    availablePowers: ['Fortitude Maior', 'Vontade de Ferro', 'Estoico'],
+    summary: 'Sobrevivente tenaz de guerras, pragas ou catástrofes que devastaram sua terra natal.',
+    startingItems: ['Um item estrangeiro de até T$ 100'],
+    skills: ['Fortitude', 'Reflexos', 'Vontade'],
+    availablePowers: ['Estoico', 'Vontade de Ferro'],
     originPowers: [
       {
         name: 'Estoico',
-        description: 'Você recebe +2 em testes de Fortitude e Vontade.'
+        description: 'Sua condição de descanso é uma categoria acima do padrão pela situação (normal em condições ruins, confortável em condições normais e luxuosa em condições confortáveis ou melhores). Veja as regras de recuperação na página 106.'
       }
     ],
-    description: 'Você perdeu tudo, exceto sua vida e sua vontade de continuar. Sua resiliência é sua maior arma.',
-    iconName: 'Footprints'
+    description: 'Você suportou privações extremas e sobreviveu a massacres, forjando uma vontade inquebrantável.',
+    iconName: 'Shield'
   },
   {
     id: 'seguidor',
@@ -653,18 +577,56 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Seguidor',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você serviu a um mestre ou mentor, aprendendo com ele.',
-    startingItems: ['Traje de viajante', 'Item de seu mestre'],
+    summary: 'Você viveu algum tempo a serviço de um grande herói ou mestre como escudeiro ou ajudante.',
+    startingItems: ['Um item recebido de seu mestre de até T$ 100'],
     skills: ['Adestramento', 'Ofício'],
-    availablePowers: ['Foco em Perícia', 'Vontade de Ferro', 'Servidão Fiel'],
+    availablePowers: ['Antigo Mestre', 'Proficiência', 'Surto Heroico'],
     originPowers: [
       {
-        name: 'Servidão Fiel',
-        description: 'Você recebe +2 em testes de Vontade e pode usar a ação ajudar como ação de movimento.'
+        name: 'Antigo Mestre',
+        description: 'Você ainda mantém contato com o herói que costumava servir. Uma vez por aventura, ele surge para ajudá-lo por uma cena. Ele é um parceiro mestre de um tipo a sua escolha (definido ao obter este poder) que não conta em seu limite de aliados.'
       }
     ],
-    description: 'Observar e servir ensinou a você lições valiosas. Agora é hora de trilhar seu próprio caminho.',
-    iconName: 'UserPlus'
+    description: 'Absorveu conselhos e técnicas de uma lenda viva antes de ingressar em sua própria carreira.',
+    iconName: 'Users'
+  },
+  {
+    id: 'selvagem',
+    slug: 'selvagem',
+    name: 'Selvagem',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Criado em tribos distantes ou ermos intocados, distante dos costumes artificiais das cidades.',
+    startingItems: ['Uma arma simples', 'Um pequeno animal de estimação como um pássaro ou esquilo'],
+    skills: ['Percepção', 'Reflexos', 'Sobrevivência'],
+    availablePowers: ['Lobo Solitário', 'Vida Rústica', 'Vitalidade'],
+    originPowers: [
+      {
+        name: 'Vida Rústica',
+        description: 'Você come coisas que fariam um avestruz vomitar (sendo imune a efeitos prejudiciais de itens ingeríveis) e também consegue descansar nos lugares mais desconfortáveis (mesmo dormindo ao relento, sua recuperação de PV e PM nunca é inferior a seu próprio nível).'
+      }
+    ],
+    description: 'Instintos aguçados e resistência forjada na terra bruta de Arton.',
+    iconName: 'Flame'
+  },
+  {
+    id: 'soldado',
+    slug: 'soldado',
+    name: 'Soldado',
+    system: 'Tormenta 20',
+    edition: 'Jogo do Ano',
+    summary: 'Treinado na disciplina militar de grandes exércitos ou companhias de infantaria.',
+    startingItems: ['Uma arma marcial', 'Um uniforme militar', 'Uma insígnia de seu exército'],
+    skills: ['Fortitude', 'Guerra', 'Luta', 'Pontaria'],
+    availablePowers: ['Influência Militar', 'Um poder de combate a sua escolha'],
+    originPowers: [
+      {
+        name: 'Influência Militar',
+        description: 'Você fez amigos nas forças armadas. Onde houver acampamentos ou bases militares, você pode conseguir hospedagem e informações para você e seus aliados.'
+      }
+    ],
+    description: 'Veterano de marchas e formações cerradas de combate sob chuva de flechas.',
+    iconName: 'Shield'
   },
   {
     id: 'taverneiro',
@@ -672,18 +634,18 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Taverneiro',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você serviu bebidas e ouviu histórias em uma taverna.',
-    startingItems: ['Caneca de metal', 'Traje de taverneiro'],
-    skills: ['Diplomacia', 'Jogatina'],
-    availablePowers: ['Atraente', 'Negociação', 'Gorjeta'],
+    summary: 'Você trabalhou ou foi dono de estalagem, ouvindo bravatas e negociando com aventureiros.',
+    startingItems: ['Rolo de macarrão ou martelo de carne (mesmas estatísticas de uma clava)', 'Uma panela', 'Um avental', 'Uma caneca e um pano sujo'],
+    skills: ['Diplomacia', 'Jogatina', 'Ofício (cozinheiro)'],
+    availablePowers: ['Gororoba', 'Proficiência', 'Vitalidade'],
     originPowers: [
       {
-        name: 'Gorjeta',
-        description: 'Você pode gastar 1 PM para receber +2 em um teste de Diplomacia ou Jogatina.'
+        name: 'Gororoba',
+        description: 'Você não sofre a penalidade de –5 para fabricar um prato especial adicional.'
       }
     ],
-    description: 'Você conhece todo tipo de gente e ouviu todo tipo de história. Nada mais surpreende você.',
-    iconName: 'Beer'
+    description: 'Atrás do balcão ou nas mesas de jogo, você ouviu os maiores boatos e aprendeu a alimentar heróis.',
+    iconName: 'Coffee'
   },
   {
     id: 'trabalhador',
@@ -691,18 +653,18 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Trabalhador',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você viveu de trabalhos braçais pesados.',
-    startingItems: ['Ferramenta de trabalho', 'Traje de trabalhador'],
+    summary: 'Trabalhou duro em construções, fazendas ou portos, empilhando cargas com força bruta.',
+    startingItems: ['Uma ferramenta pesada (mesmas estatísticas de uma maça ou lança, a sua escolha)'],
     skills: ['Atletismo', 'Fortitude'],
-    availablePowers: ['Fortitude Maior', 'Vigoroso', 'Esforço Extra'],
+    availablePowers: ['Atlético', 'Esforçado'],
     originPowers: [
       {
-        name: 'Esforço Extra',
-        description: 'Você pode gastar 1 PM para receber +2 em um teste de Atletismo ou Fortitude.'
+        name: 'Esforçado',
+        description: 'Você não teme trabalho duro, nem prazos apertados. Você recebe um bônus de +2 em todos os testes de perícias estendidos (incluindo perigos complexos).'
       }
     ],
-    description: 'O suor e o esforço físico constante forjaram um corpo resistente e uma mente disciplinada.',
-    iconName: 'Briefcase'
+    description: 'Músculos forjados no transporte de fardos pesados e na labuta diária contínua.',
+    iconName: 'Activity'
   },
   {
     id: 'sua-propria-origem',
@@ -710,17 +672,17 @@ export const T20_ORIGINS: T20OriginDetail[] = [
     name: 'Sua Própria Origem',
     system: 'Tormenta 20',
     edition: 'Jogo do Ano',
-    summary: 'Você teve uma criação única que não se encaixa em outros moldes.',
-    startingItems: ['Dois itens quaisquer (total T$ 20)'],
-    skills: ['Duas perícias quaisquer'],
-    availablePowers: ['Um poder geral qualquer'],
+    summary: 'Regra oficial de customização para criar uma origem sob medida para seu personagem.',
+    startingItems: ['Equipamento inicial no valor total de até T$ 100 com aprovação do mestre'],
+    skills: ['Duas perícias quaisquer ou uma perícia e um poder geral'],
+    availablePowers: ['Poder geral adequado ao histórico'],
     originPowers: [
       {
-        name: 'Personalizado',
-        description: 'Trabalhe com o mestre para definir um benefício único que reflita seu passado especial.'
+        name: 'Origem Personalizada',
+        description: 'Conforme a regra da página 95 do livro-base, o jogador pode negociar com o mestre duas perícias, dois poderes ou uma perícia e um poder geral condizentes com seu histórico pregresso.'
       }
     ],
-    description: 'Sua história é só sua. Seus talentos e recursos são fruto de circunstâncias extraordinárias.',
+    description: 'Opção oficial de customização para personagens com trajetórias exclusivas.',
     iconName: 'Sparkles'
   }
 ];

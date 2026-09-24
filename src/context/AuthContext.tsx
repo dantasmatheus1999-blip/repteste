@@ -96,10 +96,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const docRef = doc(db, 'users', uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setProfile(docSnap.data() as UserProfile);
+        const data = docSnap.data() as UserProfile;
+        setProfile(data);
+        try {
+          localStorage.setItem(`profile_${uid}`, JSON.stringify(data));
+        } catch {}
+        return;
       }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+    } catch (error: any) {
+      console.warn('[AuthContext] Perfil não carregado do servidor remoto (offline/cache):', error?.message || error);
+    }
+
+    // Fallback: Recuperar do cache local se disponível
+    try {
+      const cached = localStorage.getItem(`profile_${uid}`);
+      if (cached) {
+        setProfile(JSON.parse(cached));
+        return;
+      }
+    } catch {}
+
+    // Fallback para perfil autenticado
+    if (auth.currentUser && auth.currentUser.uid === uid) {
+      const fallbackProfile: UserProfile = {
+        uid,
+        name: auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Herói',
+        email: auth.currentUser.email || '',
+        photoURL: auth.currentUser.photoURL || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        role: auth.currentUser.email === 'dantasmatheus1999@outlook.com.br' ? 'admin' : 'player',
+        plan: 'free',
+        onboardingCompleted: true,
+        preferences: {
+          language: 'pt-BR'
+        },
+        stats: {
+          charactersCount: 0,
+          campaignsCount: 0
+        }
+      };
+      setProfile(fallbackProfile);
     }
   };
 

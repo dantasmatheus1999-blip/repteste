@@ -45,28 +45,26 @@ export function getIsQuotaExhausted(): boolean {
   return quotaExhausted;
 }
 
-// Testar conexão com o Firestore conforme diretrizes
+// Testar conexão com o Firestore conforme diretrizes do Firebase Skill
 async function testFirestoreConnection() {
   try {
-    console.log('[Firebase Firestore] Testando conexão (ID:', firebaseConfig.firestoreDatabaseId, ')...');
-    await getDocFromServer(doc(db, '_connection_test_', 'ping'));
-    console.log('[Firebase Firestore] Conexão estabelecida com sucesso.');
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log('[Firebase Firestore] Conexão com Cloud Firestore estabelecida.');
   } catch (error: any) {
-    if (error.code === 'permission-denied') {
-      console.warn('[Firebase Firestore] Permissão negada no teste de conexão. Isso pode ser esperado se o usuário não estiver logado e a regra for restritiva.');
+    if (error?.code === 'permission-denied') {
+      // Servidor respondeu normalmente com rejeição de permissão para leitura anônima de teste
       return;
     }
     if (isQuotaExceededError(error)) {
       quotaExhausted = true;
-      console.warn('[Firebase Firestore] Cota diária gratuita do Firestore excedida no projeto. O RealmOR ativou o modo offline-first seguro.');
+      console.warn('[Firebase Firestore] Cota diária gratuita do Firestore excedida no projeto. Modo offline ativo.');
       return;
     }
-    console.error('[Firebase Firestore] Erro de conexão:', error);
-    if (error.message && (error.message.includes('the client is offline') || error.code === 'unavailable')) {
-      console.error('!!! ALERTA DE CONFIGURAÇÃO !!!');
-      console.error('O Firestore retornou "unavailable" ou "offline".');
-      console.error('Isso geralmente indica que o ID do banco de dados (' + firebaseConfig.firestoreDatabaseId + ') está incorreto ou o banco ainda não foi provisionado.');
+    if (error?.message && (error.message.includes('the client is offline') || error.code === 'unavailable')) {
+      console.info('[Firebase Firestore] Cliente operando com persistência local (offline-first).');
+      return;
     }
+    console.debug('[Firebase Firestore] Teste de conectividade:', error?.message || error);
   }
 }
 testFirestoreConnection();

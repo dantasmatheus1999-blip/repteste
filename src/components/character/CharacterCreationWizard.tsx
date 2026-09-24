@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -19,12 +19,16 @@ import {
   X,
   AlertCircle,
   ListOrdered,
-  ArrowLeft
+  ArrowLeft,
+  Box,
+  Skull
 } from 'lucide-react';
+import { WizardParchmentBackground } from './wizard/WizardParchmentBackground';
 import { useAuth } from '../../context/AuthContext';
 import { CharacterService } from '../../services/characterService';
 import { WizardData, INITIAL_WIZARD_DATA } from './wizard/types';
 import { StepIdentity } from './wizard/StepIdentity';
+import { CharacterSelectionScreen3D } from './wizard/CharacterSelectionScreen3D';
 import { StepRace } from './wizard/StepRace';
 import { StepOrigin } from './wizard/StepOrigin';
 import { StepClass } from './wizard/StepClass';
@@ -62,7 +66,7 @@ export const WIZARD_STEPS: StepMeta[] = [
     title: '2. Escolha da Raça',
     shortTitle: 'Raça',
     headline: 'ESCOLHA SUA RAÇA',
-    description: 'Selecione a linhagem que concederá modificadores e traços biológicos.',
+    description: 'A raça define sua linhagem, traços culturais e concede modificadores que influenciam suas habilidades.',
     icon: Compass
   },
   {
@@ -170,9 +174,9 @@ export const CharacterCreationWizard: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isStepsMenuOpen, setIsStepsMenuOpen] = useState<boolean>(false);
 
-  const handleUpdateData = (updates: Partial<WizardData>) => {
+  const handleUpdateData = useCallback((updates: Partial<WizardData>) => {
     setData((prev) => ({ ...prev, ...updates }));
-  };
+  }, []);
 
   const handleNext = () => {
     if (currentStep === 0 && !data.name.trim()) {
@@ -259,7 +263,10 @@ export const CharacterCreationWizard: React.FC = () => {
       const characterPayload: any = {
         name: data.name.trim(),
         playerName: data.playerName,
-        imageUrl: optimizedImageUrl,
+        imageUrl: optimizedImageUrl || data.imageUrl,
+        avatarType: data.avatarType || '3d',
+        avatarId: data.avatarId || 'guerreiro',
+        avatarModelPath: data.avatarModelPath || '3d/anaogrande-v1.glb',
         level: data.level,
         classId: data.classId,
         className: data.className,
@@ -346,66 +353,83 @@ export const CharacterCreationWizard: React.FC = () => {
   const progressPercent = Math.round(((currentStep + 1) / WIZARD_STEPS.length) * 100);
 
   return (
-    <div className="h-[100dvh] max-h-[100dvh] w-full bg-stone-950 text-stone-100 flex flex-col overflow-hidden relative select-none font-sans">
+    <div className="h-[100dvh] max-h-[100dvh] w-full bg-[#06080d] text-stone-100 flex flex-col overflow-hidden relative select-none font-sans">
+      {/* BACKGROUND OFICIAL (Imagem 1) */}
+      <WizardParchmentBackground />
+
       {/* 1. TOP HEADER BAR */}
-      <header className="h-13 sm:h-14 px-3 sm:px-5 bg-stone-950/95 border-b border-amber-900/40 flex items-center justify-between shrink-0 z-30 shadow-md">
+      <header className="h-14 px-3.5 sm:px-6 bg-[#080a0f]/90 backdrop-blur-md border-b border-[#1b202c] flex items-center justify-between shrink-0 z-30 shadow-md">
         <button
           type="button"
           onClick={() => navigate('/characters')}
-          className="flex items-center gap-2 text-stone-400 hover:text-amber-300 transition-colors p-1 rounded-lg"
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#0f121a]/80 border border-[#232836] hover:border-[#d4af37]/60 flex items-center justify-center text-stone-300 hover:text-amber-200 transition-colors shadow-xs"
           title="Sair da criação"
         >
-          <ArrowLeft className="w-4 h-4 text-amber-500" />
-          <span className="font-cinzel text-xs uppercase tracking-wider font-bold text-amber-200">
-            Criação de Personagem
-          </span>
+          <ChevronLeft className="w-5 h-5 text-stone-300" />
         </button>
 
-        <div className="flex items-center gap-2">
+        {/* Center: Title with medieval diamond flourish */}
+        <div className="flex flex-col items-center justify-center text-center">
+          <span className="font-cinzel text-xs sm:text-sm font-bold tracking-[0.18em] text-[#e8c988] uppercase">
+            CRIAÇÃO DE PERSONAGEM
+          </span>
+          <div className="flex items-center justify-center gap-1.5 opacity-60 mt-0.5">
+            <span className="h-[1px] w-6 sm:w-10 bg-gradient-to-r from-transparent to-[#d4af37]" />
+            <span className="w-1.5 h-1.5 rotate-45 bg-[#d4af37]" />
+            <span className="h-[1px] w-6 sm:w-10 bg-gradient-to-l from-transparent to-[#d4af37]" />
+          </div>
+        </div>
+
+        {/* Right: Step pill and connected progress dots */}
+        <div className="flex flex-col items-end justify-center">
           <button
             type="button"
             onClick={() => setIsStepsMenuOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/60 border border-amber-800/50 text-amber-300 text-xs font-mono font-medium hover:bg-amber-900/60 transition-colors cursor-pointer"
+            className="px-3 py-1 rounded-full bg-[#0f121a]/80 border border-[#232836] hover:border-[#d4af37]/50 text-stone-300 hover:text-amber-200 text-[11px] sm:text-xs font-medium font-sans cursor-pointer transition-colors"
           >
-            <span>Etapa {currentStep + 1}/13</span>
-            <ListOrdered className="w-3.5 h-3.5 text-amber-400" />
+            Etapa {currentStep + 1}/{WIZARD_STEPS.length}
           </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/characters')}
-            className="p-1.5 text-stone-400 hover:text-white rounded-lg hover:bg-stone-900 transition-colors"
-            title="Cancelar"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5 mt-1.5 px-0.5">
+            {WIZARD_STEPS.map((st, i) => {
+              const isCur = i === currentStep;
+              const isPast = i < currentStep;
+              return (
+                <div
+                  key={st.id}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    isCur
+                      ? 'w-3.5 bg-[#f3cb69] shadow-[0_0_8px_rgba(243,203,105,0.9)]'
+                      : isPast
+                      ? 'w-1.5 bg-[#8c6d2c]'
+                      : 'w-1.5 bg-[#262c3b]'
+                  }`}
+                />
+              );
+            })}
+          </div>
         </div>
       </header>
 
-      {/* 2. PROGRESS BAR */}
-      <div className="w-full h-1 bg-stone-900 shrink-0">
-        <div
-          className="h-full bg-gradient-to-r from-amber-600 via-amber-400 to-yellow-300 transition-all duration-300"
-          style={{ width: `${progressPercent}%` }}
-        />
-      </div>
-
-      {/* 3. DYNAMIC STEP HEADER (Centered & Clean) */}
-      <div className="px-4 sm:px-6 pt-2 pb-2 text-center shrink-0 border-b border-stone-900 bg-gradient-to-b from-stone-950 to-stone-900/30">
-        <span className="text-[10px] font-bold text-amber-500 tracking-[0.25em] uppercase block">
-          ETAPA {currentStep + 1} DE {WIZARD_STEPS.length}
-        </span>
-        <h2 className="text-base sm:text-xl font-cinzel font-bold text-amber-200 uppercase tracking-wide mt-0.5">
+      {/* 2. DYNAMIC STEP HEADER (Centered & Golden 8-Point Compass Emblem) */}
+      <div className="px-4 sm:px-6 pt-3.5 pb-2 text-center shrink-0 bg-transparent flex flex-col items-center relative z-10">
+        {/* Golden 8-Point Compass Star Emblem */}
+        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-b from-[#241d14] via-[#12151d] to-[#080a0f] border border-[#a88238]/60 flex items-center justify-center text-[#f0cb69] shadow-[0_0_20px_rgba(212,175,55,0.2)] mb-1.5">
+          <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 stroke-current stroke-[1.5]">
+            <path d="M12 2 L14 9 L21 7 L16 12 L21 17 L14 15 L12 22 L10 15 L3 17 L8 12 L3 7 L10 9 Z" fill="currentColor" fillOpacity="0.25" />
+            <circle cx="12" cy="12" r="2" fill="currentColor" />
+          </svg>
+        </div>
+        <h2 className="text-base sm:text-xl font-cinzel font-bold text-[#f0dcb0] uppercase tracking-wider">
           {currentStepMeta.headline}
         </h2>
-        <p className="text-[11px] sm:text-xs text-stone-400 max-w-lg mx-auto truncate sm:whitespace-normal mt-0.5">
+        <p className="text-[11px] sm:text-xs text-stone-400 max-w-md mx-auto leading-relaxed mt-0.5">
           {currentStepMeta.description}
         </p>
       </div>
 
       {/* ERROR BANNER IF ANY */}
       {errorMessage && (
-        <div className="px-4 py-2 bg-red-950/90 border-b border-red-800 text-red-200 flex items-center justify-between text-xs shrink-0 animate-fadeIn">
+        <div className="px-4 py-2 bg-red-950/90 border-b border-red-800 text-red-200 flex items-center justify-between text-xs shrink-0 animate-fadeIn z-20">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
             <span>{errorMessage}</span>
@@ -416,8 +440,8 @@ export const CharacterCreationWizard: React.FC = () => {
         </div>
       )}
 
-      {/* 4. MAIN CONTENT AREA (Clean viewport, no outer scrollbar, internal overflow if needed) */}
-      <main className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-2.5 sm:py-3 no-scrollbar sm:custom-scrollbar">
+      {/* 4. MAIN CONTENT AREA */}
+      <main className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-2.5 sm:py-3 no-scrollbar sm:custom-scrollbar relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -476,34 +500,25 @@ export const CharacterCreationWizard: React.FC = () => {
       </main>
 
       {/* 5. FIXED BOTTOM ACTION BAR */}
-      <footer className="h-16 sm:h-18 bg-stone-950/95 backdrop-blur-md border-t border-amber-900/40 px-3 sm:px-6 flex items-center justify-between z-30 shrink-0 shadow-[0_-10px_25px_rgba(0,0,0,0.8)]">
+      <footer className="h-16 sm:h-18 bg-[#080a0f]/95 backdrop-blur-md border-t border-[#1b202c] px-4 sm:px-8 flex items-center justify-between z-30 shrink-0 shadow-[0_-10px_25px_rgba(0,0,0,0.8)]">
         {/* Back Button */}
         <button
           type="button"
           onClick={handleBack}
           disabled={currentStep === 0}
-          className="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-stone-800 bg-stone-900/80 hover:bg-stone-800 text-stone-300 hover:text-stone-100 disabled:opacity-25 disabled:cursor-not-allowed text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+          className="px-5 py-2.5 sm:px-6 sm:py-2.5 rounded-xl border border-[#262c3b] bg-[#0d1017] hover:border-amber-600/40 text-stone-300 hover:text-amber-200 disabled:opacity-20 disabled:cursor-not-allowed text-xs sm:text-sm font-cinzel font-semibold tracking-wider flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span>Anterior</span>
+          <span>ANTERIOR</span>
         </button>
 
-        {/* Center Hero Mini Preview */}
-        <div className="flex items-center gap-2 max-w-[150px] sm:max-w-xs truncate px-2">
-          <img
-            src={data.imageUrl}
-            alt=""
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-amber-500/60 shrink-0"
-            referrerPolicy="no-referrer"
-          />
-          <div className="truncate text-left">
-            <span className="text-xs font-bold text-amber-200 block truncate leading-tight">
-              {data.name || 'Novo Herói'}
-            </span>
-            <span className="text-[10px] text-stone-400 block truncate leading-tight">
-              {data.raceName} • {data.className}
-            </span>
+        {/* Center Antique Skull & Ornate Lines Divider */}
+        <div className="flex items-center gap-2 text-[#785b28]/80 select-none">
+          <span className="w-4 sm:w-10 h-[1px] bg-gradient-to-r from-transparent to-[#785b28]" />
+          <div className="w-6 h-6 rounded-full bg-[#0d1017] border border-[#785b28]/60 flex items-center justify-center text-[#d4af37] shadow-xs">
+            <Skull className="w-3.5 h-3.5 opacity-80" />
           </div>
+          <span className="w-4 sm:w-10 h-[1px] bg-gradient-to-l from-transparent to-[#785b28]" />
         </div>
 
         {/* Next or Consecrate Button */}
@@ -511,19 +526,19 @@ export const CharacterCreationWizard: React.FC = () => {
           <button
             type="button"
             onClick={handleNext}
-            className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 font-cinzel font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-lg shadow-amber-950/50 transition-all active:scale-95 cursor-pointer"
+            className="px-6 py-2.5 sm:px-7 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#cfa13e] via-[#f0cb69] to-[#cfa13e] hover:brightness-110 text-stone-950 font-cinzel font-bold text-xs sm:text-sm tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.35)] transition-all active:scale-95 cursor-pointer"
           >
-            <span>Próximo</span>
-            <ChevronRight className="w-4 h-4" />
+            <span>PRÓXIMO</span>
+            <ChevronRight className="w-4 h-4 stroke-[2.5]" />
           </button>
         ) : (
           <button
             type="button"
             onClick={handleFinalSubmit}
             disabled={isSubmitting}
-            className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-stone-950 font-cinzel font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="px-6 py-2.5 sm:px-7 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-stone-950 font-cinzel font-bold text-xs sm:text-sm tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-950/50 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
           >
-            <span>{isSubmitting ? 'Salvando...' : 'Consagrar'}</span>
+            <span>{isSubmitting ? 'Salvando...' : 'CONSAGRAR'}</span>
             <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
           </button>
         )}

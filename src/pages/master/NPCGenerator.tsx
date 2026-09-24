@@ -17,8 +17,8 @@ import { MasterService } from '../../services/masterService';
 import { NPC, NPCAttitude } from '../../types/master';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { T20_RACES } from '../../data/t20Races';
 
-const RACES = ['Humano', 'Elfo', 'Anão', 'Lefou', 'Qareen', 'Golem', 'Minotauro', 'Dahllan', 'Hynne', 'Osteon'];
 const ROLES = ['Comerciante', 'Guarda', 'Nobre', 'Camponês', 'Aventureiro', 'Mago', 'Clérigo', 'Ladino', 'Guerreiro', 'Taberneiro'];
 const ATTITUDES: NPCAttitude[] = ['friendly', 'neutral', 'hostile'];
 const PERSONALITIES = [
@@ -47,7 +47,8 @@ export const NPCGenerator: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const generateNPC = () => {
-    const race = RACES[Math.floor(Math.random() * RACES.length)];
+    const selectedRace = T20_RACES[Math.floor(Math.random() * T20_RACES.length)];
+    const race = selectedRace.name;
     const role = ROLES[Math.floor(Math.random() * ROLES.length)];
     const attitude = ATTITUDES[Math.floor(Math.random() * ATTITUDES.length)];
     const personality = PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];

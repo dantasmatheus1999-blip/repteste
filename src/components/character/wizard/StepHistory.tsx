@@ -1,26 +1,12 @@
 import React from 'react';
 import { BookOpen, Sparkles, Feather, Shield } from 'lucide-react';
 import { WizardData } from './types';
+import { T20_DEITIES } from '../../../data/t20Deities';
 
 interface StepHistoryProps {
   data: WizardData;
   onChange: (updates: Partial<WizardData>) => void;
 }
-
-const DEITIES = [
-  'Nenhuma (Não Devoto)',
-  'Valkaria (Deusa da Ambição)',
-  'Khalmyr (Deus da Justiça)',
-  'Lena (Deusa da Vida)',
-  'Marah (Deusa da Paz)',
-  'Thyatis (Deus da Ressurreição)',
-  'Wynna (Deusa da Magia)',
-  'Allihanna (Deusa da Natureza)',
-  'Lin-Wu (Deus da Honra)',
-  'Arsenal (Deus da Guerra)',
-  'Tanna-Toh (Deusa do Conhecimento)',
-  'Aharadak (Deus da Tormenta)'
-];
 
 const BACKSTORY_PROMPTS = [
   'Em busca de vingança contra um culto sombrio.',
@@ -43,11 +29,18 @@ export const StepHistory: React.FC<StepHistoryProps> = ({ data, onChange }) => {
             onChange={(e) => onChange({ deity: e.target.value })}
             className="w-full bg-stone-950 border border-amber-900/50 rounded-lg px-3 py-1.5 text-xs text-stone-200 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
           >
-            {DEITIES.map((d) => (
-              <option key={d} value={d} className="bg-stone-950 text-stone-200">
-                {d}
-              </option>
-            ))}
+            <option value="Nenhuma (Não Devoto)" className="bg-stone-950 text-stone-200">
+              Nenhuma (Não Devoto)
+            </option>
+            {T20_DEITIES.map((d) => {
+              const cleanSummary = d.summary.replace(/\.$/, '');
+              const label = `${d.name} (${cleanSummary})`;
+              return (
+                <option key={d.id} value={label} className="bg-stone-950 text-stone-200">
+                  {label}
+                </option>
+              );
+            })}
           </select>
         </div>
 

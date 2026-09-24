@@ -161,6 +161,9 @@ export interface UnifiedCharacter {
   name: string;
   playerName: string;
   imageUrl?: string;
+  avatarType?: '2d' | '3d';
+  avatarId?: string;
+  avatarModelPath?: string;
 
   raceId: string;
   raceName: string;

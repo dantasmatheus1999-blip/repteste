@@ -26,6 +26,7 @@
     "firebase": "^12.10.0",
     "gsap": "^3.14.2",
     "lucide-react": "^0.546.0",
+    "meshoptimizer": "^1.2.0",
     "motion": "^12.23.24",
     "multer": "^2.1.1",
     "pdf-lib": "^1.17.1",

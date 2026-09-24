@@ -6,6 +6,9 @@ export interface WizardData {
   name: string;
   playerName: string;
   imageUrl: string;
+  avatarType?: '2d' | '3d';
+  avatarId?: string;
+  avatarModelPath?: string;
   deity?: string;
   age?: string;
   gender?: string;
@@ -128,6 +131,9 @@ export const INITIAL_WIZARD_DATA: WizardData = {
   name: '',
   playerName: '',
   imageUrl: PRESET_AVATARS[0].url,
+  avatarType: '3d',
+  avatarId: 'guerreiro',
+  avatarModelPath: '3d/anaogrande-v1.glb',
   deity: '',
   age: '',
   gender: '',

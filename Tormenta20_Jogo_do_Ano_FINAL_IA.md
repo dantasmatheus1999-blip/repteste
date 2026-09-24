@@ -1,0 +1,1 @@
+ais-sandbox@ais-us-west1-57b46129693940ad8.iam.gserviceaccount.com does not have storage.objects.get access to the Google Cloud Storage object. Permission &#39;storage.objects.get&#39; denied on resource &#39;//storage.googleapis.com/projects/_/buckets/gen-lang-client-0150741197.firebasestorage.app/objects/livros/Tormenta20_Jogo_do_Ano_FINAL_IA.md&#39; (or it may not exist).

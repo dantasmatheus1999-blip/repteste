@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Heart, Zap, Swords, Package, Flame, Wand2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Shield, Heart, Zap, Swords, Package, Flame, Wand2, Sparkles, CheckCircle2, Box } from 'lucide-react';
 import { WizardData } from './types';
 
 interface StepReviewProps {
@@ -14,13 +14,20 @@ export const StepReview: React.FC<StepReviewProps> = ({ data, onSubmit, isSubmit
     <div className="w-full space-y-2.5 max-w-xl mx-auto flex flex-col h-full justify-between">
       {/* Hero Header Card */}
       <div className="bg-stone-900/90 border border-amber-600/50 rounded-2xl p-3.5 shadow-xl flex items-center gap-3.5 backdrop-blur-sm">
-        <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-amber-500/80 shadow-md bg-stone-950 shrink-0">
-          <img
-            src={data.imageUrl}
-            alt={data.name}
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
+        <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-amber-500/80 shadow-md bg-stone-950 shrink-0 flex items-center justify-center relative">
+          {data.avatarType === '3d' ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-stone-950 text-amber-400 p-1">
+              <Box className="w-7 h-7 text-amber-400 animate-pulse" />
+              <span className="text-[8px] font-mono text-amber-300 uppercase tracking-tighter">3D GLB</span>
+            </div>
+          ) : (
+            <img
+              src={data.imageUrl}
+              alt={data.name}
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
