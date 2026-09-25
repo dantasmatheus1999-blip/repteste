@@ -2,146 +2,121 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   BookOpen, 
-  Castle, 
-  Swords, 
-  Map, 
-  MoreHorizontal, 
   Dices, 
-  Users, 
-  Library
+  Swords, 
+  Library, 
+  Users 
 } from 'lucide-react';
+import { useFriendship } from '../../context/FriendshipContext';
 
 interface BottomNavBarProps {
   isMaster: boolean;
-  onToggleMore: () => void;
-  isMoreOpen: boolean;
+  onToggleMore?: () => void;
+  isMoreOpen?: boolean;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
-  isMaster,
-  onToggleMore,
-  isMoreOpen
+  isMaster
 }) => {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { pendingCount } = useFriendship();
 
-  // Definição dos 4 itens principais para o MESTRE + botão "Mais"
-  // 1. Início (Grimório)
-  // 2. Campanhas
-  // 3. Mesa do Mestre
-  // 4. Mapas (preservado)
-  // 5. Mais (Menu secundário)
-  const masterItems = [
+  // Itens da barra inferior correspondendo exatamente à referência
+  const navItems = [
     {
       id: 'inicio',
-      label: 'Início',
-      icon: BookOpen,
-      path: '/',
-      isActive: (path: string) => path === '/' || path === '/grimorio'
-    },
-    {
-      id: 'campanhas',
-      label: 'Campanhas',
-      icon: Castle,
-      path: '/master/campaigns',
-      isActive: (path: string) => path.startsWith('/master/campaigns') || path.startsWith('/campaigns')
-    },
-    {
-      id: 'mesa',
-      label: 'Mesa',
-      icon: Swords,
-      path: '/master',
-      isActive: (path: string) => path === '/master' || path === '/mestre'
-    },
-    {
-      id: 'mapas',
-      label: 'Mapas',
-      icon: Map,
-      path: '/map/test-map',
-      isActive: (path: string) => path.startsWith('/map') || path === '/maps' || path.startsWith('/master/maps')
-    }
-  ];
-
-  // Definição dos 4 itens principais para o JOGADOR + botão "Mais"
-  // 1. Início (Grimório)
-  // 2. Aventuras (Minhas Aventuras - preservado)
-  // 3. Personagens
-  // 4. Compêndio (Biblioteca)
-  // 5. Mais (Menu secundário)
-  const playerItems = [
-    {
-      id: 'inicio',
-      label: 'Início',
+      label: 'INÍCIO',
       icon: BookOpen,
       path: '/',
       isActive: (path: string) => path === '/' || path === '/grimorio'
     },
     {
       id: 'aventuras',
-      label: 'Aventuras',
+      label: 'AVENTUR...',
       icon: Dices,
-      path: '/immersive-rpg',
-      isActive: (path: string) => path.startsWith('/immersive-rpg')
+      path: isMaster ? '/master/campaigns' : '/immersive-rpg',
+      isActive: (path: string) => path.startsWith('/immersive-rpg') || path.startsWith('/master/campaigns') || path.startsWith('/campaigns')
     },
     {
       id: 'personagens',
-      label: 'Personagens',
-      icon: Users,
-      path: '/characters',
-      isActive: (path: string) => path.startsWith('/characters')
+      label: 'PERSONA...',
+      icon: Swords,
+      path: isMaster ? '/master' : '/characters',
+      isActive: (path: string) => path.startsWith('/characters') || path === '/master'
     },
     {
-      id: 'compendio',
-      label: 'Biblioteca',
+      id: 'biblioteca',
+      label: 'BIBLIOTEC...',
       icon: Library,
       path: '/codex',
-      isActive: (path: string) => path.startsWith('/codex') || path.startsWith('/spells')
+      isActive: (path: string) => path.startsWith('/codex') || path.startsWith('/spells') || path.startsWith('/biblioteca')
+    },
+    {
+      id: 'amigos',
+      label: 'AMIGOS',
+      icon: Users,
+      path: '/amigos',
+      badge: pendingCount,
+      isActive: (path: string) => path.startsWith('/amigos') || path.startsWith('/friends')
     }
   ];
-
-  const primaryItems = isMaster ? masterItems : playerItems;
 
   return (
     <nav 
       id="mobile-bottom-navigation"
       aria-label="Navegação Principal Mobile"
-      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-stone-950/95 backdrop-blur-xl border-t border-amber-900/40 shadow-[0_-8px_30px_rgba(0,0,0,0.9)] pb-[max(0.35rem,env(safe-area-inset-bottom))]"
+      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-[#0a0a0c]/98 backdrop-blur-xl border-t border-amber-900/40 shadow-[0_-10px_35px_rgba(0,0,0,0.95)] pb-[max(0.35rem,env(safe-area-inset-bottom))]"
     >
       {/* Sutil linha dourada no topo */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
 
-      <div className="grid grid-cols-5 h-15 items-stretch max-w-lg mx-auto px-1">
-        {primaryItems.map((item) => {
-          const active = !isMoreOpen && item.isActive(currentPath);
+      <div className="grid grid-cols-5 h-16 items-stretch max-w-lg mx-auto px-0.5">
+        {navItems.map((item) => {
+          const active = item.isActive(currentPath);
           const Icon = item.icon;
 
           return (
             <Link
               key={item.id}
               to={item.path}
-              className={`flex flex-col items-center justify-center py-1.5 px-0.5 relative transition-all duration-200 select-none group min-h-[48px] ${
+              className={`flex flex-col items-center justify-center py-1.5 px-0.5 relative transition-all duration-200 select-none group min-h-[52px] ${
                 active ? 'text-amber-300' : 'text-stone-400 hover:text-stone-200'
               }`}
             >
-              {/* Indicador de item ativo */}
+              {/* Destaque dourado exatamente como na referência */}
               {active && (
                 <>
-                  <div className="absolute top-0 inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_8px_rgba(245,158,11,0.9)]" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-transparent pointer-events-none rounded-t-lg" />
+                  {/* Top diamond accent */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                    <span className="w-2 h-2 rotate-45 bg-amber-400 border border-amber-200 shadow-[0_0_8px_rgba(245,158,11,1)]" />
+                  </div>
+                  {/* Vertical rich gold ambient wash */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-amber-500/25 via-amber-500/10 to-amber-950/20 pointer-events-none rounded-t-xl border-t border-amber-400/70" />
                 </>
               )}
 
-              <div className="relative z-10 flex flex-col items-center">
-                <Icon 
-                  size={20} 
-                  className={`transition-transform duration-200 ${
-                    active 
-                      ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] scale-110' 
-                      : 'text-stone-400 group-hover:text-stone-200'
-                  }`} 
-                />
-                <span className={`text-[10px] font-cinzel uppercase tracking-wider mt-1 truncate max-w-[64px] leading-tight ${
-                  active ? 'font-bold text-amber-200' : 'font-medium text-stone-400'
+              <div className="relative z-10 flex flex-col items-center justify-center">
+                <div className="relative">
+                  <Icon 
+                    size={21} 
+                    strokeWidth={active ? 2.2 : 1.7}
+                    className={`transition-all duration-200 ${
+                      active 
+                        ? 'text-amber-300 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] scale-105' 
+                        : 'text-stone-400 group-hover:text-stone-200'
+                    }`} 
+                  />
+                  {/* Badge de notificações */}
+                  {item.badge && item.badge > 0 ? (
+                    <span className="absolute -top-1.5 -right-2.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-sans font-bold flex items-center justify-center border border-stone-950 shadow-sm animate-pulse">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </div>
+
+                <span className={`text-[10px] font-cinzel uppercase tracking-wider mt-1 truncate max-w-[68px] leading-none ${
+                  active ? 'font-bold text-amber-200 drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]' : 'font-medium text-stone-400'
                 }`}>
                   {item.label}
                 </span>
@@ -149,39 +124,6 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
             </Link>
           );
         })}
-
-        {/* Botão "Mais" para opções secundárias */}
-        <button
-          id="bottom-nav-more-button"
-          onClick={onToggleMore}
-          aria-expanded={isMoreOpen}
-          className={`flex flex-col items-center justify-center py-1.5 px-0.5 relative transition-all duration-200 select-none group min-h-[48px] cursor-pointer ${
-            isMoreOpen ? 'text-amber-300' : 'text-stone-400 hover:text-stone-200'
-          }`}
-        >
-          {isMoreOpen && (
-            <>
-              <div className="absolute top-0 inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_8px_rgba(245,158,11,0.9)]" />
-              <div className="absolute inset-0 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-transparent pointer-events-none rounded-t-lg" />
-            </>
-          )}
-
-          <div className="relative z-10 flex flex-col items-center">
-            <MoreHorizontal 
-              size={20} 
-              className={`transition-transform duration-200 ${
-                isMoreOpen 
-                  ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] scale-110 rotate-90' 
-                  : 'text-stone-400 group-hover:text-stone-200'
-              }`} 
-            />
-            <span className={`text-[10px] font-cinzel uppercase tracking-wider mt-1 truncate max-w-[64px] leading-tight ${
-              isMoreOpen ? 'font-bold text-amber-200' : 'font-medium text-stone-400'
-            }`}>
-              Mais
-            </span>
-          </div>
-        </button>
       </div>
     </nav>
   );

@@ -73,7 +73,8 @@ interface AvatarSelector3DProps {
 }
 
 export const AvatarSelector3D: React.FC<AvatarSelector3DProps> = ({
-  selectedAvatarId = 'anaogrande',
+  selectedAvatarId = 'guerreiro',
+  selectedModelPath,
   onSelectAvatar
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,8 +90,12 @@ export const AvatarSelector3D: React.FC<AvatarSelector3DProps> = ({
 
   // Modelo ativo derivado diretamente da prop (fonte única de verdade)
   const activeAvatar = useMemo(() => {
-    return AVAILABLE_3D_AVATARS.find(a => a.id === selectedAvatarId) || AVAILABLE_3D_AVATARS[0];
-  }, [selectedAvatarId]);
+    return (
+      AVAILABLE_3D_AVATARS.find(a => a.id === selectedAvatarId) ||
+      (selectedModelPath ? AVAILABLE_3D_AVATARS.find(a => a.storagePath === selectedModelPath) : undefined) ||
+      AVAILABLE_3D_AVATARS[0]
+    );
+  }, [selectedAvatarId, selectedModelPath]);
 
   // Estados locais apenas para feedback visual do carregador Three.js
   const [isLoading, setIsLoading] = useState<boolean>(true);

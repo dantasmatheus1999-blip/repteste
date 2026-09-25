@@ -62,6 +62,13 @@ export interface T20Character {
   xpToNextLevel?: number;
   canLevelUp?: boolean;
   xpHistory?: any[];
+  imageUrl?: string;
+  avatarUrl?: string;
+  raceId?: string;
+  raceName?: string;
+  race?: string;
+  className?: string;
+  origin?: string;
   uid?: string;
   createdAt?: any;
   updatedAt?: any;

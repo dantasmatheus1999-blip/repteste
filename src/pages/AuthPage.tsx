@@ -9,8 +9,14 @@ import { useNavigate } from 'react-router-dom';
 export const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user && !loading && !showWelcome) {
+      navigate('/select-profile', { replace: true });
+    }
+  }, [user, loading, showWelcome, navigate]);
 
   // Handle welcome screen transition after registration
   // In a real app, we'd trigger this from the RegisterForm success

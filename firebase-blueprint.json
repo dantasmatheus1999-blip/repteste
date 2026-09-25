@@ -7,8 +7,18 @@
       "properties": {
         "uid": { "type": "string" },
         "name": { "type": "string" },
+        "displayName": { "type": "string" },
+        "username": { "type": "string" },
+        "bio": { "type": "string" },
         "email": { "type": "string" },
         "photoURL": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "coverUrl": { "type": "string" },
+        "mainCharacterId": { "type": "string" },
+        "mainCharacterName": { "type": "string" },
+        "mainCharacterClass": { "type": "string" },
+        "mainCharacterRace": { "type": "string" },
+        "mainCharacterLevel": { "type": "integer" },
         "role": { "type": "string", "enum": ["player", "master", "admin"] },
         "plan": { "type": "string", "enum": ["free", "premium"] },
         "onboardingCompleted": { "type": "boolean" },
@@ -439,9 +449,30 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name", "diceType", "textureUrl"]
+    },
+    "Friendship": {
+      "title": "Amizade / Solicitação de Amizade",
+      "description": "Relação de amizade ou solicitação pendente entre dois usuários.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID determinístico uid1_uid2" },
+        "userIds": { "type": "array", "items": { "type": "string" }, "description": "Lista com os dois UIDs dos envolvidos" },
+        "requesterId": { "type": "string", "description": "UID de quem enviou a solicitação" },
+        "receiverId": { "type": "string", "description": "UID de quem recebeu a solicitação" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "requesterData": { "type": "object" },
+        "receiverData": { "type": "object" }
+      },
+      "required": ["id", "userIds", "requesterId", "receiverId", "status"]
     }
   },
   "firestore": {
+    "/friendships/{friendshipId}": {
+      "schema": "Friendship",
+      "description": "Coleção central de amizades e solicitações de amizade entre jogadores."
+    },
     "/dice_skins/{skinId}": {
       "schema": "DiceSkin",
       "description": "Coleção de skins de dados 3D com texturas planificadas."

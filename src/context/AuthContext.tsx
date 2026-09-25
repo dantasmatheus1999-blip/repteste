@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User } from 'firebase/auth';
 import { 
   auth, 
@@ -9,8 +9,6 @@ import {
   sendPasswordResetEmail, 
   updateProfile, 
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   googleProvider
 } from '../firebase/auth';
 import { db, doc, setDoc, getDoc, serverTimestamp, OperationType, handleFirestoreError } from '../firebase/firestore';
@@ -21,20 +19,22 @@ export type AppUserRole = "player" | "master" | "admin";
 export interface UserProfile {
   uid: string;
   name: string;
+  displayName?: string;
   email: string;
-  photoURL: string;
+  photoURL?: string;
+  provider?: string;
   createdAt: any;
   updatedAt: any;
   role: AppUserRole;
   plan: "free" | "premium";
   onboardingCompleted: boolean;
-  preferences: {
-    language: "pt-BR"
+  preferences?: {
+    language: "pt-BR";
   };
-  stats: {
-    charactersCount: 0,
-    campaignsCount: 0
-  }
+  stats?: {
+    charactersCount: number;
+    campaignsCount: number;
+  };
 }
 
 interface AuthContextType {
@@ -47,6 +47,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   uploadAvatar: (file: File) => Promise<string>;
+  refreshProfile: () => Promise<UserProfile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,78 +57,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Processa retorno de redirect auth (caso o navegador tenha bloqueado popup e usado redirect)
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result && result.user) {
-          const docRef = doc(db, 'users', result.user.uid);
-          const docSnap = await getDoc(docRef);
-          if (!docSnap.exists()) {
-            await createUserProfile(
-              result.user.uid,
-              result.user.displayName || 'Herói',
-              result.user.email || '',
-              result.user.photoURL || ''
-            );
-          }
-        }
-      })
-      .catch((err) => {
-        console.debug('[Firebase Auth] Verificação de redirect:', err);
-      });
-  }, []);
+  /**
+   * Garante a criação ou obtenção do documento Firestore `users/{uid}`
+   * para qualquer usuário autenticado (Google ou E-mail/Senha).
+   */
+  const syncUserProfile = useCallback(async (
+    firebaseUser: User, 
+    extraData?: { name?: string; role?: AppUserRole; photoURL?: string; provider?: string }
+  ): Promise<UserProfile> => {
+    const uid = firebaseUser.uid;
+    const email = firebaseUser.email || '';
+    const isGoogle = firebaseUser.providerData?.some(p => p.providerId === 'google.com');
+    const defaultProvider = isGoogle ? 'google' : (extraData?.provider || 'password');
+    const defaultName = extraData?.name || firebaseUser.displayName || (email ? email.split('@')[0] : 'Aventureiro');
+    const defaultPhoto = extraData?.photoURL || firebaseUser.photoURL || '';
+    const defaultRole: AppUserRole = extraData?.role || (email === 'dantasmatheus1999@outlook.com.br' ? 'admin' : 'player');
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchProfile(currentUser.uid);
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    });
-    return unsubscribe;
-  }, []);
-
-  const fetchProfile = async (uid: string) => {
     try {
       const docRef = doc(db, 'users', uid);
       const docSnap = await getDoc(docRef);
+
       if (docSnap.exists()) {
         const data = docSnap.data() as UserProfile;
         setProfile(data);
         try {
           localStorage.setItem(`profile_${uid}`, JSON.stringify(data));
         } catch {}
-        return;
+        return data;
       }
+
+      // Se o documento ainda não existe (primeiro acesso do usuário), cria automaticamente
+      const newProfile: UserProfile = {
+        uid,
+        name: defaultName,
+        displayName: defaultName,
+        email,
+        photoURL: defaultPhoto,
+        provider: defaultProvider,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        role: defaultRole,
+        plan: 'free',
+        onboardingCompleted: false,
+        preferences: {
+          language: 'pt-BR'
+        },
+        stats: {
+          charactersCount: 0,
+          campaignsCount: 0
+        }
+      };
+
+      await setDoc(docRef, newProfile);
+      setProfile(newProfile);
+      try {
+        localStorage.setItem(`profile_${uid}`, JSON.stringify({
+          ...newProfile,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }));
+      } catch {}
+      return newProfile;
     } catch (error: any) {
-      console.warn('[AuthContext] Perfil não carregado do servidor remoto (offline/cache):', error?.message || error);
-    }
+      console.warn('[AuthContext] Erro ao sincronizar perfil no Firestore:', error?.message || error);
 
-    // Fallback: Recuperar do cache local se disponível
-    try {
-      const cached = localStorage.getItem(`profile_${uid}`);
-      if (cached) {
-        setProfile(JSON.parse(cached));
-        return;
-      }
-    } catch {}
-
-    // Fallback para perfil autenticado
-    if (auth.currentUser && auth.currentUser.uid === uid) {
+      // Fallback local caso Firestore esteja temporariamente offline
       const fallbackProfile: UserProfile = {
         uid,
-        name: auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Herói',
-        email: auth.currentUser.email || '',
-        photoURL: auth.currentUser.photoURL || '',
+        name: defaultName,
+        displayName: defaultName,
+        email,
+        photoURL: defaultPhoto,
+        provider: defaultProvider,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        role: auth.currentUser.email === 'dantasmatheus1999@outlook.com.br' ? 'admin' : 'player',
+        role: defaultRole,
         plan: 'free',
-        onboardingCompleted: true,
+        onboardingCompleted: false,
         preferences: {
           language: 'pt-BR'
         },
@@ -137,39 +143,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       };
       setProfile(fallbackProfile);
+      return fallbackProfile;
     }
-  };
+  }, []);
 
-  const createUserProfile = async (uid: string, name: string, email: string, photoURL: string = '', role: AppUserRole = "player") => {
-    const profileData: UserProfile = {
-      uid,
-      name,
-      email,
-      photoURL,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      role,
-      plan: "free",
-      onboardingCompleted: false,
-      preferences: {
-        language: "pt-BR"
-      },
-      stats: {
-        charactersCount: 0,
-        campaignsCount: 0
+  // Monitorar o estado de autenticação do Firebase (onAuthStateChanged)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        try {
+          await syncUserProfile(currentUser);
+        } catch (err) {
+          console.error('[AuthContext] Erro ao sincronizar sessão:', err);
+        }
+      } else {
+        setProfile(null);
       }
-    };
+      setLoading(false);
+    });
 
-    try {
-      await setDoc(doc(db, 'users', uid), profileData);
-      setProfile(profileData);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `users/${uid}`);
-    }
+    return unsubscribe;
+  }, [syncUserProfile]);
+
+  const refreshProfile = async (): Promise<UserProfile | null> => {
+    if (!auth.currentUser) return null;
+    return await syncUserProfile(auth.currentUser);
   };
 
   const handleUploadAvatar = async (file: File): Promise<string> => {
-    if (!auth.currentUser) throw new Error('No user logged in');
+    if (!auth.currentUser) throw new Error('Nenhum usuário autenticado');
     const metadata = await StorageService.uploadFile(file, {
       category: 'avatar',
       name: 'avatar_profile',
@@ -178,67 +181,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return metadata.url;
   };
 
-  const register = async (name: string, email: string, password: string, avatar?: File, role: AppUserRole = "player") => {
+  const register = async (
+    name: string, 
+    email: string, 
+    password: string, 
+    avatar?: File, 
+    role: AppUserRole = "player"
+  ) => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       let photoURL = '';
       
       if (avatar) {
-        photoURL = await handleUploadAvatar(avatar);
+        try {
+          photoURL = await handleUploadAvatar(avatar);
+        } catch (uploadErr) {
+          console.warn('[AuthContext] Falha no upload de avatar inicial:', uploadErr);
+        }
       }
 
-      await updateProfile(result.user, { displayName: name, photoURL });
-      await createUserProfile(result.user.uid, name, email, photoURL, role);
+      try {
+        await updateProfile(result.user, { displayName: name, photoURL });
+      } catch (profErr) {
+        console.warn('[AuthContext] Erro ao atualizar displayName no Firebase Auth:', profErr);
+      }
+
+      await syncUserProfile(result.user, { name, role, photoURL, provider: 'password' });
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error('[AuthContext] Erro no registro de conta:', error);
       throw error;
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      if (result.user) {
+        await syncUserProfile(result.user);
+      }
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('[AuthContext] Erro no login por email:', error);
       throw error;
     }
   };
 
+  /**
+   * Fluxo Oficial de Login com Google via Popup
+   * Abre seletor de contas Google, autentica no Firebase Auth,
+   * e cria ou carrega o documento do usuário no Firestore users/{uid}.
+   */
   const loginWithGoogle = async () => {
     try {
-      let result;
-      try {
-        result = await signInWithPopup(auth, googleProvider);
-      } catch (popupErr: any) {
-        // Se popup foi bloqueado pelo navegador ou pelo iframe
-        if (popupErr?.code === 'auth/popup-blocked' || popupErr?.code === 'auth/cancelled-popup-request') {
-          console.warn('[Firebase Auth] Pop-up bloqueado. Tentando autenticação via redirecionamento...', popupErr);
-          try {
-            await signInWithRedirect(auth, googleProvider);
-            return;
-          } catch (redirectErr) {
-            console.error('[Firebase Auth] Falha ao redirecionar:', redirectErr);
-            throw popupErr;
-          }
-        }
-        throw popupErr;
-      }
-
+      const result = await signInWithPopup(auth, googleProvider);
       if (result && result.user) {
-        const docRef = doc(db, 'users', result.user.uid);
-        const docSnap = await getDoc(docRef);
-        
-        if (!docSnap.exists()) {
-          await createUserProfile(
-            result.user.uid, 
-            result.user.displayName || 'Herói', 
-            result.user.email || '', 
-            result.user.photoURL || ''
-          );
-        }
+        await syncUserProfile(result.user, {
+          provider: 'google'
+        });
       }
     } catch (error: any) {
-      console.error('Google login error:', error);
+      console.error('[AuthContext] Erro no login com Google:', error);
       throw error;
     }
   };
@@ -246,9 +247,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       localStorage.removeItem('mythos_active_profile');
+      localStorage.removeItem('realmor_active_mode');
       await signOut(auth);
+      setUser(null);
+      setProfile(null);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('[AuthContext] Erro no logout:', error);
+      throw error;
     }
   };
 
@@ -256,7 +261,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await sendPasswordResetEmail(auth, email);
     } catch (error: any) {
-      console.error('Reset password error:', error);
+      console.error('[AuthContext] Erro na redefinição de senha:', error);
       throw error;
     }
   };
@@ -271,7 +276,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loginWithGoogle, 
       logout, 
       resetPassword,
-      uploadAvatar: handleUploadAvatar
+      uploadAvatar: handleUploadAvatar,
+      refreshProfile
     }}>
       {children}
     </AuthContext.Provider>

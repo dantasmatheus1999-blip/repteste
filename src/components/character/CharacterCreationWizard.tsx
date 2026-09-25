@@ -27,7 +27,6 @@ import { WizardParchmentBackground } from './wizard/WizardParchmentBackground';
 import { useAuth } from '../../context/AuthContext';
 import { CharacterService } from '../../services/characterService';
 import { WizardData, INITIAL_WIZARD_DATA } from './wizard/types';
-import { StepIdentity } from './wizard/StepIdentity';
 import { CharacterSelectionScreen3D } from './wizard/CharacterSelectionScreen3D';
 import { StepRace } from './wizard/StepRace';
 import { StepOrigin } from './wizard/StepOrigin';
@@ -54,11 +53,11 @@ interface StepMeta {
 
 export const WIZARD_STEPS: StepMeta[] = [
   {
-    id: 'identity',
-    title: '1. Identidade do Herói',
-    shortTitle: 'Identidade',
-    headline: 'IDENTIDADE DO HERÓI',
-    description: 'Escolha o nome do seu aventureiro e o retrato que o representará.',
+    id: 'selection',
+    title: '1. Seleção de Personagens',
+    shortTitle: 'Personagem',
+    headline: 'SELEÇÃO DE PERSONAGENS',
+    description: 'Escolha seu arquétipo heroico para iniciar a jornada.',
     icon: User
   },
   {
@@ -163,7 +162,6 @@ export const CharacterCreationWizard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [showSelectionScreen, setShowSelectionScreen] = useState<boolean>(true);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [data, setData] = useState<WizardData>(() => {
     const base = { ...INITIAL_WIZARD_DATA };
@@ -180,10 +178,6 @@ export const CharacterCreationWizard: React.FC = () => {
   }, []);
 
   const handleNext = () => {
-    if (currentStep === 0 && !data.name.trim()) {
-      setErrorMessage('Por favor, informe o nome do seu herói antes de prosseguir.');
-      return;
-    }
     setErrorMessage(null);
     if (currentStep < WIZARD_STEPS.length - 1) {
       setCurrentStep((prev) => prev + 1);
@@ -194,15 +188,12 @@ export const CharacterCreationWizard: React.FC = () => {
     setErrorMessage(null);
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1);
-    } else if (currentStep === 0) {
-      setShowSelectionScreen(true);
     }
   };
 
   const handleJumpToStep = (stepIndex: number) => {
     if (stepIndex >= 0 && stepIndex < WIZARD_STEPS.length) {
       setErrorMessage(null);
-      setShowSelectionScreen(false);
       setCurrentStep(stepIndex);
       setIsStepsMenuOpen(false);
     }
@@ -356,16 +347,15 @@ export const CharacterCreationWizard: React.FC = () => {
   const currentStepMeta = WIZARD_STEPS[currentStep];
   const progressPercent = Math.round(((currentStep + 1) / WIZARD_STEPS.length) * 100);
 
-  // Tela Inicial Cinematográfica: SELEÇÃO DE PERSONAGENS 3D
-  if (showSelectionScreen) {
+  // ETAPA 1/13: Tela Cinematográfica de SELEÇÃO DE PERSONAGENS 3D
+  if (currentStep === 0) {
     return (
       <CharacterSelectionScreen3D
         data={data}
         onChange={handleUpdateData}
         onNext={() => {
           setErrorMessage(null);
-          setShowSelectionScreen(false);
-          setCurrentStep(0);
+          setCurrentStep(1);
         }}
         onExit={() => navigate('/characters')}
       />
@@ -471,9 +461,6 @@ export const CharacterCreationWizard: React.FC = () => {
             transition={{ duration: 0.16 }}
             className="h-full flex flex-col"
           >
-            {currentStep === 0 && (
-              <StepIdentity data={data} onChange={handleUpdateData} />
-            )}
             {currentStep === 1 && (
               <StepRace data={data} onChange={handleUpdateData} />
             )}

@@ -65,10 +65,10 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
 
   return (
     <div className="w-full space-y-3 max-w-xl mx-auto flex flex-col h-full justify-between">
-      {/* Load / Weight Status Bar */}
-      <div className="bg-stone-900/80 border border-amber-900/40 rounded-xl p-3 shadow-md space-y-2">
+      {/* Load / Weight Status - Directly over background, no outer container */}
+      <div className="space-y-1.5 px-0.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+          <span className="font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5 font-cinzel">
             <Scale className="w-4 h-4 text-amber-400" /> Limite de Carga
           </span>
           <span className={`font-mono font-bold ${isOverburdened ? 'text-red-400' : 'text-stone-300'}`}>
@@ -76,14 +76,14 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
           </span>
         </div>
 
-        <div className="w-full h-2 bg-stone-950 rounded-full overflow-hidden border border-amber-900/30">
+        <div className="w-full h-2 bg-[#0a0d14] rounded-full overflow-hidden border border-amber-900/40 shadow-inner">
           <div
             className={`h-full transition-all duration-300 ${
               isOverburdened
-                ? 'bg-red-500'
+                ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
                 : loadPercent > 80
-                ? 'bg-amber-500'
-                : 'bg-emerald-500'
+                ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]'
+                : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]'
             }`}
             style={{ width: `${loadPercent}%` }}
           />
@@ -95,7 +95,7 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
         <button
           type="button"
           onClick={addAllAdventurerKit}
-          className="flex-1 py-2 px-3 rounded-xl bg-amber-950/60 hover:bg-amber-900/60 border border-amber-700/50 text-amber-200 text-xs font-cinzel font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
+          className="flex-1 py-2 px-3 rounded-xl bg-amber-950/60 hover:bg-amber-900/60 border border-amber-700/50 text-amber-200 text-xs font-cinzel font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           <span>+ Kit do Aventureiro</span>
@@ -104,7 +104,7 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
         <button
           type="button"
           onClick={addEmptyItem}
-          className="py-2 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-xs font-medium flex items-center gap-1.5 active:scale-95 transition-all shrink-0"
+          className="py-2 px-4 rounded-xl bg-[#0e1219]/90 hover:bg-stone-800/90 border border-stone-800 hover:border-amber-900/60 text-stone-200 text-xs font-medium flex items-center gap-1.5 active:scale-95 transition-all shrink-0 cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Novo Item</span>
@@ -114,7 +114,7 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
       {/* Inventory Items List */}
       <div className="space-y-1.5 flex-1 overflow-y-auto pr-0.5 custom-scrollbar min-h-0">
         {data.equipment.length === 0 ? (
-          <div className="h-40 border-2 border-dashed border-stone-800 rounded-xl flex flex-col items-center justify-center text-stone-500 p-4 text-center">
+          <div className="h-40 border-2 border-dashed border-stone-800/80 rounded-xl flex flex-col items-center justify-center text-stone-500 p-4 text-center">
             <Package className="w-8 h-8 mb-2 text-stone-600" />
             <span className="text-xs">Mochila vazia no momento.</span>
             <span className="text-[11px] text-stone-600 mt-0.5">
@@ -125,7 +125,7 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
           data.equipment.map((item, idx) => (
             <div
               key={item.id || idx}
-              className="bg-stone-900/70 border border-amber-900/30 rounded-xl p-2 sm:p-2.5 flex items-center justify-between gap-2 shadow-sm"
+              className="bg-[#0e1219]/90 border border-amber-900/35 rounded-xl p-2 sm:p-2.5 flex items-center justify-between gap-2 shadow-sm"
             >
               <div className="flex-1 min-w-0">
                 <input
@@ -145,11 +145,11 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
 
               {/* Quantity Stepper */}
               <div className="flex items-center gap-1 shrink-0">
-                <div className="flex items-center bg-stone-950 border border-amber-900/40 rounded-lg p-0.5">
+                <div className="flex items-center bg-[#07090e] border border-amber-900/40 rounded-lg p-0.5">
                   <button
                     type="button"
                     onClick={() => updateItemQuantity(idx, -1)}
-                    className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-white"
+                    className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-white cursor-pointer"
                   >
                     <Minus className="w-3 h-3" />
                   </button>
@@ -159,7 +159,7 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
                   <button
                     type="button"
                     onClick={() => updateItemQuantity(idx, 1)}
-                    className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-white"
+                    className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-white cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
                   </button>
@@ -168,7 +168,7 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
                 <button
                   type="button"
                   onClick={() => removeItem(idx)}
-                  className="p-1.5 text-stone-500 hover:text-red-400 rounded transition-colors"
+                  className="p-1.5 text-stone-500 hover:text-red-400 rounded transition-colors cursor-pointer"
                   title="Remover item"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -179,8 +179,8 @@ export const StepEquipment: React.FC<StepEquipmentProps> = ({ data, onChange }) 
         )}
       </div>
 
-      {/* Footer Info */}
-      <div className="text-[11px] text-stone-400 bg-stone-900/50 p-2 rounded-lg border border-amber-900/20 text-center">
+      {/* Footer Info - Directly over background */}
+      <div className="text-[11px] text-stone-400 border-t border-amber-900/30 pt-2 text-center">
         {data.equipment.length} itens na mochila. Capacidade de carga no Tormenta 20 JdA: 10 + (2 × Força {forMod >= 0 ? `+${forMod}` : forMod}) = {maxLoad} kg.
       </div>
     </div>

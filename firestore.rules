@@ -79,13 +79,25 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasRequiredFields(['uid', 'name', 'email', 'role', 'plan', 'onboardingCompleted', 'createdAt', 'updatedAt']) &&
+      return hasRequiredFields(['uid', 'email', 'createdAt', 'updatedAt']) &&
              data.uid == request.auth.uid &&
-             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
              isValidEmail(data.email) &&
-             data.role in ['player', 'master', 'admin'] &&
-             data.plan in ['free', 'premium'] &&
-             data.onboardingCompleted is bool &&
+             (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('username' in data) || (data.username is string && data.username.size() <= 50)) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 500)) &&
+             (!('photoURL' in data) || data.photoURL is string) &&
+             (!('avatarUrl' in data) || data.avatarUrl is string) &&
+             (!('coverUrl' in data) || data.coverUrl is string) &&
+             (!('mainCharacterId' in data) || (data.mainCharacterId is string && data.mainCharacterId.size() <= 128)) &&
+             (!('mainCharacterName' in data) || (data.mainCharacterName is string && data.mainCharacterName.size() <= 100)) &&
+             (!('mainCharacterClass' in data) || (data.mainCharacterClass is string && data.mainCharacterClass.size() <= 100)) &&
+             (!('mainCharacterRace' in data) || (data.mainCharacterRace is string && data.mainCharacterRace.size() <= 100)) &&
+             (!('mainCharacterLevel' in data) || (data.mainCharacterLevel is int && data.mainCharacterLevel >= 1 && data.mainCharacterLevel <= 20)) &&
+             (!('provider' in data) || (data.provider is string && data.provider.size() <= 50)) &&
+             (!('role' in data) || data.role in ['player', 'master', 'admin']) &&
+             (!('plan' in data) || data.plan in ['free', 'premium']) &&
+             (!('onboardingCompleted' in data) || data.onboardingCompleted is bool) &&
              data.createdAt is timestamp &&
              data.updatedAt is timestamp;
     }
@@ -135,17 +147,27 @@ service cloud.firestore {
 
     // Users Collection
     match /users/{userId} {
-      // Users can only read their own profile, or admins can read any
-      // Note: If public profiles are needed, split sensitive data into subcollections
-      allow read: if isOwner(userId) || isAdmin();
+      // Authenticated users can read player summaries for friends and discovery
+      allow read: if isAuthenticated();
       
-      // Create: user must be authenticated, data must be valid, and role must be 'player' (unless admin)
+      // Create: user must be authenticated, data must be valid, and role must be 'player' or 'master' (unless admin)
       allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
-                      (request.resource.data.role == 'player' || isAdmin());
+                      (!('role' in request.resource.data) || request.resource.data.role in ['player', 'master'] || isAdmin());
       
       // Update: user must be owner, data must be valid, and role cannot be changed (unless admin)
       allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
-                      (request.resource.data.role == resource.data.role || isAdmin());
+                      (!('role' in request.resource.data) || !('role' in resource.data) || request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    // Friendships Collection (Sistema de Amigos)
+    match /friendships/{friendshipId} {
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.userIds || isAdmin());
+      allow create: if isAuthenticated() && 
+                    request.resource.data.requesterId == request.auth.uid && 
+                    request.auth.uid in request.resource.data.userIds &&
+                    request.resource.data.userIds.size() == 2;
+      allow update: if isAuthenticated() && (request.auth.uid in resource.data.userIds || isAdmin());
+      allow delete: if isAuthenticated() && (request.auth.uid in resource.data.userIds || isAdmin());
     }
 
     // Characters Collection

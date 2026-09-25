@@ -43,16 +43,19 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onToggle 
       if (onSuccess) {
         onSuccess();
       } else {
-        navigate('/');
+        navigate('/select-profile');
       }
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/email-already-in-use') {
+      const code = err?.code || '';
+      if (code === 'auth/email-already-in-use') {
         setError('Este Selo Arcano já está registrado.');
-      } else if (err.code === 'auth/weak-password') {
-        setError('A Palavra de Poder é muito fraca.');
-      } else if (err.code === 'auth/operation-not-allowed') {
+      } else if (code === 'auth/weak-password') {
+        setError('A Palavra de Poder é muito fraca (mínimo 6 caracteres).');
+      } else if (code === 'auth/operation-not-allowed') {
         setError('O provedor de Email/Senha não está habilitado no Firebase Console.');
+      } else if (code === 'auth/network-request-failed') {
+        setError('Não foi possível conectar ao servidor. Tente novamente.');
       } else {
         setError('Erro ao registrar no Grimório. Verifique sua conexão.');
       }

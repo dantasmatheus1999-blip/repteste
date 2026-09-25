@@ -25,12 +25,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggle }) => {
       navigate('/select-profile');
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      const code = err?.code || '';
+      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
         setError('Selo Arcano ou Palavra de Poder incorretos.');
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (code === 'auth/too-many-requests') {
         setError('Muitas tentativas. Tente novamente mais tarde.');
-      } else if (err.code === 'auth/operation-not-allowed') {
+      } else if (code === 'auth/operation-not-allowed') {
         setError('O provedor de Email/Senha não está habilitado no Firebase Console.');
+      } else if (code === 'auth/network-request-failed') {
+        setError('Não foi possível conectar ao servidor. Tente novamente.');
       } else {
         setError('Erro ao acessar o Codex. Verifique sua conexão.');
       }
@@ -47,14 +50,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggle }) => {
       navigate('/select-profile');
     } catch (err: any) {
       console.error('Google login error:', err);
-      if (err?.code === 'auth/popup-blocked' || err?.message?.includes('popup-blocked')) {
-        setError('O navegador bloqueou a janela pop-up do Google. Permita pop-ups para este site ou entre usando email e senha.');
-      } else if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
-        setError('Login com Google cancelado.');
-      } else if (err?.code === 'auth/unauthorized-domain') {
-        setError('Este domínio ainda não foi autorizado no Firebase Authentication.');
+      const code = err?.code || '';
+      if (code === 'auth/popup-closed-by-user') {
+        setError('A janela do Google foi fechada.');
+      } else if (code === 'auth/popup-blocked') {
+        setError('O navegador bloqueou a janela de login. Permita pop-ups para continuar.');
+      } else if (code === 'auth/account-exists-with-different-credential') {
+        setError('Já existe uma conta com este e-mail. Entre usando o método de login cadastrado.');
+      } else if (code === 'auth/unauthorized-domain') {
+        setError('Este domínio ainda não está autorizado para login.');
+      } else if (code === 'auth/network-request-failed') {
+        setError('Não foi possível conectar ao servidor. Tente novamente.');
+      } else if (code === 'auth/cancelled-popup-request') {
+        setError('Operação de login cancelada.');
       } else {
-        setError('Não foi possível autenticar com Google. Tente por email/senha.');
+        setError('Não foi possível autenticar com Google. Tente novamente.');
       }
     } finally {
       setLoading(false);

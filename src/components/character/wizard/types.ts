@@ -130,7 +130,7 @@ export const PRESET_AVATARS = [
 export const INITIAL_WIZARD_DATA: WizardData = {
   name: '',
   playerName: '',
-  imageUrl: PRESET_AVATARS[0].url,
+  imageUrl: '',
   avatarType: '3d',
   avatarId: 'guerreiro',
   avatarModelPath: '3d/anaogrande-v1.glb',

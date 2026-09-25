@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Sparkles, Feather, Shield } from 'lucide-react';
+import { Feather, Shield } from 'lucide-react';
 import { WizardData } from './types';
 import { T20_DEITIES } from '../../../data/t20Deities';
 
@@ -8,35 +8,29 @@ interface StepHistoryProps {
   onChange: (updates: Partial<WizardData>) => void;
 }
 
-const BACKSTORY_PROMPTS = [
-  'Em busca de vingança contra um culto sombrio.',
-  'Último sobrevivente de um clã devastado pela Tormenta.',
-  'Jovem aprendiz em peregrinação por Arton.',
-  'Guerreiro veterano buscando redenção por seu passado.'
-];
-
 export const StepHistory: React.FC<StepHistoryProps> = ({ data, onChange }) => {
   return (
-    <div className="w-full space-y-3 max-w-xl mx-auto flex flex-col h-full justify-between">
-      {/* Top: Deity, Age, Gender in 1 compact grid */}
-      <div className="bg-stone-900/80 border border-amber-900/40 rounded-xl p-3 shadow-md space-y-2.5">
+    <div className="w-full space-y-3.5 max-w-xl mx-auto flex flex-col h-full justify-between">
+      {/* Top: Deity, Age, Gender - Directly over background */}
+      <div className="space-y-3">
+        {/* Divindade & Devoção */}
         <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1.5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5 flex items-center gap-1.5 font-cinzel">
             <Shield className="w-3.5 h-3.5 text-amber-400" /> Divindade & Devoção
           </label>
           <select
             value={data.deity || 'Nenhuma (Não Devoto)'}
             onChange={(e) => onChange({ deity: e.target.value })}
-            className="w-full bg-stone-950 border border-amber-900/50 rounded-lg px-3 py-1.5 text-xs text-stone-200 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+            className="w-full bg-[#0e1219]/90 border border-amber-900/40 rounded-xl px-3 py-2 text-xs text-stone-200 focus:outline-none focus:ring-1 focus:ring-amber-500/60 shadow-sm cursor-pointer"
           >
-            <option value="Nenhuma (Não Devoto)" className="bg-stone-950 text-stone-200">
+            <option value="Nenhuma (Não Devoto)" className="bg-[#0e1219] text-stone-200">
               Nenhuma (Não Devoto)
             </option>
             {T20_DEITIES.map((d) => {
               const cleanSummary = d.summary.replace(/\.$/, '');
               const label = `${d.name} (${cleanSummary})`;
               return (
-                <option key={d.id} value={label} className="bg-stone-950 text-stone-200">
+                <option key={d.id} value={label} className="bg-[#0e1219] text-stone-200">
                   {label}
                 </option>
               );
@@ -44,9 +38,10 @@ export const StepHistory: React.FC<StepHistoryProps> = ({ data, onChange }) => {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-1">
+        {/* Idade & Gênero / Apresentação - Perfeitamente alinhados lado a lado */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="flex flex-col">
+            <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5 font-cinzel block truncate">
               Idade
             </label>
             <input
@@ -54,51 +49,29 @@ export const StepHistory: React.FC<StepHistoryProps> = ({ data, onChange }) => {
               value={data.age || ''}
               onChange={(e) => onChange({ age: e.target.value })}
               placeholder="Ex: 24 anos"
-              className="w-full bg-stone-950 border border-amber-900/40 rounded-lg px-3 py-1.5 text-xs text-stone-200 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              className="w-full bg-[#0e1219]/90 border border-amber-900/40 rounded-xl px-3 py-2 text-xs text-stone-200 placeholder-stone-600 focus:outline-none focus:ring-1 focus:ring-amber-500/60 shadow-sm"
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-1">
+          <div className="flex flex-col">
+            <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5 font-cinzel block truncate" title="Gênero / Apresentação">
               Gênero / Apresentação
             </label>
             <input
               type="text"
               value={data.gender || ''}
               onChange={(e) => onChange({ gender: e.target.value })}
-              placeholder="Ex: Masculino, Feminino..."
-              className="w-full bg-stone-950 border border-amber-900/40 rounded-lg px-3 py-1.5 text-xs text-stone-200 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+              placeholder="Ex: Masculino, Feminino"
+              className="w-full bg-[#0e1219]/90 border border-amber-900/40 rounded-xl px-3 py-2 text-xs text-stone-200 placeholder-stone-600 focus:outline-none focus:ring-1 focus:ring-amber-500/60 shadow-sm"
             />
           </div>
         </div>
       </div>
 
-      {/* Backstory Prompts Chips */}
-      <div className="space-y-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
-          <Sparkles className="w-3.5 h-3.5" /> Ideias de Histórico (toque para adicionar):
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {BACKSTORY_PROMPTS.map((prompt, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => {
-                const current = data.history ? `${data.history}\n` : '';
-                onChange({ history: `${current}${prompt}` });
-              }}
-              className="px-2.5 py-1 rounded-lg bg-stone-900/90 border border-amber-900/30 hover:border-amber-500/50 text-[10px] text-stone-300 text-left active:scale-95 transition-all"
-            >
-              + {prompt}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Backstory Textarea */}
-      <div className="bg-stone-900/80 border border-amber-900/40 rounded-xl p-3 shadow-md flex-1 flex flex-col min-h-0">
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+      {/* Backstory Textarea - Directly over background */}
+      <div className="flex-1 flex flex-col min-h-0 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 font-cinzel">
             <Feather className="w-3.5 h-3.5 text-amber-400" /> Biografia do Personagem
           </label>
           <span className="text-[10px] text-stone-500 font-mono">
@@ -109,12 +82,12 @@ export const StepHistory: React.FC<StepHistoryProps> = ({ data, onChange }) => {
           value={data.history}
           onChange={(e) => onChange({ history: e.target.value })}
           placeholder="Escreva sobre a origem, motivação, objetivos e passado do seu herói em Arton..."
-          className="w-full flex-1 min-h-[80px] bg-stone-950 border border-amber-900/40 rounded-lg p-2.5 text-xs text-stone-200 placeholder-stone-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50 resize-none font-sans leading-relaxed custom-scrollbar"
+          className="w-full flex-1 min-h-[140px] bg-[#0e1219]/90 border border-amber-900/40 rounded-xl p-3 text-xs text-stone-200 placeholder-stone-600 focus:outline-none focus:ring-1 focus:ring-amber-500/60 resize-none font-sans leading-relaxed custom-scrollbar shadow-sm"
         />
       </div>
 
-      {/* Footer Info */}
-      <div className="text-[11px] text-stone-400 bg-stone-900/50 p-2 rounded-lg border border-amber-900/20 text-center">
+      {/* Footer Info - Directly over background */}
+      <div className="text-[11px] text-stone-400 border-t border-amber-900/30 pt-2 text-center">
         O histórico ajuda o Mestre da Campanha a criar ganchos narrativos personalizados para seu herói.
       </div>
     </div>

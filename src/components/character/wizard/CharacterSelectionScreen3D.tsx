@@ -120,6 +120,10 @@ export const CharacterSelectionScreen3D: React.FC<CharacterSelectionScreen3DProp
         const url = await resolveStorageUrl(char.pngPath);
         if (isMounted) {
           setPngUrls((prev) => ({ ...prev, [char.id]: url }));
+          const currentId = data.avatarId || 'guerreiro';
+          if (char.id === currentId && (!data.imageUrl || data.imageUrl.includes('.glb') || data.imageUrl === '')) {
+            onChange({ imageUrl: url, avatarId: char.id, avatarModelPath: char.storagePath });
+          }
         }
       } catch (err) {
         // Fallback silencioso sem travar o app
@@ -128,7 +132,7 @@ export const CharacterSelectionScreen3D: React.FC<CharacterSelectionScreen3DProp
     return () => {
       isMounted = false;
     };
-  }, [resolveStorageUrl]);
+  }, [resolveStorageUrl, data.avatarId, data.imageUrl, onChange]);
 
   // 2. Inicializar Cena Three.js (Transparente para integrar com o fundo da Catedral)
   useEffect(() => {
@@ -427,26 +431,28 @@ export const CharacterSelectionScreen3D: React.FC<CharacterSelectionScreen3DProp
 
   // Manipulador ao tocar em um dos 4 slots
   const handleSelectSlot = async (character: FixedCharacterSlot) => {
-    try {
-      const [modelUrl, pngUrl] = await Promise.all([
-        resolveStorageUrl(character.storagePath),
-        pngUrls[character.id] ? Promise.resolve(pngUrls[character.id]) : resolveStorageUrl(character.pngPath).catch(() => '')
-      ]);
+    const existingPngUrl = pngUrls[character.id];
+    // Atualiza imediatamente o avatarId e avatarModelPath para feedback instantâneo na UI e na etapa 13
+    onChange({
+      avatarType: '3d',
+      avatarId: character.id,
+      avatarModelPath: character.storagePath,
+      imageUrl: existingPngUrl || character.pngPath
+    });
 
-      onChange({
-        avatarType: '3d',
-        avatarId: character.id,
-        avatarModelPath: character.storagePath,
-        imageUrl: pngUrl || modelUrl || data.imageUrl,
-        className: character.archetype || character.name
-      });
+    try {
+      const pngUrl = existingPngUrl || (await resolveStorageUrl(character.pngPath).catch(() => ''));
+      if (pngUrl) {
+        setPngUrls((prev) => ({ ...prev, [character.id]: pngUrl }));
+        onChange({
+          avatarType: '3d',
+          avatarId: character.id,
+          avatarModelPath: character.storagePath,
+          imageUrl: pngUrl
+        });
+      }
     } catch (err) {
-      console.warn('Erro ao selecionar slot:', err);
-      onChange({
-        avatarType: '3d',
-        avatarId: character.id,
-        avatarModelPath: character.storagePath
-      });
+      console.warn('Erro ao carregar miniatura do slot:', err);
     }
   };
 
@@ -476,7 +482,12 @@ export const CharacterSelectionScreen3D: React.FC<CharacterSelectionScreen3DProp
 
   // Avançar para a próxima etapa (Criação de Personagem — Etapa 1/13 — Identidade do Herói)
   const handleProceed = () => {
-    onNext();
+    if (data.name && data.name.trim()) {
+      onNext();
+    } else {
+      setTempName('');
+      setShowNamePrompt(true);
+    }
   };
 
   const handleConfirmName = (e: React.FormEvent) => {
@@ -779,25 +790,40 @@ export const CharacterSelectionScreen3D: React.FC<CharacterSelectionScreen3DProp
           })}
         </div>
 
+        {/* Campo: NOME DO HERÓI */}
+        <div className="w-full space-y-1 text-left">
+          <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-amber-300 font-cinzel block">
+            Nome do Herói
+          </label>
+          <input
+            type="text"
+            value={data.name || ''}
+            onChange={(e) => onChange({ name: e.target.value })}
+            placeholder="Digite o nome do seu personagem"
+            maxLength={50}
+            className="w-full bg-[#0a0910]/95 border border-amber-900/60 focus:border-amber-400 focus:ring-1 focus:ring-amber-500/50 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-stone-100 placeholder-stone-500 font-cinzel transition-all shadow-inner outline-none"
+          />
+        </div>
+
         {/* Barra de Ação / Avançar para a Próxima Etapa */}
-        <div className="w-full flex items-center justify-between gap-3 pt-1">
-          {/* Nome Atual do Herói */}
+        <div className="w-full flex items-center justify-between gap-3 pt-0.5">
+          {/* Arquétipo Escolhido */}
           <div className="min-w-0 flex-1 px-3 py-1.5 rounded-xl bg-black/60 border border-amber-900/40 backdrop-blur-md flex items-center justify-between">
-            <div className="truncate">
-              <span className="text-[10px] text-stone-400 block leading-tight">HERÓI ESCOLHIDO</span>
+            <div className="truncate text-left">
+              <span className="text-[10px] text-stone-400 block leading-tight">ARQUÉTIPO</span>
               <span className="text-xs sm:text-sm font-cinzel font-bold text-amber-200 truncate block">
-                {data.name || activeCharacter.name}
+                {activeCharacter.name}
               </span>
             </div>
           </div>
 
-          {/* Botão de Continuar / Avançar */}
+          {/* Botão de Continuar / PRÓXIMO */}
           <button
             type="button"
             onClick={handleProceed}
-            className="px-5 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-stone-950 font-cinzel font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all active:scale-95 cursor-pointer shrink-0"
+            className="px-6 sm:px-7 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-stone-950 font-cinzel font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all active:scale-95 cursor-pointer shrink-0"
           >
-            <span>Avançar</span>
+            <span>Próximo</span>
             <ChevronRight className="w-4 h-4 stroke-[3]" />
           </button>
         </div>
@@ -864,7 +890,7 @@ interface SlotPortraitProps {
   isSelected: boolean;
 }
 
-const CharacterSlotPortrait: React.FC<SlotPortraitProps> = ({ type, isSelected }) => {
+export const CharacterSlotPortrait: React.FC<SlotPortraitProps> = ({ type, isSelected }) => {
   if (type === 'warrior') {
     // Slot 1: Guerreiro (Cabelo escuro, barba cheia, armadura de aço com manto de pele)
     return (

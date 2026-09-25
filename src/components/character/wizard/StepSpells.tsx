@@ -12,6 +12,7 @@ interface StepSpellsProps {
 export const StepSpells: React.FC<StepSpellsProps> = ({ data, onChange }) => {
   const [selectedCircle, setSelectedCircle] = useState<number>(1);
   const [search, setSearch] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<'all' | 'arcana' | 'divina'>('all');
   const [inspectSpell, setInspectSpell] = useState<typeof T20_SPELLS[0] | null>(null);
 
@@ -55,26 +56,27 @@ export const StepSpells: React.FC<StepSpellsProps> = ({ data, onChange }) => {
 
   return (
     <div className="w-full space-y-2.5 max-w-2xl mx-auto flex flex-col h-full">
-      {/* Top Controls Bar */}
-      <div className="flex items-center gap-2">
-        <div className="px-2.5 py-1.5 rounded-xl bg-purple-950/60 border border-purple-600/50 flex items-center gap-1.5 shrink-0">
-          <Wand2 className="w-3.5 h-3.5 text-purple-400" />
-          <span className="text-xs font-mono font-bold text-purple-200">
+      {/* Top Controls Bar - Compact Single Line [0 Magias] [1º] [2º] [3º] [4º] [5º] [🔍] */}
+      <div className="w-full flex items-center justify-between gap-1 sm:gap-1.5 flex-nowrap">
+        {/* Counter Badge */}
+        <div className="px-2 py-1 rounded-lg bg-purple-950/70 border border-purple-600/50 flex items-center gap-1 shrink-0 shadow-xs">
+          <Wand2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+          <span className="text-[11px] font-mono font-bold text-purple-200 whitespace-nowrap">
             {data.spells.length} Magias
           </span>
         </div>
 
-        {/* Circle Selector Tabs */}
-        <div className="flex gap-1 overflow-x-auto no-scrollbar shrink-0">
+        {/* 5 Circle Buttons */}
+        <div className="flex items-center gap-1 shrink-0">
           {[1, 2, 3, 4, 5].map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setSelectedCircle(c)}
-              className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+              className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                 selectedCircle === c
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'bg-stone-900 text-stone-400 hover:text-stone-200 border border-stone-800'
+                  ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400'
+                  : 'bg-[#0e1219]/90 text-stone-400 hover:text-stone-200 border border-stone-800'
               }`}
             >
               {c}º
@@ -82,18 +84,44 @@ export const StepSpells: React.FC<StepSpellsProps> = ({ data, onChange }) => {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="relative flex-1 min-w-[90px]">
-          <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-stone-500" />
+        {/* Search Icon Button */}
+        <button
+          type="button"
+          onClick={() => setIsSearchOpen((prev) => !prev)}
+          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg border flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+            isSearchOpen || search
+              ? 'bg-purple-600 border-purple-400 text-white ring-1 ring-purple-400 shadow-sm'
+              : 'bg-[#0e1219]/90 border-stone-800 text-stone-400 hover:text-stone-200 hover:border-purple-900/60'
+          }`}
+          title="Buscar magia"
+        >
+          <Search className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Expandable Search Input */}
+      {isSearchOpen && (
+        <div className="relative w-full animate-fadeIn">
+          <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-stone-500" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar magia..."
-            className="w-full bg-stone-900 border border-amber-900/40 rounded-xl pl-8 pr-2 py-1 text-xs text-stone-200 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+            placeholder="Buscar por nome, escola ou efeito..."
+            autoFocus
+            className="w-full bg-[#0e1219]/95 border border-purple-600/60 rounded-xl pl-8 pr-8 py-1.5 text-xs text-stone-200 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-purple-500 shadow-inner"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-2 text-stone-500 hover:text-stone-200 p-0.5 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Non-caster notice if applicable */}
       {!isSpellcasterClass && (

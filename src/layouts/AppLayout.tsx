@@ -41,23 +41,25 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   }, [activeProfile, isLoading, authLoading, user, location.pathname, navigate]);
 
   // Itens de Navegação do Mestre para Desktop Sidebar
-  // 📖 Grimório, 🏰 Campanhas, ⚔️ Mesa do Mestre, 🗺️ Mapas, 📚 Compêndio, ⚙️ Configurações
+  // 📖 Grimório, 🏰 Campanhas, ⚔️ Mesa do Mestre, 🗺️ Mapas, 📚 Biblioteca, 👥 Amigos, ⚙️ Configurações
   const masterNav = [
     { icon: BookOpen, label: 'Grimório', path: '/' },
     { icon: Castle, label: 'Campanhas', path: '/master/campaigns' },
     { icon: Swords, label: 'Mesa do Mestre', path: '/master' },
     { icon: Map, label: 'Mapas', path: '/map/test-map' },
-    { icon: Library, label: 'Compêndio', path: '/codex' },
+    { icon: Library, label: 'Biblioteca', path: '/codex' },
+    { icon: Users, label: 'Amigos', path: '/amigos' },
     { icon: Settings, label: 'Configurações', path: '/settings' },
   ];
 
   // Itens de Navegação do Jogador para Desktop Sidebar
-  // 📖 Grimório, 🧙 Personagens, 🎲 Minhas Aventuras, 📚 Compêndio, ⚙️ Configurações
+  // 📖 Grimório, 🧙 Personagens, 🎲 Minhas Aventuras, 📚 Biblioteca, 👥 Amigos, ⚙️ Configurações
   const playerNav = [
     { icon: BookOpen, label: 'Grimório', path: '/' },
-    { icon: Users, label: 'Personagens', path: '/characters' },
+    { icon: Swords, label: 'Personagens', path: '/characters' },
     { icon: Dices, label: 'Minhas Aventuras', path: '/immersive-rpg' },
-    { icon: Library, label: 'Compêndio', path: '/codex' },
+    { icon: Library, label: 'Biblioteca', path: '/codex' },
+    { icon: Users, label: 'Amigos', path: '/amigos' },
     { icon: Settings, label: 'Configurações', path: '/settings' },
   ];
 
@@ -70,12 +72,17 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
                       location.pathname.startsWith('/join') ||
                       location.pathname.includes('/games/');
 
-  if (location.pathname === '/select-profile' || location.pathname === '/characters/sheet' || location.pathname === '/' || isMapRoute || isGameRoute) {
+  const isFriendsRoute = location.pathname.startsWith('/amigos') || 
+                         location.pathname.startsWith('/friends');
+
+  if (location.pathname === '/select-profile' || location.pathname === '/characters/sheet' || isMapRoute || isGameRoute) {
     return <>{children}</>;
   }
 
   return (
-    <div className={`flex min-h-screen bg-mythos-bg text-mythos-text overflow-x-hidden ${isMapRoute ? 'h-screen overflow-hidden' : ''}`}>
+    <div className={`flex min-h-screen bg-mythos-bg text-mythos-text overflow-x-hidden ${
+      isMapRoute ? 'h-screen overflow-hidden' : isFriendsRoute ? 'h-[100dvh] overflow-hidden lg:h-auto lg:min-h-screen lg:overflow-x-hidden' : ''
+    }`}>
       {/* ============================================================ */}
       {/* DESKTOP SIDEBAR - Visível apenas em telas grandes (lg+)      */}
       {/* Em rotas de mapa (/map/*), torna-se uma rail estreita (56px) */}
@@ -237,41 +244,53 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
       }`}>
         {/* Header Superior Responsivo (Oculto no editor de mapa, que já tem sua barra 16:9) */}
         {!isMapRoute && (
-          <header className="h-16 border-b border-gold/20 relative flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-mythos-card/95 backdrop-blur-md sticky top-0 z-30 shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full">
+          <header className="h-16 border-b border-amber-900/30 relative flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-[#090a0d]/95 backdrop-blur-md sticky top-0 z-30 shadow-[0_4px_25px_rgba(0,0,0,0.6)] w-full">
             {/* Lado Esquerdo: Espaço balanceador para manter REALMOR perfeitamente no centro */}
-            <div className="w-9 sm:w-10 flex items-center justify-start pointer-events-none shrink-0" />
+            <div className="w-10 sm:w-11 flex items-center justify-start pointer-events-none shrink-0" />
 
-            {/* REALMOR Centralizado Horizontalmente */}
+            {/* REALMOR Centralizado Horizontalmente com ornamentos ───◇ REALMOR ◇─── */}
             <div className="flex-1 flex items-center justify-center text-center">
-              <Link to="/" className="inline-flex items-center justify-center group">
-                <h1 className="text-xl sm:text-2xl font-cinzel text-gold tracking-widest font-black uppercase text-gold-gradient drop-shadow-sm">
+              <Link to="/" className="inline-flex items-center justify-center gap-2 sm:gap-3 group select-none">
+                <div className="hidden xs:flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <span className="w-6 sm:w-10 h-[1px] bg-gradient-to-r from-transparent to-amber-500/80" />
+                  <span className="w-1.5 h-1.5 rotate-45 bg-amber-400/90 border border-amber-300/80" />
+                </div>
+
+                <h1 className="text-xl sm:text-2xl font-cinzel font-black tracking-[0.15em] sm:tracking-[0.2em] uppercase text-amber-200 group-hover:text-amber-100 transition-colors drop-shadow-[0_2px_10px_rgba(212,175,55,0.4)]">
                   REALMOR
                 </h1>
+
+                <div className="hidden xs:flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <span className="w-1.5 h-1.5 rotate-45 bg-amber-400/90 border border-amber-300/80" />
+                  <span className="w-6 sm:w-10 h-[1px] bg-gradient-to-l from-transparent to-amber-500/80" />
+                </div>
               </Link>
             </div>
             
-            {/* Lado Direito: Avatar do Usuário (T) */}
-            <div className="w-9 sm:w-10 flex items-center justify-end shrink-0">
+            {/* Lado Direito: Botão Quadrado com Moldura Dourada [ T ] */}
+            <div className="w-10 sm:w-11 flex items-center justify-end shrink-0">
               {user ? (
                 <button
                   id="header-profile-btn"
-                  onClick={() => setIsMoreSheetOpen(prev => !prev)}
-                  className="rounded-sm focus:outline-none focus:ring-1 focus:ring-gold/50 cursor-pointer shrink-0"
-                  title="Perfil e Opções"
-                  aria-label="Abrir perfil e opções"
+                  onClick={() => navigate('/profile')}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-[#0d0e12] border border-amber-500/70 p-[2px] shadow-[0_0_12px_rgba(212,175,55,0.25)] hover:border-amber-400 transition-all cursor-pointer flex items-center justify-center group active:scale-95"
+                  title="Perfil do Jogador"
+                  aria-label="Abrir perfil do jogador"
                 >
-                  {profile?.photoURL || user.photoURL ? (
-                    <img 
-                      src={profile?.photoURL || user.photoURL || ''} 
-                      alt={profile?.name || user.displayName || 'Avatar'} 
-                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-sm border-2 border-gold/70 shadow-[0_0_12px_rgba(212,175,55,0.25)] object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-sm bg-mythos-card border-2 border-gold/70 shadow-[0_0_12px_rgba(212,175,55,0.25)] flex items-center justify-center text-gold font-cinzel text-sm sm:text-base font-bold">
-                      {(profile?.name || user.displayName)?.[0] || 'T'}
-                    </div>
-                  )}
+                  <div className="w-full h-full rounded-sm border border-amber-500/30 flex items-center justify-center bg-[#13141a] overflow-hidden">
+                    {profile?.photoURL || user.photoURL ? (
+                      <img 
+                        src={profile?.photoURL || user.photoURL || ''} 
+                        alt={profile?.name || user.displayName || 'Avatar'} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span className="text-amber-300 font-cinzel text-sm font-bold group-hover:text-amber-200">
+                        {(profile?.name || user.displayName)?.[0]?.toUpperCase() || 'T'}
+                      </span>
+                    )}
+                  </div>
                 </button>
               ) : (
                 <Link to="/auth">
@@ -300,10 +319,20 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
             {children}
           </main>
         ) : (
-          <main className={`flex-1 overflow-y-auto pb-24 sm:pb-28 lg:pb-8 scroll-smooth ${
-            location.pathname === '/' || location.pathname === '/grimorio' ? 'p-0' : 'p-3 sm:p-5 lg:p-6'
+          <main className={`flex-1 overflow-y-auto scroll-smooth ${
+            location.pathname === '/' || location.pathname === '/grimorio' 
+              ? 'p-0 pb-24 sm:pb-28 lg:pb-8' 
+              : location.pathname.startsWith('/amigos') || location.pathname.startsWith('/friends')
+                ? 'p-2 sm:p-3 pb-16 lg:pb-6 flex flex-col min-h-0 overflow-y-auto lg:overflow-visible'
+                : 'p-3 sm:p-5 lg:p-6 pb-24 sm:pb-28 lg:pb-8'
           } bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')]`}>
-            <div className={`w-full ${location.pathname === '/' || location.pathname === '/grimorio' ? 'max-w-none' : 'max-w-7xl mx-auto'}`}>
+            <div className={`w-full ${
+              location.pathname === '/' || location.pathname === '/grimorio' 
+                ? 'max-w-none' 
+                : location.pathname.startsWith('/amigos') || location.pathname.startsWith('/friends')
+                  ? 'max-w-lg mx-auto flex-1 flex flex-col min-h-0 h-full'
+                  : 'max-w-7xl mx-auto'
+            }`}>
               {children}
             </div>
           </main>

@@ -17,6 +17,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { ProfileProvider } from './context/ProfileContext';
 import { AuthProvider } from './context/AuthContext';
+import { FriendshipProvider } from './context/FriendshipContext';
 import { Dice3DProvider } from './components/dice3d/Dice3DContext';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 
@@ -26,6 +27,8 @@ import { WelcomePage } from './pages/WelcomePage';
 import { ProfileSelection } from './pages/ProfileSelection';
 import { CharacterSheet } from './pages/CharacterSheet';
 import { CharacterListPage } from './pages/CharacterListPage';
+import { FriendsPage } from './pages/FriendsPage';
+import { PlayerProfilePage } from './pages/PlayerProfilePage';
 import { ClassesPage } from './pages/ClassesPage';
 import { ClassDetailPage } from './pages/ClassDetailPage';
 import { CodexPage } from './pages/CodexPage';
@@ -270,113 +273,128 @@ export default function App() {
       <Router>
         <AuthProvider>
           <ProfileProvider>
-            <Dice3DProvider>
-              <Routes>
-                {/* Rota 100% pública e independente da TV - Sem Layout, Sem Menus, Sem Auth, Sem Profile, Sem ProtectedRoute */}
-                <Route path="/tv" element={<TvMapView />} />
-                <Route path="/tv/*" element={<TvMapView />} />
-                <Route path="/tv/mapa-teste" element={<TvMapView />} />
+            <FriendshipProvider>
+              <Dice3DProvider>
+                <Routes>
+                  {/* Rota 100% pública e independente da TV - Sem Layout, Sem Menus, Sem Auth, Sem Profile, Sem ProtectedRoute */}
+                  <Route path="/tv" element={<TvMapView />} />
+                  <Route path="/tv/*" element={<TvMapView />} />
+                  <Route path="/tv/mapa-teste" element={<TvMapView />} />
 
-                {/* Public Routes */}
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/test/3d" element={<ThreeDModelTestPage />} />
-                <Route path="/teste-3d" element={<ThreeDModelTestPage />} />
-                <Route path="/test/makehuman" element={<MakeHumanTestPage />} />
-                <Route path="/join/:inviteCode" element={<AppLayout><GameInvitePage /></AppLayout>} />
-                <Route path="/campaigns/:campaignId/games/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
-                <Route path="/mesa/:campaignId/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
-                <Route path="/mesa/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
+                  {/* Public Routes */}
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/test/3d" element={<ThreeDModelTestPage />} />
+                  <Route path="/teste-3d" element={<ThreeDModelTestPage />} />
+                  <Route path="/test/makehuman" element={<MakeHumanTestPage />} />
+                  <Route path="/join/:inviteCode" element={<AppLayout><GameInvitePage /></AppLayout>} />
+                  <Route path="/campaigns/:campaignId/games/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
+                  <Route path="/mesa/:campaignId/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
+                  <Route path="/mesa/:gameId" element={<AppLayout><GameBasicPage /></AppLayout>} />
 
-                {/* Protected Routes */}
-                <Route path="/welcome" element={
-                  <ProtectedRoute>
-                    <WelcomePage />
-                  </ProtectedRoute>
-                } />
+                  {/* Protected Routes */}
+                  <Route path="/welcome" element={
+                    <ProtectedRoute>
+                      <WelcomePage />
+                    </ProtectedRoute>
+                  } />
 
-                {/* Rota inicial principal: Seleção de Personagens / Criação de Herói */}
-                <Route path="/" element={<ProtectedRoute><CharacterCreationWizard /></ProtectedRoute>} />
-                <Route path="/grimorio" element={<ProtectedRoute><AppLayout><GrimoireCentralPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/select-profile" element={<ProtectedRoute><AppLayout><ProfileSelection /></AppLayout></ProtectedRoute>} />
-                
-                {/* Novas rotas principais do REALMOR */}
-                <Route path="/mestre" element={<ProtectedRoute><AppLayout><NewMasterPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/jogador" element={<ProtectedRoute><AppLayout><NewPlayerPage /></AppLayout></ProtectedRoute>} />
+                  {/* Início / Grimório Central */}
+                  <Route path="/" element={<ProtectedRoute><AppLayout><GrimoireCentralPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/grimorio" element={<ProtectedRoute><AppLayout><GrimoireCentralPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/select-profile" element={<ProtectedRoute><AppLayout><ProfileSelection /></AppLayout></ProtectedRoute>} />
+                  
+                  {/* Novas rotas principais do REALMOR */}
+                  <Route path="/mestre" element={<ProtectedRoute><AppLayout><NewMasterPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/jogador" element={<ProtectedRoute><AppLayout><NewPlayerPage /></AppLayout></ProtectedRoute>} />
 
-                {/* Módulos legados preservados como rascunho para consulta futura */}
-                <Route path="/legacy/dashboard" element={<ProtectedRoute><AppLayout><Home /></AppLayout></ProtectedRoute>} />
-                <Route path="/legacy/mestre" element={<ProtectedRoute><AppLayout><MasterGrimoire /></AppLayout></ProtectedRoute>} />
-                <Route path="/legacy/jogador" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
-                
-                {/* Codex Routes */}
-                <Route path="/codex" element={<ProtectedRoute><AppLayout><CodexPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/classes" element={<ProtectedRoute><AppLayout><ClassesPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/classes/:slug" element={<ProtectedRoute><AppLayout><ClassDetailPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/racas" element={<ProtectedRoute><AppLayout><RacesPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/racas/:slug" element={<ProtectedRoute><AppLayout><RaceDetailPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/origens" element={<ProtectedRoute><AppLayout><OriginsPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/origens/:slug" element={<ProtectedRoute><AppLayout><OriginDetailPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/divindades" element={<ProtectedRoute><AppLayout><DeitiesPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/divindades/:slug" element={<ProtectedRoute><AppLayout><DeityDetailPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/poderes" element={<ProtectedRoute><AppLayout><PowersPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/codex/magias" element={<ProtectedRoute><AppLayout><SpellsPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/spells" element={<ProtectedRoute><AppLayout><SpellsPage /></AppLayout></ProtectedRoute>} />
+                  {/* Sistema de Amigos */}
+                  <Route path="/amigos" element={<ProtectedRoute><AppLayout><FriendsPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/friends" element={<Navigate to="/amigos" replace />} />
 
-                <Route path="/characters" element={<ProtectedRoute><AppLayout><CharacterListPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/characters/sheet" element={<ProtectedRoute><AppLayout><CharacterCreationWizard /></AppLayout></ProtectedRoute>} />
-                <Route path="/characters/:id" element={<ProtectedRoute><AppLayout><CharacterSheetView /></AppLayout></ProtectedRoute>} />
-                
-                {/* Master Routes */}
-                <Route path="/master" element={<ProtectedRoute><AppLayout><MasterGrimoire /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns" element={<ProtectedRoute><AppLayout><CampaignListPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/new" element={<ProtectedRoute><AppLayout><CampaignForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:id" element={<ProtectedRoute><AppLayout><CampaignDetailPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:id/edit" element={<ProtectedRoute><AppLayout><CampaignForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/sessions/new" element={<ProtectedRoute><AppLayout><SessionForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/sessions/:sessionId" element={<ProtectedRoute><AppLayout><SessionForm /></AppLayout></ProtectedRoute>} />
-                
-                <Route path="/master/npcs" element={<ProtectedRoute><AppLayout><NPCListPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/npcs/new" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/npcs/generator" element={<ProtectedRoute><AppLayout><NPCGenerator /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/npcs/:npcId" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
-                
-                <Route path="/master/monsters" element={<ProtectedRoute><AppLayout><BestiaryPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/monsters/new" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/monsters/:monsterId" element={<ProtectedRoute><AppLayout><MonsterDetailsPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/monsters/:monsterId/edit" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
-                
-                <Route path="/master/campaigns/:campaignId/monsters" element={<ProtectedRoute><AppLayout><BestiaryPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/monsters/new" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/monsters/:monsterId" element={<ProtectedRoute><AppLayout><MonsterDetailsPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/monsters/:monsterId/edit" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/npcs" element={<ProtectedRoute><AppLayout><NPCListPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/npcs/new" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/npcs/generator" element={<ProtectedRoute><AppLayout><NPCGenerator /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/npcs/:npcId" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
-                
-                <Route path="/master/campaigns/:campaignId/locations/new" element={<ProtectedRoute><AppLayout><LocationForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/locations/:locationId" element={<ProtectedRoute><AppLayout><LocationForm /></AppLayout></ProtectedRoute>} />
-                
-                <Route path="/master/campaigns/:campaignId/encounters/new" element={<ProtectedRoute><AppLayout><EncounterForm /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/encounters/:encounterId" element={<ProtectedRoute><AppLayout><EncounterForm /></AppLayout></ProtectedRoute>} />
-                
-                <Route path="/master/notes" element={<ProtectedRoute><AppLayout><MasterNotesPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/master/campaigns/:campaignId/notes" element={<ProtectedRoute><AppLayout><MasterNotesPage /></AppLayout></ProtectedRoute>} />
+                  {/* Perfil Interativo do Jogador */}
+                  <Route path="/profile" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/profile/:userId" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/perfil" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/perfil/:userId" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
 
-                {/* Map Routes */}
-                <Route path="/master/maps" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/map/test-map" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/maps" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/map/:roomId" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
-                <Route path="/map/:roomId/tactical" element={<ProtectedRoute><AppLayout><TacticalMapPage /></AppLayout></ProtectedRoute>} />
+                  {/* Módulos legados preservados como rascunho para consulta futura */}
+                  <Route path="/legacy/dashboard" element={<ProtectedRoute><AppLayout><Home /></AppLayout></ProtectedRoute>} />
+                  <Route path="/legacy/mestre" element={<ProtectedRoute><AppLayout><MasterGrimoire /></AppLayout></ProtectedRoute>} />
+                  <Route path="/legacy/jogador" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
+                  
+                  {/* Biblioteca / Codex Routes */}
+                  <Route path="/biblioteca" element={<Navigate to="/codex" replace />} />
+                  <Route path="/codex" element={<ProtectedRoute><AppLayout><CodexPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/codex/magias" element={<Navigate to="/codex?category=magias" replace />} />
+                  <Route path="/spells" element={<Navigate to="/codex?category=magias" replace />} />
+                  <Route path="/codex/classes" element={<Navigate to="/codex?category=classes" replace />} />
+                  <Route path="/codex/classes/:slug" element={<ProtectedRoute><AppLayout><ClassDetailPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/codex/racas" element={<Navigate to="/codex?category=racas" replace />} />
+                  <Route path="/codex/racas/:slug" element={<ProtectedRoute><AppLayout><RaceDetailPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/codex/origens" element={<Navigate to="/codex?category=origens" replace />} />
+                  <Route path="/codex/origens/:slug" element={<ProtectedRoute><AppLayout><OriginDetailPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/codex/divindades" element={<Navigate to="/codex?category=divindades" replace />} />
+                  <Route path="/codex/divindades/:slug" element={<ProtectedRoute><AppLayout><DeityDetailPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/codex/poderes" element={<Navigate to="/codex?category=poderes" replace />} />
+                  <Route path="/codex/equipamentos" element={<Navigate to="/codex?category=equipamentos" replace />} />
+                  <Route path="/codex/monstros" element={<Navigate to="/codex?category=monstros" replace />} />
 
-                <Route path="/immersive-rpg" element={<ProtectedRoute><AppLayout><ImmersiveRPGPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/characters" element={<ProtectedRoute><AppLayout><CharacterListPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/characters/sheet" element={<ProtectedRoute><AppLayout><CharacterCreationWizard /></AppLayout></ProtectedRoute>} />
+                  <Route path="/characters/:id" element={<ProtectedRoute><AppLayout><CharacterSheetView /></AppLayout></ProtectedRoute>} />
+                  
+                  {/* Master Routes */}
+                  <Route path="/master" element={<ProtectedRoute><AppLayout><MasterGrimoire /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns" element={<ProtectedRoute><AppLayout><CampaignListPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/new" element={<ProtectedRoute><AppLayout><CampaignForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:id" element={<ProtectedRoute><AppLayout><CampaignDetailPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:id/edit" element={<ProtectedRoute><AppLayout><CampaignForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/sessions/new" element={<ProtectedRoute><AppLayout><SessionForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/sessions/:sessionId" element={<ProtectedRoute><AppLayout><SessionForm /></AppLayout></ProtectedRoute>} />
+                  
+                  <Route path="/master/npcs" element={<ProtectedRoute><AppLayout><NPCListPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/npcs/new" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/npcs/generator" element={<ProtectedRoute><AppLayout><NPCGenerator /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/npcs/:npcId" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
+                  
+                  <Route path="/master/monsters" element={<ProtectedRoute><AppLayout><BestiaryPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/monsters/new" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/monsters/:monsterId" element={<ProtectedRoute><AppLayout><MonsterDetailsPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/monsters/:monsterId/edit" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
+                  
+                  <Route path="/master/campaigns/:campaignId/monsters" element={<ProtectedRoute><AppLayout><BestiaryPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/monsters/new" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/monsters/:monsterId" element={<ProtectedRoute><AppLayout><MonsterDetailsPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/monsters/:monsterId/edit" element={<ProtectedRoute><AppLayout><MonsterForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/npcs" element={<ProtectedRoute><AppLayout><NPCListPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/npcs/new" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/npcs/generator" element={<ProtectedRoute><AppLayout><NPCGenerator /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/npcs/:npcId" element={<ProtectedRoute><AppLayout><NPCForm /></AppLayout></ProtectedRoute>} />
+                  
+                  <Route path="/master/campaigns/:campaignId/locations/new" element={<ProtectedRoute><AppLayout><LocationForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/locations/:locationId" element={<ProtectedRoute><AppLayout><LocationForm /></AppLayout></ProtectedRoute>} />
+                  
+                  <Route path="/master/campaigns/:campaignId/encounters/new" element={<ProtectedRoute><AppLayout><EncounterForm /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/encounters/:encounterId" element={<ProtectedRoute><AppLayout><EncounterForm /></AppLayout></ProtectedRoute>} />
+                  
+                  <Route path="/master/notes" element={<ProtectedRoute><AppLayout><MasterNotesPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master/campaigns/:campaignId/notes" element={<ProtectedRoute><AppLayout><MasterNotesPage /></AppLayout></ProtectedRoute>} />
 
-                <Route path="/combat" element={<ProtectedRoute><AppLayout><PlaceholderPage title="Combate" /></AppLayout></ProtectedRoute>} />
-                <Route path="*" element={<ProtectedRoute><AppLayout><PlaceholderPage title="Página não encontrada" /></AppLayout></ProtectedRoute>} />
-              </Routes>
-            </Dice3DProvider>
+                  {/* Map Routes */}
+                  <Route path="/master/maps" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/map/test-map" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/maps" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/map/:roomId" element={<ProtectedRoute><AppLayout><MapPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/map/:roomId/tactical" element={<ProtectedRoute><AppLayout><TacticalMapPage /></AppLayout></ProtectedRoute>} />
+
+                  <Route path="/immersive-rpg" element={<ProtectedRoute><AppLayout><ImmersiveRPGPage /></AppLayout></ProtectedRoute>} />
+
+                  <Route path="/combat" element={<ProtectedRoute><AppLayout><PlaceholderPage title="Combate" /></AppLayout></ProtectedRoute>} />
+                  <Route path="*" element={<ProtectedRoute><AppLayout><PlaceholderPage title="Página não encontrada" /></AppLayout></ProtectedRoute>} />
+                </Routes>
+              </Dice3DProvider>
+            </FriendshipProvider>
           </ProfileProvider>
         </AuthProvider>
         {!isTvMode && <FirestoreDevHud />}
