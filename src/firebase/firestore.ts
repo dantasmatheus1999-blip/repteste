@@ -1,5 +1,6 @@
 import { 
   getFirestore, 
+  initializeFirestore,
   doc, 
   setDoc as rawSetDoc, 
   getDoc as rawGetDoc, 
@@ -26,7 +27,16 @@ import app, { firebaseConfig } from './config';
 import { auth } from './auth';
 import { firestoreTracker, extractTargetInfo } from './firestoreDiagnostic';
 
-const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Inicialização oficial estável com o banco correto do Firebase
+let dbInstance: any;
+try {
+  dbInstance = initializeFirestore(app, {
+    ignoreUndefinedProperties: true
+  }, firebaseConfig.firestoreDatabaseId);
+} catch (e) {
+  dbInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+}
+const db = dbInstance;
 
 let quotaExhausted = false;
 
@@ -206,14 +216,24 @@ export const onSnapshot = (reference: any, ...args: any[]) => {
     collection: target.collection,
   });
 
-  const rawUnsub = (rawOnSnapshot as any)(reference, ...args);
+  let rawUnsub: any;
+  try {
+    rawUnsub = (rawOnSnapshot as any)(reference, ...args);
+  } catch (err) {
+    console.warn(`[Firestore onSnapshot] Erro ao registrar listener em ${target.collection}:`, err);
+    rawUnsub = () => {};
+  }
 
   return () => {
     firestoreTracker.recordListenerClose({
       collection: target.collection,
     });
     if (typeof rawUnsub === 'function') {
-      rawUnsub();
+      try {
+        rawUnsub();
+      } catch (err) {
+        // Encerramento silencioso em caso de desmonte
+      }
     }
   };
 };

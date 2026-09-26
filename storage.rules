@@ -13,12 +13,16 @@ service firebase.storage {
         (request.auth.token.email == "dantasmatheus1999@outlook.com.br");
     }
 
-    // Mapas e cenários de batalha (test_maps e maps)
-    match /maps/{allPaths=**} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+    // Biblioteca de Mapas do Mestre isolada estritamente por UID
+    match /maps/{userId}/{allPaths=**} {
+      allow read, write, delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
-    match /test_maps/{allPaths=**} {
+    match /test_maps/{userId}/{allPaths=**} {
+      allow read, write, delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Mapas de Campanha compartilhados na partida
+    match /campaign_maps/{campaignId}/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }

@@ -13,6 +13,7 @@ import {
 } from '../firebase/auth';
 import { db, doc, setDoc, getDoc, serverTimestamp, OperationType, handleFirestoreError } from '../firebase/firestore';
 import { StorageService } from '../services/storageService';
+import { AssetCacheService } from '../services/assetCacheService';
 
 export type AppUserRole = "player" | "master" | "admin";
 
@@ -20,8 +21,18 @@ export interface UserProfile {
   uid: string;
   name: string;
   displayName?: string;
+  username?: string;
+  bio?: string;
   email: string;
   photoURL?: string;
+  avatarUrl?: string;
+  coverUrl?: string;
+  mainCharacterId?: string;
+  mainCharacterName?: string;
+  mainCharacterClass?: string;
+  mainCharacterRace?: string;
+  mainCharacterLevel?: number;
+  mainCharacterAvatar?: string;
   provider?: string;
   createdAt: any;
   updatedAt: any;
@@ -147,8 +158,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Monitorar o estado de autenticação do Firebase (onAuthStateChanged)
+  // Monitorar o estado de autenticação do Firebase e pré-carregar os assets essenciais do app
   useEffect(() => {
+    let isMounted = true;
+
+    // Inicia o pré-carregamento e cacheamento das imagens essenciais em paralelo
+    const preloadPromise = AssetCacheService.preloadEssentialAssets().catch((err) => {
+      console.warn('[AuthContext] Aviso ao pré-carregar assets essenciais:', err);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -160,10 +178,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setProfile(null);
       }
-      setLoading(false);
+
+      // Aguarda o término do cache de imagens essenciais antes de liberar a primeira tela
+      await preloadPromise;
+
+      if (isMounted) {
+        setLoading(false);
+      }
     });
 
-    return unsubscribe;
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [syncUserProfile]);
 
   const refreshProfile = async (): Promise<UserProfile | null> => {

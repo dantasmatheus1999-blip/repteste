@@ -174,7 +174,7 @@ export const GameInvitePage: React.FC = () => {
   return (
     <div className="min-h-[85vh] flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300">
       <div 
-        className="w-full max-w-lg rounded-2xl border border-amber-800/60 bg-gradient-to-b from-[#1b1510] via-[#14100c] to-[#0c0907] p-5 sm:p-7 shadow-[0_25px_65px_rgba(0,0,0,0.95)] relative overflow-hidden space-y-5"
+        className="w-full max-w-lg rounded-2xl border border-amber-800/60 bg-gradient-to-b from-[#1b1510] via-[#14100c] to-[#0c0907] p-4 sm:p-6 shadow-[0_25px_65px_rgba(0,0,0,0.95)] relative space-y-4 max-h-[92vh] overflow-y-auto custom-scrollbar"
         style={{
           boxShadow: 'inset 0 1px 0 rgba(212,175,55,0.25), inset 0 0 40px rgba(0,0,0,0.8), 0 25px 60px rgba(0,0,0,0.95)'
         }}
@@ -186,7 +186,7 @@ export const GameInvitePage: React.FC = () => {
         <div className="absolute bottom-2.5 right-2.5 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-500/50 pointer-events-none" />
 
         {/* TOPO: Informações da Aventura */}
-        <div className="text-center space-y-1.5 border-b border-amber-900/40 pb-4">
+        <div className="text-center space-y-1.5 border-b border-amber-900/40 pb-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#18130e] border border-amber-800/40 text-amber-300 text-xs font-cinzel font-bold tracking-widest uppercase">
             <Sword size={13} className="text-amber-400" />
             <span>⚔️ ENTRAR NA AVENTURA</span>
@@ -253,17 +253,17 @@ export const GameInvitePage: React.FC = () => {
                   return (
                     <div
                       key={char.id}
-                      className="p-3.5 rounded-xl bg-[#0e0a07] border border-amber-900/40 hover:border-amber-600/70 transition-all flex items-center justify-between group shadow-sm"
+                      className="p-3 rounded-xl bg-[#0e0a07] border border-amber-900/40 hover:border-amber-600/70 transition-all flex items-center justify-between gap-3 group shadow-sm min-h-[58px]"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-stone-900 border border-amber-900/50 flex items-center justify-center text-lg shrink-0">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-10 h-10 rounded-lg bg-stone-900 border border-amber-900/50 flex items-center justify-center text-lg shrink-0 select-none">
                           {emoji}
                         </div>
-                        <div>
-                          <h4 className="font-cinzel font-bold text-sm text-stone-100 group-hover:text-amber-200 transition-colors">
-                            {emoji} {char.name.toUpperCase()}
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-cinzel font-bold text-xs sm:text-sm text-stone-100 group-hover:text-amber-200 transition-colors truncate leading-tight">
+                            {char.name.toUpperCase()}
                           </h4>
-                          <p className="text-xs text-amber-400/80 font-serif">
+                          <p className="text-[11px] sm:text-xs text-amber-400/80 font-serif truncate mt-0.5 leading-tight">
                             {char.className} • Nível {char.level}
                             {char.race && <span className="text-stone-400"> ({char.race})</span>}
                           </p>
@@ -273,9 +273,9 @@ export const GameInvitePage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleSelectHero(char)}
-                        className="py-2 px-3.5 rounded-lg bg-amber-950/70 hover:bg-amber-800/80 border border-amber-700/50 text-amber-200 hover:text-amber-100 text-xs font-cinzel font-bold uppercase tracking-wider transition-all shadow active:scale-95 cursor-pointer"
+                        className="shrink-0 self-center px-3 py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-800 border border-amber-600/60 hover:border-amber-400 text-amber-200 hover:text-amber-100 text-xs font-cinzel font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
                       >
-                        [ ESCOLHER ]
+                        ESCOLHER
                       </button>
                     </div>
                   );
@@ -309,63 +309,63 @@ export const GameInvitePage: React.FC = () => {
         {/* ETAPA 2: RESUMO E CONFIRMAÇÃO DO HERÓI                                   */}
         {/* ======================================================================= */}
         {step === 2 && selectedCharacter && (
-          <div className="space-y-4">
-            <div className="text-center space-y-1">
-              <div className="inline-flex items-center gap-1.5 text-xs font-cinzel font-bold uppercase tracking-widest text-amber-400">
-                <CheckCircle2 size={13} className="text-amber-400" />
+          <div className="flex flex-col space-y-3.5 pt-0.5">
+            <div className="text-center space-y-0.5 border-b border-amber-900/40 pb-2.5 shrink-0">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-cinzel font-bold uppercase tracking-widest text-amber-400">
+                <CheckCircle2 size={12} className="text-amber-400" />
                 <span>CONFIRMAÇÃO DO HERÓI</span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-cinzel font-bold text-amber-100 tracking-wide">
+              <h2 className="text-lg sm:text-xl font-cinzel font-bold text-amber-100 tracking-wide">
                 SEU HERÓI
               </h2>
             </div>
 
             {/* Resumo Exigido: Nome, Raça, Classe, Nível, PV, PM */}
-            <div className="rounded-xl border border-amber-800/50 bg-[#090705] p-4 sm:p-5 space-y-3.5 shadow-inner">
-              <div className="flex items-center gap-3 border-b border-amber-900/30 pb-3">
-                <span className="text-3xl">
+            <div className="rounded-xl border border-amber-800/50 bg-[#090705] p-3 sm:p-4 space-y-2.5 shadow-inner shrink-0">
+              <div className="flex items-center gap-2.5 border-b border-amber-900/30 pb-2.5">
+                <span className="text-2xl sm:text-3xl shrink-0">
                   {getClassEmoji(selectedCharacter.className)}
                 </span>
-                <div>
-                  <h3 className="text-lg font-cinzel font-bold text-amber-100">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base font-cinzel font-bold text-amber-100 truncate leading-tight">
                     {selectedCharacter.name}
                   </h3>
-                  <p className="text-xs font-serif text-amber-400/80">
+                  <p className="text-[11px] font-serif text-amber-400/80 truncate">
                     Pronto para se juntar à mesa
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs font-serif">
-                <div className="p-2 rounded-lg bg-[#14100c] border border-amber-950 flex flex-col">
-                  <span className="text-[10px] font-cinzel uppercase text-stone-400 font-bold">Raça</span>
-                  <span className="font-semibold text-stone-200 mt-0.5">{selectedCharacter.race || 'Humano'}</span>
+              <div className="grid grid-cols-2 gap-2 text-xs font-serif">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-[#14100c] border border-amber-950 flex flex-col">
+                  <span className="text-[9px] font-cinzel uppercase text-stone-400 font-bold">Raça</span>
+                  <span className="font-semibold text-stone-200 mt-0.5 text-xs truncate">{selectedCharacter.race || 'Humano'}</span>
                 </div>
 
-                <div className="p-2 rounded-lg bg-[#14100c] border border-amber-950 flex flex-col">
-                  <span className="text-[10px] font-cinzel uppercase text-stone-400 font-bold">Classe</span>
-                  <span className="font-semibold text-stone-200 mt-0.5">{selectedCharacter.className}</span>
+                <div className="p-1.5 sm:p-2 rounded-lg bg-[#14100c] border border-amber-950 flex flex-col">
+                  <span className="text-[9px] font-cinzel uppercase text-stone-400 font-bold">Classe</span>
+                  <span className="font-semibold text-stone-200 mt-0.5 text-xs truncate">{selectedCharacter.className}</span>
                 </div>
 
-                <div className="p-2 rounded-lg bg-[#14100c] border border-amber-950 flex flex-col">
-                  <span className="text-[10px] font-cinzel uppercase text-stone-400 font-bold">Nível</span>
-                  <span className="font-semibold text-amber-300 mt-0.5 font-mono text-sm">Nível {selectedCharacter.level}</span>
+                <div className="p-1.5 sm:p-2 rounded-lg bg-[#14100c] border border-amber-950 flex flex-col">
+                  <span className="text-[9px] font-cinzel uppercase text-stone-400 font-bold">Nível</span>
+                  <span className="font-semibold text-amber-300 mt-0.5 font-mono text-xs">Nível {selectedCharacter.level}</span>
                 </div>
 
-                <div className="p-2 rounded-lg bg-[#14100c] border border-amber-950 flex flex-col">
-                  <span className="text-[10px] font-cinzel uppercase text-stone-400 font-bold flex items-center gap-1">
-                    <Heart size={10} className="text-red-400" /> PV
+                <div className="p-1.5 sm:p-2 rounded-lg bg-[#14100c] border border-amber-950 flex flex-col">
+                  <span className="text-[9px] font-cinzel uppercase text-stone-400 font-bold flex items-center gap-1">
+                    <Heart size={10} className="text-red-400 shrink-0" /> PV
                   </span>
-                  <span className="font-semibold text-red-300 mt-0.5 font-mono text-sm">
+                  <span className="font-semibold text-red-300 mt-0.5 font-mono text-xs">
                     {selectedCharacter.currentPV} / {selectedCharacter.maxPV}
                   </span>
                 </div>
 
-                <div className="col-span-2 p-2 rounded-lg bg-[#14100c] border border-amber-950 flex items-center justify-between">
-                  <span className="text-[10px] font-cinzel uppercase text-stone-400 font-bold flex items-center gap-1">
-                    <Sparkles size={10} className="text-blue-400" /> PM (Mana)
+                <div className="col-span-2 p-1.5 sm:p-2 rounded-lg bg-[#14100c] border border-amber-950 flex items-center justify-between">
+                  <span className="text-[9px] font-cinzel uppercase text-stone-400 font-bold flex items-center gap-1">
+                    <Sparkles size={10} className="text-blue-400 shrink-0" /> PM (Mana)
                   </span>
-                  <span className="font-semibold text-blue-300 font-mono text-sm">
+                  <span className="font-semibold text-blue-300 font-mono text-xs">
                     {selectedCharacter.currentPM} / {selectedCharacter.maxPM}
                   </span>
                 </div>
@@ -373,30 +373,30 @@ export const GameInvitePage: React.FC = () => {
             </div>
 
             {submitError && (
-              <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/60 text-red-300 text-xs flex items-center gap-2">
-                <AlertCircle size={15} className="shrink-0 text-red-400" />
+              <div className="p-2.5 rounded-xl bg-red-950/60 border border-red-800/60 text-red-300 text-xs flex items-center gap-2 shrink-0">
+                <AlertCircle size={14} className="shrink-0 text-red-400" />
                 <span>{submitError}</span>
               </div>
             )}
 
             {/* Ações */}
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-1 pb-1 shrink-0">
               <button
                 type="button"
                 onClick={handleConfirmAndEnter}
                 disabled={isSubmitting}
-                className="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-500 text-stone-950 font-cinzel font-bold tracking-widest uppercase text-sm shadow-xl transition-all flex items-center justify-center gap-2 active:scale-[0.99] cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-500 text-stone-950 font-cinzel font-bold tracking-wider uppercase text-xs sm:text-sm shadow-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-4 h-4 rounded-full border-2 border-stone-950 border-t-transparent animate-spin" />
+                    <div className="w-4 h-4 rounded-full border-2 border-stone-950 border-t-transparent animate-spin shrink-0" />
                     <span>Vinculando Herói...</span>
                   </>
                 ) : (
                   <>
-                    <Sword size={16} />
-                    <span>[ CONFIRMAR E ENTRAR ]</span>
-                    <ArrowRight size={16} />
+                    <Sword size={15} className="shrink-0" />
+                    <span>CONFIRMAR E ENTRAR</span>
+                    <ArrowRight size={15} className="shrink-0" />
                   </>
                 )}
               </button>
@@ -405,7 +405,7 @@ export const GameInvitePage: React.FC = () => {
                 type="button"
                 onClick={() => setStep(1)}
                 disabled={isSubmitting}
-                className="w-full py-2 text-xs font-cinzel font-semibold uppercase tracking-wider text-stone-400 hover:text-stone-200 transition-colors cursor-pointer"
+                className="w-full py-1.5 text-xs font-cinzel font-semibold uppercase tracking-wider text-stone-400 hover:text-stone-200 transition-colors cursor-pointer"
               >
                 Escolher outro herói
               </button>

@@ -52,6 +52,7 @@ import { MapCanvas } from './MapCanvas';
 import { PlayersPanel } from './PlayersPanel';
 import { MapLibraryDrawer } from './MapLibraryDrawer';
 import { MapBestiaryDrawer } from './MapBestiaryDrawer';
+import { MasterCampaignMapModal } from '../campaign-map/MasterCampaignMapModal';
 import { DEFAULT_FOG_SETTINGS } from './fogUtils';
 import { calculateAutomaticGrid, getEffectiveGrid } from './gridUtils';
 import { 
@@ -70,7 +71,7 @@ import {
 } from './mapService';
 import { Game } from '../../types/game';
 import { GameService } from '../../services/gameService';
-import { auth } from '../../firebase/auth';
+import { auth, onAuthStateChanged } from '../../firebase/auth';
 
 interface HistorySnapshot {
   mapId: string;
@@ -81,7 +82,10 @@ interface HistorySnapshot {
   visionAreas?: VisionArea[];
 }
 
-const LAST_STATE_STORAGE_KEY = 'realmor_map_editor_last_state';
+const getLastStateStorageKey = (userId?: string) => {
+  const uid = userId || auth.currentUser?.uid;
+  return uid ? `realmor_map_editor_last_state_${uid}` : 'realmor_map_editor_last_state_guest';
+};
 
 interface PersistedEditorState {
   splitCount: SplitLayoutCount;
@@ -94,9 +98,9 @@ interface PersistedEditorState {
   }[];
 }
 
-const loadPersistedEditorState = (): PersistedEditorState | null => {
+const loadPersistedEditorState = (userId?: string): PersistedEditorState | null => {
   try {
-    const raw = localStorage.getItem(LAST_STATE_STORAGE_KEY);
+    const raw = localStorage.getItem(getLastStateStorageKey(userId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
@@ -157,6 +161,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   const [liveGame, setLiveGame] = useState<Game | null>(propGame || null);
   const [isFinishingModalOpen, setIsFinishingModalOpen] = useState(false);
   const [isUpdatingGameStatus, setIsUpdatingGameStatus] = useState(false);
+  const [isCampaignMapModalOpen, setIsCampaignMapModalOpen] = useState(false);
 
   // Inscrição em tempo real aos dados da partida (Game)
   useEffect(() => {
@@ -204,13 +209,13 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       setIsUpdatingGameStatus(false);
     }
   };
-  // Estado dos Mapas e Pastas (inicia sem pastas padrão automáticas)
-  const [maps, setMaps] = useState<TestMap[]>(SAMPLE_MAPS);
+  // Estado dos Mapas e Pastas (inicia com biblioteca vazia isolada por conta)
+  const [maps, setMaps] = useState<TestMap[]>([]);
   const [folders, setFolders] = useState<MapFolder[]>([]);
   const [isLoadingMaps, setIsLoadingMaps] = useState(true);
 
-  // Carregar Último Estado Salvo do Mestre (localStorage)
-  const initialPersistedState = useMemo(() => loadPersistedEditorState(), []);
+  // Carregar Último Estado Salvo do Mestre (localStorage isolado por UID)
+  const initialPersistedState = useMemo(() => loadPersistedEditorState(auth.currentUser?.uid), []);
 
   // Divisão de Tela (1, 2, 3 ou 4 Mapas)
   const [splitCount, setSplitCount] = useState<SplitLayoutCount>(initialPersistedState?.splitCount || 1);
@@ -225,7 +230,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       }));
     }
     return [
-      { quadrantId: 0, mapId: SAMPLE_MAPS[0]?.id || null, zoom: 1, pan: { x: 0, y: 0 }, resetViewTrigger: 0 },
+      { quadrantId: 0, mapId: null, zoom: 1, pan: { x: 0, y: 0 }, resetViewTrigger: 0 },
       { quadrantId: 1, mapId: null, zoom: 1, pan: { x: 0, y: 0 }, resetViewTrigger: 0 },
       { quadrantId: 2, mapId: null, zoom: 1, pan: { x: 0, y: 0 }, resetViewTrigger: 0 },
       { quadrantId: 3, mapId: null, zoom: 1, pan: { x: 0, y: 0 }, resetViewTrigger: 0 },
@@ -269,7 +274,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             pan: q.pan
           }))
         };
-        localStorage.setItem(LAST_STATE_STORAGE_KEY, JSON.stringify(payload));
+        localStorage.setItem(getLastStateStorageKey(auth.currentUser?.uid), JSON.stringify(payload));
       } catch (e) {
         console.warn('Erro ao salvar realmor_map_editor_last_state:', e);
       }
@@ -359,48 +364,75 @@ export const MapEditor: React.FC<MapEditorProps> = ({
 
   // Mapa ativo no momento (associado ao quadrante ativo)
   const currentQuadrant = quadrants[activeQuadrantIndex] || quadrants[0];
-  const activeMap = maps.find(m => m.id === currentQuadrant.mapId) || maps[0] || SAMPLE_MAPS[0];
+  const activeMap = maps.find(m => m.id === currentQuadrant?.mapId) || maps[0] || null;
 
   // Grade do Mapa Ativo (automática por padrão ou configuração manual existente)
   const gridSettings: GridSettings = getEffectiveGrid(activeMap);
 
   // Configuração da Névoa do Mapa Ativo
-  const fogSettings: FogSettings = activeMap.fogSettings || DEFAULT_FOG_SETTINGS;
+  const fogSettings: FogSettings = activeMap?.fogSettings || DEFAULT_FOG_SETTINGS;
 
-  // Carregar mapas e pastas iniciais do Firestore
+  // Carregar mapas e pastas isolados por conta via Firebase Auth
   useEffect(() => {
     let isMounted = true;
-    Promise.all([fetchTestMaps(), fetchMapFolders()]).then(([loadedMaps, loadedFolders]) => {
-      if (isMounted) {
-        if (loadedMaps.length > 0) {
-          setMaps(loadedMaps);
-          
-          setQuadrants(prev => {
-            const next = prev.map((q, idx) => {
-              if (q.mapId) {
-                const mapExists = loadedMaps.some(m => m.id === q.mapId);
-                // Se o mapa não existe mais (excluído), o slot fica vazio (null) de forma segura
-                return mapExists ? q : { ...q, mapId: null };
-              }
-              // Se não havia estado salvo prévio no localStorage e for o quadrante 0, define o primeiro mapa
-              if (idx === 0 && !initialPersistedState) {
-                return { ...q, mapId: loadedMaps[0].id };
-              }
-              return q;
-            });
-            return next;
-          });
-        }
+    setIsLoadingMaps(true);
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!isMounted) return;
+
+      if (!user) {
+        setMaps([]);
+        setFolders([]);
+        setQuadrants([
+          { quadrantId: 0, mapId: null, zoom: 1, pan: { x: 0, y: 0 }, resetViewTrigger: 0 },
+          { quadrantId: 1, mapId: null, zoom: 1, pan: { x: 0, y: 0 }, resetViewTrigger: 0 },
+          { quadrantId: 2, mapId: null, zoom: 1, pan: { x: 0, y: 0 }, resetViewTrigger: 0 },
+          { quadrantId: 3, mapId: null, zoom: 1, pan: { x: 0, y: 0 }, resetViewTrigger: 0 },
+        ]);
+        setIsLoadingMaps(false);
+        return;
+      }
+
+      const uid = user.uid;
+      const userPersistedState = loadPersistedEditorState(uid);
+
+      Promise.all([fetchTestMaps(uid), fetchMapFolders(uid)]).then(([loadedMaps, loadedFolders]) => {
+        if (!isMounted) return;
+
+        setMaps(loadedMaps);
         setFolders(loadedFolders);
         setIsLoadingMaps(false);
-      }
-    }).catch(err => {
-      console.warn('Erro ao carregar mapas e pastas:', err);
-      if (isMounted) setIsLoadingMaps(false);
+
+        setQuadrants(prev => {
+          if (userPersistedState?.quadrants) {
+            return userPersistedState.quadrants.map(q => ({
+              ...q,
+              mapId: q.mapId && loadedMaps.some(m => m.id === q.mapId) ? q.mapId : null,
+              resetViewTrigger: 0
+            }));
+          }
+          return prev.map((q, idx) => {
+            if (q.mapId) {
+              const mapExists = loadedMaps.some(m => m.id === q.mapId);
+              return mapExists ? q : { ...q, mapId: null };
+            }
+            if (idx === 0 && loadedMaps.length > 0) {
+              return { ...q, mapId: loadedMaps[0].id };
+            }
+            return q;
+          });
+        });
+      }).catch(err => {
+        console.warn('Erro ao carregar mapas e pastas do usuário:', err);
+        if (isMounted) setIsLoadingMaps(false);
+      });
     });
 
-    return () => { isMounted = false; };
-  }, [initialPersistedState]);
+    return () => { 
+      isMounted = false; 
+      unsubscribe();
+    };
+  }, []);
 
   // Monitorar se a TV está conectada
   useEffect(() => {
@@ -453,6 +485,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
 
   // Salvar snapshot antes de alterações para Undo
   const pushHistorySnapshot = useCallback(() => {
+    if (!activeMap) return;
     setUndoStack(prev => [
       ...prev.slice(-15),
       {
@@ -465,12 +498,14 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       }
     ]);
     setRedoStack([]);
-  }, [activeMap.id, activeMap.markers, activeMap.drawings, activeMap.shapes, activeMap.fogData, activeMap.visionAreas]);
+  }, [activeMap]);
 
   // Atualizar propriedades do mapa ativo com debounce inteligente (salva no Firestore apenas após estabilização)
   const updateActiveMap = useCallback((updater: Partial<TestMap>, reason: string = 'map update') => {
+    if (!activeMap) return;
+    const targetMapId = activeMap.id;
     setMaps(prevMaps => prevMaps.map(m => {
-      if (m.id === activeMap.id) {
+      if (m.id === targetMapId) {
         const updated = { ...m, ...updater, updatedAt: new Date().toISOString() };
         pendingMapRef.current = updated;
         pendingReasonRef.current = reason;
@@ -491,7 +526,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       }
       return m;
     }));
-  }, [activeMap.id]);
+  }, [activeMap]);
 
   // Atualizar Viewport específico de um quadrante (Zoom / Pan independente)
   const updateQuadrantViewport = useCallback((quadrantIndex: number, updates: Partial<QuadrantMapState>) => {
@@ -579,6 +614,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     const newUndoStack = undoStack.slice(0, -1);
 
     const targetMap = maps.find(m => m.id === last.mapId) || activeMap;
+    if (!targetMap) return;
 
     setRedoStack(prev => [
       ...prev,
@@ -616,6 +652,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     const newRedoStack = redoStack.slice(0, -1);
 
     const targetMap = maps.find(m => m.id === next.mapId) || activeMap;
+    if (!targetMap) return;
 
     setUndoStack(prev => [
       ...prev,
@@ -763,6 +800,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleAddMarker = (x: number, y: number) => {
+    if (!activeMap) return;
     pushHistorySnapshot();
     const newMarker: MapMarker = {
       id: `marker-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -781,6 +819,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleUpdateMarker = (markerId: string, updates: Partial<MapMarker>) => {
+    if (!activeMap) return;
     const currentMarkers = activeMap.markers || [];
     updateActiveMap({
       markers: currentMarkers.map(m => m.id === markerId ? { ...m, ...updates } : m)
@@ -788,6 +827,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleUpdateMarkerPosition = (markerId: string, x: number, y: number) => {
+    if (!activeMap) return;
     const currentMarkers = activeMap.markers || [];
     updateActiveMap({
       markers: currentMarkers.map(m => m.id === markerId ? { ...m, x, y } : m)
@@ -795,6 +835,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleAddDrawing = (drawingData: Omit<MapDrawing, 'id'>) => {
+    if (!activeMap) return;
     pushHistorySnapshot();
     const newDrawing: MapDrawing = {
       ...drawingData,
@@ -807,6 +848,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleUpdateDrawing = (drawingId: string, updates: Partial<MapDrawing>) => {
+    if (!activeMap) return;
     const currentDrawings = activeMap.drawings || [];
     updateActiveMap({
       drawings: currentDrawings.map(d => d.id === drawingId ? { ...d, ...updates } : d)
@@ -814,6 +856,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleAddShape = (shapeData: Omit<MapShape, 'id'>) => {
+    if (!activeMap) return;
     pushHistorySnapshot();
     const newShape: MapShape = {
       ...shapeData,
@@ -827,6 +870,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleUpdateShape = (shapeId: string, updates: Partial<MapShape>) => {
+    if (!activeMap) return;
     const currentShapes = activeMap.shapes || [];
     updateActiveMap({
       shapes: currentShapes.map(s => s.id === shapeId ? { ...s, ...updates } : s)
@@ -834,6 +878,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleDeleteObject = (obj: SelectedObject) => {
+    if (!activeMap) return;
     pushHistorySnapshot();
     if (obj.type === 'marker') {
       const currentMarkers = activeMap.markers || [];
@@ -858,6 +903,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   // ÁREAS DE VISÃO (TORMENTA 20 - DINÂMICO E NÃO DESTRUTIVO)
   // ============================================================
   const handleAddVisionArea = (visionData: Omit<VisionArea, 'id'>) => {
+    if (!activeMap) return;
     pushHistorySnapshot();
     const newVision: VisionArea = {
       ...visionData,
@@ -870,6 +916,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleUpdateVisionArea = (visionId: string, updates: Partial<VisionArea>) => {
+    if (!activeMap) return;
     const currentAreas = activeMap.visionAreas || [];
     updateActiveMap({
       visionAreas: currentAreas.map(v => v.id === visionId ? { ...v, ...updates } : v)
@@ -877,6 +924,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleDeleteVisionArea = (visionId: string) => {
+    if (!activeMap) return;
     pushHistorySnapshot();
     const currentAreas = activeMap.visionAreas || [];
     updateActiveMap({
@@ -885,6 +933,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleClearVisionAreas = () => {
+    if (!activeMap) return;
     const currentAreas = activeMap.visionAreas || [];
     if (currentAreas.length === 0) return;
     pushHistorySnapshot();
@@ -934,16 +983,13 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleDeleteMap = async (mapId: string) => {
-    if (maps.length <= 1) {
-      alert('É necessário manter ao menos um mapa no Reino.');
-      return;
-    }
-    await deleteTestMap(mapId);
+    const mapToDelete = maps.find(m => m.id === mapId);
+    await deleteTestMap(mapId, mapToDelete?.storagePath);
     setMaps(prev => {
       const remaining = prev.filter(m => m.id !== mapId);
-      // Atualiza quadrantes que apontavam para este mapa deixando o slot vazio para escolher outro destino
+      // Atualiza quadrantes que apontavam para este mapa deixando o slot com outro mapa ou vazio
       setQuadrants(quads => {
-        const next = quads.map(q => q.mapId === mapId ? { ...q, mapId: null } : q);
+        const next = quads.map(q => q.mapId === mapId ? { ...q, mapId: remaining[0]?.id || null } : q);
         saveToLocalStorage(undefined, undefined, next, true);
         return next;
       });
@@ -968,13 +1014,6 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       e.stopPropagation();
     }
 
-    // Diagnóstico antes da abertura da TV
-    console.log('[ABRIR TV - DIAGNÓSTICO ANTES]', {
-      uid: auth.currentUser?.uid || null,
-      activeMode: localStorage.getItem('realmor_active_mode'),
-      activeProfile: localStorage.getItem('mythos_active_profile')
-    });
-
     try {
       if (tvWindowRef.current && !tvWindowRef.current.closed) {
         tvWindowRef.current.focus();
@@ -985,13 +1024,6 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     } catch (err) {
       console.warn('Não foi possível abrir a janela da TV:', err);
     }
-
-    // Diagnóstico após abertura da TV na aba do Mestre (deve permanecer idêntico)
-    console.log('[ABRIR TV - DIAGNÓSTICO DEPOIS]', {
-      uid: auth.currentUser?.uid || null,
-      activeMode: localStorage.getItem('realmor_active_mode'),
-      activeProfile: localStorage.getItem('mythos_active_profile')
-    });
   };
 
   // ============================================================
@@ -1038,16 +1070,16 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       });
 
       const syncPayload: TvSyncState = {
-        mapId: activeMap.id || '',
-        mapName: activeMap.name || '',
-        imageUrl: activeMap.imageUrl || '',
+        mapId: activeMap?.id || '',
+        mapName: activeMap?.name || '',
+        imageUrl: activeMap?.imageUrl || '',
         grid: gridSettings,
-        fogData: activeMap.fogData || '',
+        fogData: activeMap?.fogData || '',
         fogSettings: fogSettings,
-        visionAreas: activeMap.visionAreas || [],
-        markers: activeMap.markers || [],
-        drawings: activeMap.drawings || [],
-        shapes: activeMap.shapes || [],
+        visionAreas: activeMap?.visionAreas || [],
+        markers: activeMap?.markers || [],
+        drawings: activeMap?.drawings || [],
+        shapes: activeMap?.shapes || [],
         viewport: {
           zoom: currentQuadrant?.zoom || 1,
           panX: currentQuadrant?.pan?.x || 0,
@@ -1103,23 +1135,38 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     setUploadError(null);
 
     try {
-      const { url, name } = await uploadMapImage(file);
+      const currentUser = auth.currentUser;
+      const uid = currentUser?.uid;
+      if (!uid) {
+        throw new Error('Usuário não autenticado. Faça login para fazer upload de mapas para sua biblioteca.');
+      }
+
+      const uniqueMapId = `map-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const { url, name, storagePath, size, mimeType } = await uploadMapImage(file, uniqueMapId, uid);
       const chosenFolder = uploadTargetFolderId === 'unorganized' ? undefined : uploadTargetFolderId;
+      
       const newMap: TestMap = {
-        id: `map-${Date.now()}`,
+        id: uniqueMapId,
+        userId: uid,
+        ownerId: uid,
         name: newMapName.trim() || name,
+        fileName: file.name,
+        storagePath: storagePath,
         imageUrl: url,
+        fileSize: size || file.size,
+        mimeType: mimeType || file.type || 'image/png',
         folderId: chosenFolder,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         grid: calculateAutomaticGrid(),
         markers: [],
         drawings: [],
-        shapes: []
+        shapes: [],
+        visionAreas: []
       };
 
       await saveTestMap(newMap, 'new map upload');
-      setMaps(prev => [newMap, ...prev]);
+      setMaps(prev => [newMap, ...prev.filter(m => m.id !== newMap.id)]);
       setQuadrantMap(activeQuadrantIndex, newMap.id);
       setIsMapModalOpen(false);
       setNewMapName('');
@@ -1207,7 +1254,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
               className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 rounded-lg bg-stone-900 border border-amber-900/50 hover:border-amber-600/70 text-xs font-cinzel font-bold text-amber-200 transition-all cursor-pointer max-w-[130px] sm:max-w-[200px]"
             >
               <MapIcon size={14} className="text-amber-400 shrink-0" />
-              <span className="truncate">{activeMap.name}</span>
+              <span className="truncate">{activeMap?.name || 'Sem Mapa Selecionado'}</span>
               {splitCount > 1 && (
                 <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-amber-950/80 text-amber-400 border border-amber-800/50">
                   Q{activeQuadrantIndex + 1}
@@ -1237,13 +1284,13 @@ export const MapEditor: React.FC<MapEditorProps> = ({
                         setIsTopMapDropdownOpen(false);
                       }}
                       className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                        m.id === activeMap.id 
+                        m.id === activeMap?.id 
                           ? 'bg-amber-950/80 text-amber-200 font-bold border border-amber-700/50' 
                           : 'text-stone-300 hover:bg-stone-900 hover:text-amber-300'
                       }`}
                     >
                       <span className="truncate">{m.name}</span>
-                      {m.id === activeMap.id && <Check size={13} className="text-amber-400 shrink-0" />}
+                      {m.id === activeMap?.id && <Check size={13} className="text-amber-400 shrink-0" />}
                     </button>
                   ))}
                 </div>
@@ -1364,10 +1411,10 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             id="map-open-tv-tab-btn"
             onClick={handleOpenTv}
             className="flex items-center gap-1.5 text-[11px] font-cinzel text-amber-400/90 hover:text-amber-200 px-2 sm:px-2.5 py-1 rounded bg-stone-900/80 hover:bg-stone-850 border border-amber-900/50 hover:border-amber-700/60 transition-all cursor-pointer shadow-sm"
-            title="Abrir Tela da TV em nova aba (/tv)"
+            title="Abrir na TV (/tv)"
           >
             <ExternalLink size={13} />
-            <span className="hidden sm:inline">ABRIR TV</span>
+            <span className="hidden sm:inline">ABRIR NA TV</span>
           </button>
 
           {/* BOTÃO CRÍTICO: [ 📺 ATUALIZAR NA TV ] */}
@@ -1434,6 +1481,8 @@ export const MapEditor: React.FC<MapEditorProps> = ({
         <MapToolbar
           activeTool={activeTool}
           onSelectTool={setActiveTool}
+          campaignId={campaignId}
+          gameId={gameId}
           activeMapName={activeMap?.name}
           activeQuadrantIndex={activeQuadrantIndex}
           activeQuadrantNumber={activeQuadrantIndex + 1}
@@ -1445,7 +1494,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           onCoverAllFog={handleCoverAllFog}
           selectedVisionRadius={selectedVisionRadius}
           onSelectVisionRadius={setSelectedVisionRadius}
-          visionAreasCount={(activeMap.visionAreas || []).length}
+          visionAreasCount={(activeMap?.visionAreas || []).length}
           onClearVisionAreas={handleClearVisionAreas}
           activeShapeType={activeShapeType}
           onSelectShapeType={setActiveShapeType}
@@ -1461,9 +1510,9 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           onSetScaleMeters={setScaleMeters}
           selectedObject={selectedObject}
           onCloseProperties={() => setSelectedObject(null)}
-          markers={activeMap.markers || []}
-          drawings={activeMap.drawings || []}
-          shapes={activeMap.shapes || []}
+          markers={activeMap?.markers || []}
+          drawings={activeMap?.drawings || []}
+          shapes={activeMap?.shapes || []}
           onUpdateMarker={handleUpdateMarker}
           onUpdateDrawing={handleUpdateDrawing}
           onUpdateShape={handleUpdateShape}
@@ -1477,6 +1526,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           isBestiaryOpen={isBestiaryOpen}
           onToggleBestiary={handleToggleBestiary}
           onCloseBestiary={handleCloseBestiary}
+          onOpenCampaignMap={() => setIsCampaignMapModalOpen(true)}
         />
 
         {/* PAINEL ACOPLADO DA BIBLIOTECA DE MAPAS */}
@@ -1485,7 +1535,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           onClose={handleCloseLibrary}
           maps={maps}
           folders={folders}
-          activeMapId={activeMap.id}
+          activeMapId={activeMap?.id || null}
           onSelectMap={(mapId) => setQuadrantMap(activeQuadrantIndex, mapId)}
           onCreateFolder={handleCreateFolder}
           onUpdateFolder={handleUpdateFolder}
@@ -1546,6 +1596,18 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           isMaster={isMaster} 
         />
       </div>
+
+      {/* ============================================================ */}
+      {/* MODAL: MAPA DA CAMPANHA (EXCLUSIVO MESTRE)                   */}
+      {/* ============================================================ */}
+      {campaignId && (
+        <MasterCampaignMapModal
+          isOpen={isCampaignMapModalOpen}
+          onClose={() => setIsCampaignMapModalOpen(false)}
+          campaignId={campaignId}
+          campaignName={liveGame?.name || 'Campanha'}
+        />
+      )}
 
       {/* ============================================================ */}
       {/* MODAL: CONFIRMAÇÃO DE FINALIZAR AVENTURA                     */}
@@ -1620,7 +1682,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
                       setIsMapModalOpen(false);
                     }}
                     className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-2 group ${
-                      activeMap.id === sample.id
+                      activeMap?.id === sample.id
                         ? 'border-amber-500 bg-amber-950/40 shadow-lg'
                         : 'border-stone-800 bg-stone-900/60 hover:border-amber-800/80 hover:bg-stone-900'
                     }`}
@@ -1660,6 +1722,10 @@ export const MapEditor: React.FC<MapEditorProps> = ({
                   onChange={handleFileSelect}
                   className="hidden"
                 />
+
+                <p className="text-[11px] text-stone-400 font-serif">
+                  Formatos aceitos: JPG, PNG, WebP (limite máximo de 50 MB).
+                </p>
 
                 {uploadError && (
                   <p className="text-red-400 text-xs">{uploadError}</p>

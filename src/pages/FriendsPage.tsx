@@ -144,10 +144,12 @@ export const FriendsPage: React.FC = () => {
   // Filtragem dos amigos
   const filteredFriends = useMemo(() => {
     if (!filterQuery.trim()) return friends;
-    const q = filterQuery.toLowerCase();
+    const q = filterQuery.toLowerCase().trim();
+    const cleanQ = q.replace(/^@+/, '');
     return friends.filter(f => 
       (f.friendUser.name || '').toLowerCase().includes(q) ||
       (f.friendUser.displayName || '').toLowerCase().includes(q) ||
+      (f.friendUser.username || '').toLowerCase().includes(cleanQ) ||
       (f.friendUser.mainCharacterName || '').toLowerCase().includes(q) ||
       (f.friendUser.mainCharacterClass || '').toLowerCase().includes(q)
     );
@@ -155,7 +157,8 @@ export const FriendsPage: React.FC = () => {
 
   // Busca de jogadores
   const handleSearchPlayers = async (termToSearch: string) => {
-    if (!termToSearch.trim() || termToSearch.trim().length < 2) {
+    const clean = termToSearch.trim();
+    if (!clean) {
       setSearchResults([]);
       setHasSearched(false);
       return;
@@ -165,7 +168,7 @@ export const FriendsPage: React.FC = () => {
     setHasSearched(true);
 
     try {
-      const results = await FriendshipService.searchPlayers(termToSearch, user?.uid || '');
+      const results = await FriendshipService.searchPlayers(clean, user?.uid || '');
       setSearchResults(results);
     } catch (err) {
       console.error('Erro na busca de jogadores:', err);
@@ -667,7 +670,7 @@ export const FriendsPage: React.FC = () => {
                           {target.name || target.displayName}
                         </h4>
                         <p className="text-[11px] text-stone-400 truncate">
-                          {target.mainCharacterName || 'Aventureiro'}
+                          {target.username ? `@${target.username.replace(/^@+/, '')}` : (target.mainCharacterName || 'Aventureiro')}
                         </p>
                       </div>
                     </div>

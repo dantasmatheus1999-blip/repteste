@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ref, getDownloadURL, storage } from '../../firebase/storage';
+import { AssetCacheService, LOADING_IMAGE_URL } from '../../services/assetCacheService';
 
-const REALMOR_ICON_DEFAULT_URL =
-  'https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0150741197.firebasestorage.app/o/img-capas%2Fswordandstaff.png?alt=media';
+const REALMOR_ICON_DEFAULT_URL = LOADING_IMAGE_URL;
 
-let cachedIconUrl: string = REALMOR_ICON_DEFAULT_URL;
-let isCachedResolved = false;
-
-// Preload the image asset in background
+// Preload the loading image immediately on JS import
 if (typeof window !== 'undefined') {
-  const img = new Image();
-  img.src = REALMOR_ICON_DEFAULT_URL;
+  AssetCacheService.preloadLoadingAsset().catch(() => {});
 }
 
 export interface RealmorLoadingProps {
@@ -33,29 +29,37 @@ export const RealmorLoading: React.FC<RealmorLoadingProps> = ({
   fullScreen = false,
   className = '',
 }) => {
-  const [iconUrl, setIconUrl] = useState<string>(cachedIconUrl);
+  const [iconUrl, setIconUrl] = useState<string>(() => 
+    AssetCacheService.getCachedUrl(REALMOR_ICON_DEFAULT_URL)
+  );
 
   useEffect(() => {
-    if (!isCachedResolved) {
-      try {
-        const iconRef = ref(storage, 'img-capas/swordandstaff.png');
-        getDownloadURL(iconRef)
-          .then((url) => {
-            if (url) {
-              cachedIconUrl = url;
-              isCachedResolved = true;
-              setIconUrl(url);
-            }
-          })
-          .catch((err) => {
-            // Em caso de restrição temporária, mantém a URL direta estável
-            console.debug('[RealmorLoading] Usando URL base para swordandstaff.png:', err);
-            isCachedResolved = true;
-          });
-      } catch (e) {
-        isCachedResolved = true;
+    let isMounted = true;
+    
+    // Ensure loading asset is pre-decoded and update state
+    AssetCacheService.preloadLoadingAsset().then((cachedUrl) => {
+      if (isMounted && cachedUrl) {
+        setIconUrl(cachedUrl);
       }
-    }
+    });
+
+    // Also attempt Firebase Storage URL lookup in background for fallback
+    try {
+      const iconRef = ref(storage, 'img-capas/swordandstaff.png');
+      getDownloadURL(iconRef)
+        .then((url) => {
+          if (url && isMounted) {
+            AssetCacheService.preloadImage(url).then((cUrl) => {
+              if (isMounted) setIconUrl(cUrl);
+            });
+          }
+        })
+        .catch(() => {});
+    } catch (_) {}
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Mapeamento de dimensões para o ícone

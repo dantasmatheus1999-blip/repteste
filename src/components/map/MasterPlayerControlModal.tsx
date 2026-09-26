@@ -75,32 +75,32 @@ export const MasterPlayerControlModal: React.FC<MasterPlayerControlModalProps> =
     }
   }, [normalized?.currentPV, normalized?.currentPM, normalized?.conditions]);
 
-  // Alteração de PV com disparo para o callback debounced
+  // Alteração de PV respeitando estritamente os limites [0, maxPV]
   const handleAdjustPV = (delta: number) => {
     if (!charId) return;
-    const nextPV = Math.min(maxPV + 50, Math.max(0, currentPV + delta));
+    const nextPV = Math.min(maxPV, Math.max(0, currentPV + delta));
     setCurrentPV(nextPV);
     onUpdateCharacter(charId, { currentPV: nextPV });
   };
 
   const handleSetPV = (val: number) => {
     if (!charId) return;
-    const nextPV = Math.min(maxPV + 50, Math.max(0, val));
+    const nextPV = Math.min(maxPV, Math.max(0, val));
     setCurrentPV(nextPV);
     onUpdateCharacter(charId, { currentPV: nextPV });
   };
 
-  // Alteração de PM com disparo para o callback debounced
+  // Alteração de PM respeitando estritamente os limites [0, maxPM]
   const handleAdjustPM = (delta: number) => {
     if (!charId) return;
-    const nextPM = Math.min(maxPM + 50, Math.max(0, currentPM + delta));
+    const nextPM = Math.min(maxPM, Math.max(0, currentPM + delta));
     setCurrentPM(nextPM);
     onUpdateCharacter(charId, { currentPM: nextPM });
   };
 
   const handleSetPM = (val: number) => {
     if (!charId) return;
-    const nextPM = Math.min(maxPM + 50, Math.max(0, val));
+    const nextPM = Math.min(maxPM, Math.max(0, val));
     setCurrentPM(nextPM);
     onUpdateCharacter(charId, { currentPM: nextPM });
   };

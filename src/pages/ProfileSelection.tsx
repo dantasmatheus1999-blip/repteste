@@ -11,7 +11,11 @@ export const ProfileSelection = () => {
 
   const handleSelect = (role: UserRole) => {
     selectProfile(role);
-    navigate('/');
+    if (role === 'MASTER') {
+      navigate('/mestre');
+    } else {
+      navigate('/jogador');
+    }
   };
 
   return (

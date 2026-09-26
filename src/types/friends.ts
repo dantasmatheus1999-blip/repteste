@@ -6,11 +6,16 @@ export interface UserSummary {
   uid: string;
   name: string;
   displayName?: string;
+  username?: string;
+  bio?: string;
   photoURL?: string;
+  avatarUrl?: string;
+  coverUrl?: string;
   mainCharacterName?: string;
   mainCharacterClass?: string;
   mainCharacterLevel?: number;
   mainCharacterRace?: string;
+  mainCharacterAvatar?: string;
   isOnline?: boolean;
   lastSeen?: any;
   createdAt?: any;

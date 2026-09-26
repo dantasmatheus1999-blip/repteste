@@ -7,18 +7,18 @@ import {
   Sword, 
   Dices, 
   Map, 
-  Compass,
-  Navigation,
+  Compass, 
+  Navigation, 
   StickyNote, 
   Zap, 
   Plus, 
-  ChevronRight,
-  Play,
-  History,
-  UserPlus,
-  User,
-  Skull,
-  X
+  ChevronRight, 
+  Play, 
+  History, 
+  UserPlus, 
+  User, 
+  Skull, 
+  X 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
@@ -27,6 +27,7 @@ import { Campaign } from '../../types/master';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { DiceRollerPanel } from '../../components/master/dice-roller/DiceRollerPanel';
+import { CreateGameModal } from '../../components/games/CreateGameModal';
 
 export const MasterGrimoire: React.FC = () => {
   const { user } = useAuth();
@@ -34,19 +35,60 @@ export const MasterGrimoire: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDiceRoller, setShowDiceRoller] = useState(false);
+  const [isCreateRoomOpen, setIsCreateRoomOpen] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
 
   useEffect(() => {
     if (user) {
       const unsubscribe = MasterService.subscribeToCampaigns(user.uid, (data) => {
         setCampaigns(data);
+        if (data.length > 0 && !selectedCampaignId) {
+          setSelectedCampaignId(data[0].id);
+        }
         setLoading(false);
       });
       return () => unsubscribe();
     }
   }, [user]);
 
+  const handleOpenCreateRoom = async () => {
+    if (!user?.uid) return;
+
+    if (campaigns.length === 0) {
+      try {
+        const newCampId = await MasterService.createCampaign(user.uid, {
+          identity: {
+            name: 'Crônicas de Arton',
+            system: 'Tormenta 20',
+            shortDescription: 'Campanha principal criada pelo Mestre.',
+            fullDescription: 'Campanha principal para gerenciamento de mesas e aventuras.',
+            setting: 'Tormenta 20',
+            narrativeTone: 'heroic'
+          },
+          status: {
+            state: 'active',
+            visibility: 'private',
+            isFavorite: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        } as any);
+        setSelectedCampaignId(newCampId);
+        setIsCreateRoomOpen(true);
+      } catch (err) {
+        console.error('Erro ao criar campanha:', err);
+        navigate('/master/campaigns/new');
+      }
+    } else {
+      if (!selectedCampaignId) {
+        setSelectedCampaignId(campaigns[0].id);
+      }
+      setIsCreateRoomOpen(true);
+    }
+  };
+
   const menuItems = [
-    { id: 'create-campaign', label: 'Criar Campanha', icon: Plus, color: 'text-emerald-500', path: '/master/campaigns/new' },
+    { id: 'create-room', label: 'Criar Nova Sala', icon: Plus, color: 'text-emerald-500', action: () => handleOpenCreateRoom() },
     { id: 'maps', label: 'Mapas', icon: Map, color: 'text-gold', path: '/map/test-map' },
     { id: 'campaigns', label: 'Campanhas & Jogos', icon: Compass, color: 'text-gold', path: '/master/campaigns' },
     { id: 'bestiary', label: 'Bestiário', icon: Skull, color: 'text-red-500', path: '/master/monsters' },
@@ -80,10 +122,10 @@ export const MasterGrimoire: React.FC = () => {
             size="lg" 
             variant="secondary" 
             icon={Plus} 
-            onClick={() => navigate('/master/campaigns/new')}
+            onClick={handleOpenCreateRoom}
             className="w-full sm:w-auto bg-black/40 text-sm sm:text-base"
           >
-            Criar Campanha
+            Criar Nova Sala
           </Button>
           <Button 
             size="lg" 
@@ -145,24 +187,24 @@ export const MasterGrimoire: React.FC = () => {
               <div className="glass-card p-12 text-center space-y-4 border-dashed border-2 border-gold/10">
                 <Book size={48} className="mx-auto text-gold/20" />
                 <p className="text-gold/40 italic">Nenhuma campanha registrada no grimório.</p>
-                <Button variant="secondary" size="sm" onClick={() => navigate('/master/campaigns/new')}>
+                <Button variant="secondary" size="sm" onClick={handleOpenCreateRoom}>
                   Começar Primeira Jornada
                 </Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {campaigns.filter(c => c.status.state === 'active').slice(0, 4).map(campaign => (
+                {campaigns.filter(c => c.status?.state === 'active' || !c.status?.state).slice(0, 4).map(campaign => (
                   <Card 
                     key={campaign.id}
-                    title={campaign.identity.name}
-                    subtitle={`${campaign.identity.system} • ${campaign.status.state}`}
+                    title={campaign.identity?.name || 'Campanha'}
+                    subtitle={`${campaign.identity?.system || 'Tormenta 20'} • ${campaign.status?.state || 'Ativa'}`}
                     icon={Castle}
                     onClick={() => navigate(`/master/campaigns/${campaign.id}`)}
-                    className="group"
+                    className="group cursor-pointer hover:border-gold/40 transition-all"
                   >
                     <div className="space-y-4">
                       <p className="text-gold/60 text-sm line-clamp-2 italic">
-                        {campaign.identity.shortDescription || "Nenhuma descrição registrada para esta crônica."}
+                        {campaign.identity?.shortDescription || "Nenhuma descrição registrada para esta crônica."}
                       </p>
                       <div className="flex items-center justify-between pt-4 border-t border-gold/5">
                         <div className="flex -space-x-2">
@@ -173,7 +215,7 @@ export const MasterGrimoire: React.FC = () => {
                           ))}
                         </div>
                         <span className="text-[10px] uppercase font-black text-gold/30 tracking-widest">
-                          {campaign.relations.playerIds?.length || 0} Aventureiros
+                          {campaign.relations?.playerIds?.length || 0} Aventureiros
                         </span>
                       </div>
                     </div>
@@ -192,7 +234,7 @@ export const MasterGrimoire: React.FC = () => {
                 placeholder="Uma ideia súbita, um nome de NPC, um segredo..."
                 className="w-full h-32 bg-black/40 border border-gold/10 rounded-sm p-4 text-gold font-cinzel text-sm resize-none focus:border-gold/30 outline-none placeholder:text-gold/10"
               />
-              <Button size="sm" fullWidth icon={Plus}>Guardar Nota</Button>
+              <Button size="sm" fullWidth icon={Plus} onClick={() => navigate('/master/notes')}>Guardar Nota</Button>
             </div>
           </Card>
 
@@ -202,16 +244,33 @@ export const MasterGrimoire: React.FC = () => {
                 <div key={i} className="flex items-center justify-between p-3 rounded-sm bg-black/40 border border-gold/5 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="text-gold/40 font-medieval">d20:</span>
-                    <span className="text-gold font-bold text-lg">18</span>
+                    <span className="text-gold font-bold text-lg">{14 + i * 2}</span>
                   </div>
-                  <span className="text-[10px] uppercase font-black text-gold/20">2m atrás</span>
+                  <span className="text-[10px] uppercase font-black text-gold/20">{i * 2}m atrás</span>
                 </div>
               ))}
-              <Button variant="ghost" size="sm" fullWidth className="text-[10px] uppercase tracking-widest">Ver Histórico Completo</Button>
+              <Button variant="ghost" size="sm" fullWidth className="text-[10px] uppercase tracking-widest" onClick={() => setShowDiceRoller(true)}>
+                Ver Histórico Completo
+              </Button>
             </div>
           </Card>
         </div>
       </div>
+
+      {/* Modal Criar Nova Sala */}
+      {selectedCampaignId && (
+        <CreateGameModal
+          campaignId={selectedCampaignId}
+          masterId={user?.uid || ''}
+          campaignSystem="Tormenta 20"
+          isOpen={isCreateRoomOpen}
+          onClose={() => setIsCreateRoomOpen(false)}
+          onGameCreated={(newGameId) => {
+            setIsCreateRoomOpen(false);
+            navigate(`/campaigns/${selectedCampaignId}/games/${newGameId}`);
+          }}
+        />
+      )}
 
       {/* Dice Roller Modal */}
       <AnimatePresence>
@@ -258,3 +317,5 @@ export const MasterGrimoire: React.FC = () => {
     </div>
   );
 };
+
+export default MasterGrimoire;

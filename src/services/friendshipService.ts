@@ -51,8 +51,8 @@ export const FriendshipService = {
    * Envia uma solicitação de amizade
    */
   async sendFriendRequest(
-    currentUser: { uid: string; name: string; displayName?: string; photoURL?: string },
-    targetUser: { uid: string; name: string; displayName?: string; photoURL?: string }
+    currentUser: { uid: string; name: string; displayName?: string; photoURL?: string; username?: string },
+    targetUser: { uid: string; name: string; displayName?: string; photoURL?: string; username?: string }
   ): Promise<Friendship> {
     if (currentUser.uid === targetUser.uid) {
       throw new Error('Você não pode adicionar a si mesmo como amigo.');
@@ -90,6 +90,7 @@ export const FriendshipService = {
         uid: currentUser.uid,
         name: currentUser.name || currentUser.displayName || 'Aventureiro',
         displayName: currentUser.displayName || currentUser.name || 'Aventureiro',
+        username: currentUser.username || '',
         photoURL: currentUser.photoURL || '',
         isOnline: true
       };
@@ -98,6 +99,7 @@ export const FriendshipService = {
         uid: targetUser.uid,
         name: targetUser.name || targetUser.displayName || 'Aventureiro',
         displayName: targetUser.displayName || targetUser.name || 'Aventureiro',
+        username: targetUser.username || '',
         photoURL: targetUser.photoURL || ''
       };
 
@@ -117,6 +119,10 @@ export const FriendshipService = {
       return newFriendship;
     } catch (error: any) {
       console.error('[FriendshipService] Erro ao enviar solicitação de amizade:', error);
+      if (error?.message?.includes('já') || error?.message?.includes('mesmo')) {
+        throw error;
+      }
+      handleFirestoreError(error, OperationType.WRITE, `${COLLECTION_NAME}/${docId}`);
       throw error;
     }
   },
@@ -196,69 +202,144 @@ export const FriendshipService = {
   },
 
   /**
-   * Busca jogadores no sistema por nome/username
+   * Busca jogadores no sistema por username, nome, displayName ou email.
+   * Consulta diretamente o Firestore em tempo real para obter o estado mais recente.
    */
   async searchPlayers(searchTerm: string, currentUserId: string): Promise<UserSummary[]> {
-    if (!searchTerm || searchTerm.trim().length < 2) {
+    if (!searchTerm || searchTerm.trim().length === 0) {
       return [];
     }
 
-    const term = searchTerm.trim().toLowerCase();
+    const rawTerm = searchTerm.trim();
+    const cleanTerm = rawTerm.toLowerCase();
+    const cleanUsername = cleanTerm.replace(/^@+/, '');
 
     try {
-      // Buscar usuários no Firestore
       const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(query(usersRef, limit(30)));
-      
+      const foundDocsMap = new Map<string, any>();
+
+      // 1. Executar buscas paralelas direcionadas no Firestore para máxima precisão e cobertura
+      const queries: Promise<any>[] = [];
+
+      // A. Busca exata por username
+      if (cleanUsername) {
+        queries.push(getDocs(query(usersRef, where('username', '==', cleanUsername), limit(10))));
+        // B. Busca por prefixo de username
+        queries.push(
+          getDocs(
+            query(
+              usersRef,
+              where('username', '>=', cleanUsername),
+              where('username', '<=', cleanUsername + '\uf8ff'),
+              limit(20)
+            )
+          )
+        );
+      }
+
+      // C. Se o termo tiver formato de email
+      if (cleanTerm.includes('@')) {
+        queries.push(getDocs(query(usersRef, where('email', '==', cleanTerm), limit(5))));
+      }
+
+      // D. Busca ampla para permitir matches parciais/insensíveis de nome e display name
+      queries.push(getDocs(query(usersRef, limit(80))));
+
+      const querySnapshots = await Promise.allSettled(queries);
+
+      for (const res of querySnapshots) {
+        if (res.status === 'fulfilled' && res.value?.docs) {
+          for (const docSnap of res.value.docs) {
+            if (docSnap.id !== currentUserId && !foundDocsMap.has(docSnap.id)) {
+              foundDocsMap.set(docSnap.id, docSnap.data());
+            }
+          }
+        }
+      }
+
       const results: UserSummary[] = [];
 
-      for (const docSnap of snapshot.docs) {
-        if (docSnap.id === currentUserId) continue; // Pula o próprio usuário
+      for (const [uid, rawData] of foundDocsMap.entries()) {
+        const data = rawData as UserProfile & { 
+          lastSeen?: any; 
+          isOnline?: boolean;
+          username?: string;
+          mainCharacterName?: string;
+          mainCharacterClass?: string;
+          mainCharacterLevel?: number;
+          mainCharacterRace?: string;
+          mainCharacterAvatar?: string;
+        };
 
-        const data = docSnap.data() as UserProfile & { lastSeen?: any; isOnline?: boolean };
-        const name = (data.name || data.displayName || '').toLowerCase();
-        const email = (data.email || '').toLowerCase();
+        const uUsername = (data.username || '').toLowerCase().replace(/^@+/, '');
+        const uName = (data.name || '').toLowerCase();
+        const uDisplayName = (data.displayName || '').toLowerCase();
+        const uEmail = (data.email || '').toLowerCase();
 
-        if (name.includes(term) || email.startsWith(term)) {
-          // Tentar buscar o personagem principal deste jogador
-          let mainCharName: string | undefined;
-          let mainCharClass: string | undefined;
-          let mainCharLevel: number | undefined;
-          let mainCharRace: string | undefined;
+        // Critérios de correspondência
+        const isExactUsername = cleanUsername.length > 0 && uUsername === cleanUsername;
+        const isPrefixUsername = cleanUsername.length > 0 && uUsername.startsWith(cleanUsername);
+        const isSubstringUsername = cleanUsername.length >= 2 && uUsername.includes(cleanUsername);
+        const isNameMatch = cleanTerm.length >= 2 && (uName.includes(cleanTerm) || uDisplayName.includes(cleanTerm));
+        const isEmailMatch = cleanTerm.length >= 2 && (uEmail === cleanTerm || uEmail.startsWith(cleanTerm));
 
-          try {
-            const charQuery = query(
-              collection(db, 'characters'),
-              where('uid', '==', docSnap.id),
-              limit(1)
-            );
-            const charSnap = await getDocs(charQuery);
-            if (!charSnap.empty) {
-              const charData = charSnap.docs[0].data();
-              mainCharName = charData.name || charData.characterData?.name;
-              mainCharClass = charData.className || charData.classId || charData.characterData?.classId;
-              mainCharLevel = charData.level || charData.characterData?.level || 1;
-              mainCharRace = charData.raceName || charData.raceId || charData.characterData?.raceId;
+        if (isExactUsername || isPrefixUsername || isSubstringUsername || isNameMatch || isEmailMatch) {
+          let mainCharName = data.mainCharacterName;
+          let mainCharClass = data.mainCharacterClass;
+          let mainCharLevel = data.mainCharacterLevel;
+          let mainCharRace = data.mainCharacterRace;
+
+          // Se não houver dados de personagem no perfil, busca o primeiro personagem público
+          if (!mainCharName) {
+            try {
+              const charQuery = query(
+                collection(db, 'characters'),
+                where('uid', '==', uid),
+                limit(1)
+              );
+              const charSnap = await getDocs(charQuery);
+              if (!charSnap.empty) {
+                const charData = charSnap.docs[0].data();
+                mainCharName = charData.name || charData.characterData?.name;
+                mainCharClass = charData.className || charData.classId || charData.characterData?.classId;
+                mainCharLevel = charData.level || charData.characterData?.level || 1;
+                mainCharRace = charData.raceName || charData.raceId || charData.characterData?.raceId;
+              }
+            } catch (e) {
+              // Silencioso
             }
-          } catch (e) {
-            // Personagens podem ter regras mais restritas
           }
 
           results.push({
-            uid: docSnap.id,
-            name: data.name || data.displayName || 'Aventureiro',
+            uid,
+            name: data.displayName || data.name || 'Aventureiro',
             displayName: data.displayName || data.name || 'Aventureiro',
-            photoURL: data.photoURL || '',
+            username: uUsername,
+            photoURL: data.avatarUrl || data.photoURL || '',
             mainCharacterName: mainCharName,
             mainCharacterClass: mainCharClass,
             mainCharacterLevel: mainCharLevel,
             mainCharacterRace: mainCharRace,
-            isOnline: data.isOnline || false,
+            isOnline: Boolean(data.isOnline),
             lastSeen: data.lastSeen || data.updatedAt,
             createdAt: data.createdAt
           });
         }
       }
+
+      // Ordenar por relevância (exato primeiro, depois prefixo de username, etc.)
+      results.sort((a, b) => {
+        const aUser = (a.username || '').toLowerCase();
+        const bUser = (b.username || '').toLowerCase();
+
+        if (aUser === cleanUsername && bUser !== cleanUsername) return -1;
+        if (bUser === cleanUsername && aUser !== cleanUsername) return 1;
+
+        if (aUser.startsWith(cleanUsername) && !bUser.startsWith(cleanUsername)) return -1;
+        if (bUser.startsWith(cleanUsername) && !aUser.startsWith(cleanUsername)) return 1;
+
+        return (a.displayName || a.name || '').localeCompare(b.displayName || b.name || '');
+      });
 
       return results;
     } catch (error) {
@@ -279,17 +360,19 @@ export const FriendshipService = {
         uid: targetUid,
         name: 'Aventureiro de Arton',
         displayName: 'Aventureiro',
+        username: '',
         photoURL: ''
       };
 
       if (userSnap.exists()) {
-        const uData = userSnap.data() as UserProfile & { lastSeen?: any; isOnline?: boolean };
+        const uData = userSnap.data() as UserProfile & { lastSeen?: any; isOnline?: boolean; username?: string; avatarUrl?: string };
         userSummary = {
           uid: targetUid,
-          name: uData.name || uData.displayName || 'Aventureiro',
+          name: uData.displayName || uData.name || 'Aventureiro',
           displayName: uData.displayName || uData.name || 'Aventureiro',
-          photoURL: uData.photoURL || '',
-          isOnline: uData.isOnline || false,
+          username: uData.username ? uData.username.toLowerCase().replace(/^@+/, '') : '',
+          photoURL: uData.avatarUrl || uData.photoURL || '',
+          isOnline: Boolean(uData.isOnline),
           lastSeen: uData.lastSeen || uData.updatedAt,
           createdAt: uData.createdAt
         };

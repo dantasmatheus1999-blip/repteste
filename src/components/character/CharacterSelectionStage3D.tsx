@@ -1,24 +1,26 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Sparkles, RotateCw, ZoomIn, ZoomOut, Eye, AlertCircle, RefreshCw } from 'lucide-react';
-import { storage, ref, getDownloadURL, resolveStorageUrlWithFallback, firebaseConfig } from '../../firebase/storage';
-import { getOptimizedGLTFLoader, cloneGLTFScene, loadGLTFModel } from '../../utils/gltfLoader';
+import { Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
+import { resolveStorageUrlWithFallback } from '../../firebase/storage';
+import { cloneGLTFScene, loadGLTFModel } from '../../utils/gltfLoader';
 
-// Cache global de GLTF e URLs para carregamento instantâneo entre trocas de slots
+// Cache global de GLTF para carregamento instantâneo entre trocas de heróis
 const stageGltfCache = new Map<string, any>();
-const stageUrlCache = new Map<string, string>();
 
 interface CharacterSelectionStage3DProps {
   modelPath: string; // Ex: '3d/anaogrande-v1.glb', '3d/Arcanista-v1.glb', etc.
   characterName: string;
+  horizontalOnly?: boolean;
+  isVisible?: boolean; // Se false (ex: aba trocada), suspende renderização WebGL
   onResetCamera?: () => void;
 }
 
 export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps> = ({
   modelPath,
-  characterName
+  characterName,
+  horizontalOnly = true,
+  isVisible = true
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,12 +33,31 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
   const modelGroupRef = useRef<THREE.Group | null>(null);
   const animationFrameId = useRef<number | null>(null);
 
+  // Controle Inteligente de Renderização On-Demand & Visibilidade
+  const renderFramesLeftRef = useRef<number>(90);
+  const isPageVisibleRef = useRef<boolean>(!document.hidden);
+  const isIntersectingRef = useRef<boolean>(true);
+  const isPropVisibleRef = useRef<boolean>(isVisible);
+
+  isPropVisibleRef.current = isVisible;
+
   // Estados
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState<number>(0);
 
-  // 1. Obter URL oficial e autenticada do Firebase Storage SDK via getDownloadURL com fallback
+  const requestRender = useCallback((frameCount = 45) => {
+    renderFramesLeftRef.current = Math.max(renderFramesLeftRef.current, frameCount);
+  }, []);
+
+  // Reativa a renderização quando o componente se torna visível
+  useEffect(() => {
+    if (isVisible) {
+      requestRender(60);
+    }
+  }, [isVisible, requestRender]);
+
+  // 1. Obter URL oficial com fallback
   const resolveStorageUrl = useCallback(async (path: string): Promise<string> => {
     return resolveStorageUrlWithFallback(path || '3d/anaogrande-v1.glb');
   }, []);
@@ -49,26 +70,26 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     const width = container.clientWidth || 360;
     const height = container.clientHeight || 560;
 
-    // A. Cena com Fog e Fundo Translúcido para compor com o ambiente gótico
+    // A. Cena com Fog e Fundo Translúcido
     const scene = new THREE.Scene();
-    scene.background = null; // Fundo transparente para mesclar com o cenário medieval
+    scene.background = null;
     scene.fog = new THREE.FogExp2(0x06050a, 0.08);
     sceneRef.current = scene;
 
     // B. Câmera
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 50);
-    camera.position.set(0, 1.25, 2.7);
+    camera.position.set(0, 1.20, 2.55);
     cameraRef.current = camera;
 
-    // C. Renderer
+    // C. Renderer com limites de pixelRatio eficientes em celulares de altíssima densidade (DPR <= 1.5)
     const renderer = new THREE.WebGLRenderer({
       canvas: canvasRef.current,
       antialias: true,
       alpha: true,
       powerPreference: 'high-performance'
     });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(width, height, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.25;
@@ -76,25 +97,39 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     rendererRef.current = renderer;
 
-    // D. OrbitControls (360° livre, zoom suave, centrado)
+    // D. OrbitControls (rotação 360° estritamente horizontal)
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
-    controls.enablePan = false; // Mantém o personagem rigorosamente centralizado no pedestal
-    controls.enableZoom = true;
-    controls.minDistance = 1.0;
-    controls.maxDistance = 4.8;
-    controls.maxPolarAngle = Math.PI / 2 + 0.04; // Não descer abaixo do nível do pedestal
-    controls.minPolarAngle = 0.15;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
     controls.target.set(0, 0.95, 0);
     controls.update();
+
+    if (horizontalOnly) {
+      const polar = controls.getPolarAngle();
+      controls.minPolarAngle = polar;
+      controls.maxPolarAngle = polar;
+      controls.enableZoom = false;
+    } else {
+      controls.enableZoom = true;
+      controls.minDistance = 1.0;
+      controls.maxDistance = 4.8;
+      controls.maxPolarAngle = Math.PI / 2 + 0.04;
+      controls.minPolarAngle = 0.15;
+    }
+
     controlsRef.current = controls;
+
+    // Disparar quadros de renderização ao rotacionar / arrastar
+    const handleControlsChange = () => {
+      requestRender(30);
+    };
+    controls.addEventListener('change', handleControlsChange);
 
     // E. Iluminação Cinemática Medieval (Tochas, Key Light e Rim Light)
     const ambientLight = new THREE.AmbientLight(0xffeedd, 0.7);
     scene.add(ambientLight);
 
-    // Luz Principal Superior / Key Light (Luz Dourada Celestial)
     const keyLight = new THREE.DirectionalLight(0xfff1db, 2.6);
     keyLight.position.set(1.8, 4.0, 2.5);
     keyLight.castShadow = true;
@@ -103,22 +138,18 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     keyLight.shadow.bias = -0.0004;
     scene.add(keyLight);
 
-    // Luz de Tocha Esquerda (Amber quente)
     const leftTorch = new THREE.PointLight(0xff8a1e, 2.0, 8);
     leftTorch.position.set(-2.2, 1.8, 1.5);
     scene.add(leftTorch);
 
-    // Luz de Tocha Direita (Amber quente)
     const rightTorch = new THREE.PointLight(0xff8a1e, 2.0, 8);
     rightTorch.position.set(2.2, 1.8, 1.5);
     scene.add(rightTorch);
 
-    // Rim Light Traseira (Realce de Silhueta Dourado)
     const rimLight = new THREE.DirectionalLight(0xd4af37, 2.2);
     rimLight.position.set(0, 3.2, -3.0);
     scene.add(rimLight);
 
-    // Fill Light Azulada Sutil de Catedral
     const fillLight = new THREE.DirectionalLight(0x5577aa, 0.8);
     fillLight.position.set(-2.0, 2.0, 2.0);
     scene.add(fillLight);
@@ -129,9 +160,8 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     scene.add(modelGroup);
     modelGroupRef.current = modelGroup;
 
-    // G. Pedestal Monumental em Pedra Escura com Gravuras Concéntricas (Fiel à Referência)
-    // 1. Base Inferior Larga
-    const baseGeo = new THREE.CylinderGeometry(1.2, 1.35, 0.12, 64);
+    // G. Pedestal Monumental em Pedra Escura
+    const baseGeo = new THREE.CylinderGeometry(1.2, 1.35, 0.12, 32);
     const baseMat = new THREE.MeshStandardMaterial({
       color: 0x14121a,
       roughness: 0.7,
@@ -142,8 +172,7 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     basePedestal.receiveShadow = true;
     scene.add(basePedestal);
 
-    // 2. Patamar Central com Entalhe
-    const centerGeo = new THREE.CylinderGeometry(1.05, 1.15, 0.08, 64);
+    const centerGeo = new THREE.CylinderGeometry(1.05, 1.15, 0.08, 32);
     const centerMat = new THREE.MeshStandardMaterial({
       color: 0x1a1722,
       roughness: 0.5,
@@ -154,8 +183,7 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     centerPedestal.receiveShadow = true;
     scene.add(centerPedestal);
 
-    // 3. Anéis Concéntricos Rúnicos Dourados (Inlay metálico entalhado na pedra)
-    const outerRingGeo = new THREE.RingGeometry(0.92, 0.98, 64);
+    const outerRingGeo = new THREE.RingGeometry(0.92, 0.98, 32);
     const goldRingMat = new THREE.MeshStandardMaterial({
       color: 0xd4af37,
       metalness: 0.85,
@@ -168,14 +196,13 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     outerRing.receiveShadow = true;
     scene.add(outerRing);
 
-    const innerRingGeo = new THREE.RingGeometry(0.65, 0.70, 64);
+    const innerRingGeo = new THREE.RingGeometry(0.65, 0.70, 32);
     const innerRing = new THREE.Mesh(innerRingGeo, goldRingMat);
     innerRing.rotation.x = -Math.PI / 2;
     innerRing.position.y = 0.033;
     innerRing.receiveShadow = true;
     scene.add(innerRing);
 
-    // 4. Sombra de Contato Suave
     const shadowGeo = new THREE.PlaneGeometry(5, 5);
     const shadowMat = new THREE.ShadowMaterial({ opacity: 0.6 });
     const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
@@ -184,11 +211,39 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     shadowPlane.receiveShadow = true;
     scene.add(shadowPlane);
 
-    // H. Loop de Renderização
+    // Eventos de visibilidade da página e do container
+    const handleVisibilityChange = () => {
+      isPageVisibleRef.current = !document.hidden;
+      if (!document.hidden && isPropVisibleRef.current && isIntersectingRef.current) {
+        requestRender(60);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const intersectionObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        isIntersectingRef.current = entry.isIntersecting;
+        if (entry.isIntersecting && isPropVisibleRef.current && !document.hidden) {
+          requestRender(60);
+        }
+      }
+    }, { threshold: 0.05 });
+
+    intersectionObserver.observe(container);
+
+    // H. Loop de Renderização On-Demand
+    renderFramesLeftRef.current = 90;
+
     const animate = () => {
       animationFrameId.current = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+
+      const canRender = isPropVisibleRef.current && isPageVisibleRef.current && isIntersectingRef.current;
+
+      if (canRender && renderFramesLeftRef.current > 0) {
+        renderFramesLeftRef.current--;
+        controls.update();
+        renderer.render(scene, camera);
+      }
     };
     animate();
 
@@ -199,24 +254,44 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
         if (w > 0 && h > 0 && cameraRef.current && rendererRef.current) {
           cameraRef.current.aspect = w / h;
           cameraRef.current.updateProjectionMatrix();
-          rendererRef.current.setSize(w, h);
+          rendererRef.current.setSize(w, h, false);
+          requestRender(30);
         }
       }
     });
     resizeObserver.observe(container);
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      intersectionObserver.disconnect();
       resizeObserver.disconnect();
+      controls.removeEventListener('change', handleControlsChange);
+
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
+
       controls.dispose();
+
+      keyLight.shadow.map?.dispose();
+      scene.traverse((child: any) => {
+        if (child.isMesh) {
+          child.geometry?.dispose();
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m: any) => m?.dispose?.());
+          } else {
+            child.material?.dispose?.();
+          }
+        }
+      });
+
       renderer.dispose();
+      renderer.forceContextLoss();
       scene.clear();
     };
-  }, []);
+  }, [horizontalOnly, requestRender]);
 
-  // 3. Carregar e Posicionar Modelo 3D (Estático, sem animações, centralizado por Bounding Box)
+  // 3. Carregar e Posicionar Modelo 3D
   useEffect(() => {
     let isCancelled = false;
 
@@ -318,6 +393,7 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
         }
 
         setIsLoading(false);
+        requestRender(90);
       } catch (err: any) {
         if (!isCancelled) {
           setIsLoading(false);
@@ -330,7 +406,7 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     return () => {
       isCancelled = true;
     };
-  }, [modelPath, retryKey, resolveStorageUrl]);
+  }, [modelPath, retryKey, resolveStorageUrl, characterName, requestRender]);
 
   // Controles Rápidos de Câmera
   const handleResetCamera = () => {
@@ -339,20 +415,7 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
       cameraRef.current.position.set(0, 1.25, 2.7);
       controlsRef.current.target.set(0, 0.95, 0);
       controlsRef.current.update();
-    }
-  };
-
-  const handleZoomIn = () => {
-    if (cameraRef.current && controlsRef.current) {
-      cameraRef.current.position.multiplyScalar(0.85);
-      controlsRef.current.update();
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (cameraRef.current && controlsRef.current) {
-      cameraRef.current.position.multiplyScalar(1.15);
-      controlsRef.current.update();
+      requestRender(30);
     }
   };
 
@@ -360,6 +423,7 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     <div 
       ref={containerRef}
       className="relative w-full h-full flex-1 flex items-center justify-center select-none overflow-hidden touch-none"
+      onPointerDown={() => requestRender(45)}
     >
       {/* Canvas 3D */}
       <canvas 
@@ -400,42 +464,6 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
           </button>
         </div>
       )}
-
-      {/* Floating Controls Overlay (Minimal & Dark Fantasy) */}
-      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-15 flex flex-col gap-1.5 bg-black/60 backdrop-blur-md border border-amber-900/40 p-1 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.8)]">
-        <button
-          type="button"
-          onClick={handleZoomIn}
-          title="Aproximar (Zoom +)"
-          className="p-1.5 text-stone-300 hover:text-amber-300 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-        >
-          <ZoomIn className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={handleZoomOut}
-          title="Afastar (Zoom -)"
-          className="p-1.5 text-stone-300 hover:text-amber-300 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-        >
-          <ZoomOut className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={handleResetCamera}
-          title="Recentrar Câmera"
-          className="p-1.5 text-stone-300 hover:text-amber-300 hover:bg-white/10 rounded-lg transition-colors border-t border-amber-900/30 cursor-pointer"
-        >
-          <RotateCw className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Dica de Interatividade */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-15 pointer-events-none text-center">
-        <div className="px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-amber-900/40 text-[10px] sm:text-[11px] text-amber-300/80 font-cinzel tracking-wider flex items-center gap-1.5 shadow-lg">
-          <Eye className="w-3.5 h-3.5 text-amber-400" />
-          <span>Gire 360° • Toque/Scroll para Zoom</span>
-        </div>
-      </div>
     </div>
   );
 };

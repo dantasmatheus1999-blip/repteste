@@ -17,9 +17,15 @@ export const StorageService = {
     const originalName = (file as File).name || options.name || `file_${Date.now()}`;
     const cleanName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const folder = options.folder || `${options.category}s`;
-    const storagePath = `${folder}/${userId}/${Date.now()}_${cleanName}`;
+    const storagePath = options.storagePath || `${folder}/${userId}/${Date.now()}_${cleanName}`;
     const mimeType = file.type || 'application/octet-stream';
     const size = file.size;
+
+    // Validação estrita para mapas (limite de 50 MB = 52.428.800 bytes) antes de enviar para Firebase Storage ou servidor
+    const MAX_MAP_FILE_SIZE = 50 * 1024 * 1024; // 50 MB = 52.428.800 bytes
+    if ((options.category === 'map' || options.folder?.includes('map')) && size > MAX_MAP_FILE_SIZE) {
+      throw new Error('O arquivo é muito grande. O limite máximo para o mapa é de 50 MB.');
+    }
 
     let downloadUrl = '';
 
@@ -37,6 +43,7 @@ export const StorageService = {
         formData.append('file', file, cleanName);
         formData.append('category', options.category);
         formData.append('storagePath', storagePath);
+        formData.append('userId', userId);
 
         const headers: Record<string, string> = {};
         if (currentUser) {

@@ -212,6 +212,7 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
   // Agrupamento por Pastas
   const groupedMaps = useMemo(() => {
     const mapByFolder: Record<string, TestMap[]> = {};
+    const unassignedMaps: TestMap[] = [];
 
     // Inicializar grupos apenas das pastas do usuário
     folders.forEach(f => {
@@ -221,10 +222,12 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
     sortedAndFilteredMaps.forEach(map => {
       if (map.folderId && mapByFolder[map.folderId]) {
         mapByFolder[map.folderId].push(map);
+      } else {
+        unassignedMaps.push(map);
       }
     });
 
-    return { mapByFolder };
+    return { mapByFolder, unassignedMaps };
   }, [folders, sortedAndFilteredMaps]);
 
   if (!isOpen) return null;
@@ -491,8 +494,33 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
           id="library-folder-scroll-container"
           className="flex-1 overflow-y-auto p-3 space-y-4 font-sans text-xs scrollbar-thin scrollbar-thumb-amber-900/40"
         >
+          {/* Se a biblioteca estiver totalmente vazia */}
+          {maps.length === 0 && folders.length === 0 && (
+            <div className="text-center py-10 px-4 space-y-3 font-cinzel">
+              <div className="w-12 h-12 mx-auto rounded-xl bg-amber-950/40 border border-amber-800/40 flex items-center justify-center text-xl shadow-inner">
+                🗺️
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                  Biblioteca Vazia
+                </h3>
+                <p className="text-[11px] font-sans text-stone-400 max-w-[220px] mx-auto">
+                  Sua biblioteca pessoal está pronta. Faça upload dos seus mapas para usá-los em qualquer mesa.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenUploadModal()}
+                className="mt-2 py-1.5 px-3 rounded-lg bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-stone-950 text-xs font-bold uppercase tracking-wider shadow-md inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus size={13} className="stroke-[3]" />
+                <span>Carregar Mapa</span>
+              </button>
+            </div>
+          )}
+
           {/* Se estiver buscando e não houver mapas correspondentes */}
-          {searchQuery && sortedAndFilteredMaps.length === 0 && (
+          {searchQuery && sortedAndFilteredMaps.length === 0 && maps.length > 0 && (
             <div className="text-center py-10 text-stone-400 space-y-2 font-cinzel">
               <p className="text-sm font-bold text-amber-400/80">Nenhum mapa encontrado</p>
               <p className="text-xs font-sans text-stone-400">
@@ -589,7 +617,7 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
                         <button
                           type="button"
                           onClick={() => onOpenUploadModal(folder.id)}
-                          className="px-2.5 py-1 rounded bg-stone-900 hover:bg-stone-800 border border-amber-900/40 text-[10px] font-cinzel font-bold text-amber-300 tracking-wider inline-flex items-center gap-1"
+                          className="px-2.5 py-1 rounded bg-stone-900 hover:bg-stone-800 border border-amber-900/40 text-[10px] font-cinzel font-bold text-amber-300 tracking-wider inline-flex items-center gap-1 cursor-pointer"
                         >
                           <Plus size={11} />
                           <span>Adicionar Mapa</span>
@@ -605,6 +633,43 @@ export const MapLibraryDrawer: React.FC<MapLibraryDrawerProps> = ({
               </div>
             );
           })}
+
+          {/* 2. MAPAS SEM PASTA OU GERAIS */}
+          {groupedMaps.unassignedMaps.length > 0 && (
+            <div className="bg-stone-900/40 border border-amber-900/30 rounded-xl overflow-hidden shadow-sm">
+              <div 
+                className="p-2.5 bg-stone-900/80 hover:bg-stone-850 border-b border-amber-900/20 flex items-center justify-between cursor-pointer transition-colors"
+                onClick={() => toggleFolderCollapse('unassigned')}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base shrink-0">🗺️</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-cinzel font-bold text-amber-200 text-xs truncate">
+                      {folders.length > 0 ? 'Mapas sem Pasta' : 'Todos os Mapas'}
+                    </span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-stone-800 text-amber-400/80 border border-stone-700 shrink-0">
+                      {groupedMaps.unassignedMaps.length}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleFolderCollapse('unassigned')}
+                  className="p-1 rounded text-stone-400 hover:text-stone-200"
+                >
+                  {collapsedFolders['unassigned'] ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                </button>
+              </div>
+
+              {!collapsedFolders['unassigned'] && (
+                <div className="p-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    {groupedMaps.unassignedMaps.map(map => renderMapCard(map))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Rodapé da Biblioteca: Botão de Novo Mapa */}

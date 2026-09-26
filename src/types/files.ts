@@ -21,4 +21,5 @@ export interface UploadOptions {
   relatedEntityId?: string;
   folder?: string;
   userId?: string;
+  storagePath?: string;
 }

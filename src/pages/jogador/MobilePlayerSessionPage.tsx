@@ -10,26 +10,23 @@ import {
   Backpack, 
   Target, 
   Star, 
-  Dices, 
   ChevronLeft, 
-  Radio, 
-  Info, 
   X, 
   Coins, 
-  Eye, 
   BookOpen, 
   Search, 
-  SlidersHorizontal,
-  Flame,
-  CheckCircle2,
-  AlertTriangle,
-  Scroll,
-  Crown,
-  Layers,
-  ChevronDown,
-  ChevronUp,
-  Plus,
-  Minus
+  Scroll, 
+  Crown, 
+  Plus, 
+  Minus, 
+  Users, 
+  Map as MapIcon, 
+  Settings, 
+  Feather, 
+  Sun, 
+  Trash2, 
+  Edit3, 
+  Check 
 } from 'lucide-react';
 import { CharacterService } from '../../services/characterService';
 import { GameService } from '../../services/gameService';
@@ -37,55 +34,107 @@ import { normalizeCharacterSheet, NormalizedSheetData, formatMod, ATTRIBUTE_NAME
 import { Attribute } from '../../types/character';
 import { Game, GamePlayer } from '../../types/game';
 import { getClassEmoji } from '../../utils/characterUtils';
-import { useDiceRoller } from '../../hooks/useDiceRoller';
+import { subscribeToSessionAudio } from '../../services/audioService';
+import { CharacterSelectionStage3D } from '../../components/character/CharacterSelectionStage3D';
+import { Floating3DDice } from '../../components/dice3d/Floating3DDice';
+import { useDice3D } from '../../components/dice3d/Dice3DContext';
+import { MapEditor } from '../../components/map/MapEditor';
+import { PlayerCampaignMapView } from '../../components/campaign-map/PlayerCampaignMapView';
 
 interface MobilePlayerSessionPageProps {
   campaignId: string;
   gameId: string;
   game: Game;
   currentPlayer: GamePlayer;
+  players?: GamePlayer[];
   onExit?: () => void;
 }
 
-type ActiveTab = 'overview' | 'inventory' | 'attacks' | 'spells' | 'skills' | 'powers';
+type ActiveTab = 'overview' | 'inventory' | 'powers' | 'spells' | 'skills' | 'biography' | 'map';
+
+// Cantoneiras douradas ornamentadas clássicas para molduras medievais
+const OrnateCardCorners: React.FC<{ color?: string }> = ({ color = 'border-amber-500/60' }) => (
+  <div className="absolute inset-0 pointer-events-none z-10">
+    <div className={`absolute top-0.5 left-0.5 w-1.5 h-1.5 border-t border-l ${color}`} />
+    <div className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 border-t border-r ${color}`} />
+    <div className={`absolute bottom-0.5 left-0.5 w-1.5 h-1.5 border-b border-l ${color}`} />
+    <div className={`absolute bottom-0.5 right-0.5 w-1.5 h-1.5 border-b border-r ${color}`} />
+  </div>
+);
 
 export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = ({
   campaignId,
   gameId,
   game,
   currentPlayer,
+  players,
   onExit
 }) => {
   const [characterRaw, setCharacterRaw] = useState<any | null>(null);
   const [loadingChar, setLoadingChar] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
 
-  // Filtros internos
+  // Hook do motor 3D de dados do sistema
+  const { roll3DDice } = useDice3D();
+
+  // Jogadores da sala (usa lista fornecida pelo pai se disponível, evitando listener duplicado)
+  const [roomPlayers, setRoomPlayers] = useState<GamePlayer[]>(players || []);
+
+  // Modais auxiliares do cabeçalho
+  const [isPlayersModalOpen, setIsPlayersModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // Modais da Mochila / Equipamento (Adicionar Item e Editar Dinheiro)
+  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemQty, setNewItemQty] = useState(1);
+  const [newItemDesc, setNewItemDesc] = useState('');
+
+  const [isMoneyModalOpen, setIsMoneyModalOpen] = useState(false);
+  const [customMoneyValue, setCustomMoneyValue] = useState<number>(0);
+
+  // Filtros internos de abas secundárias
   const [skillSearch, setSkillSearch] = useState('');
   const [onlyTrainedSkills, setOnlyTrainedSkills] = useState(false);
   const [spellCircleFilter, setSpellCircleFilter] = useState<number | 'all'>('all');
   const [spellSearch, setSpellSearch] = useState('');
-  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
-  // Modal do Rolador de Dados Rápido
-  const [isDiceModalOpen, setIsDiceModalOpen] = useState(false);
-  const [customModifier, setCustomModifier] = useState<number>(0);
-  const [diceRollLabel, setDiceRollLabel] = useState<string>('');
-  const { roll, history, isRolling, lastResult } = useDiceRoller();
-
-  // Debounce refs para sincronização atômica e segura com o Firestore (500ms)
+  // Debounce refs para sincronização atômica e segura com o Firestore (150ms)
   const pendingUpdatesRef = useRef<Record<string, any>>({});
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 1. Inscrição em tempo real aos dados da ficha do personagem selecionado
+  // Inscrição em áudio temático da sessão em tempo real
   useEffect(() => {
-    if (!currentPlayer.characterId) {
+    if (!campaignId || !gameId) return;
+    const unsubAudio = subscribeToSessionAudio(campaignId, gameId);
+    return () => {
+      unsubAudio();
+    };
+  }, [campaignId, gameId]);
+
+  // Sincronização de jogadores: se já fornecido por prop, atualiza estado; senão abre listener único
+  useEffect(() => {
+    if (players && players.length > 0) {
+      setRoomPlayers(players);
+      return;
+    }
+    if (!campaignId || !gameId) return;
+    const unsubPlayers = GameService.subscribeToGamePlayers(campaignId, gameId, (loadedPlayers) => {
+      setRoomPlayers(loadedPlayers);
+    });
+    return () => unsubPlayers();
+  }, [campaignId, gameId, players]);
+
+  // Inscrição em tempo real aos dados da ficha do personagem selecionado
+  const charId = currentPlayer?.characterId;
+  useEffect(() => {
+    if (!charId) {
       setLoadingChar(false);
       return;
     }
 
     setLoadingChar(true);
-    const unsub = CharacterService.subscribeToCharacter(currentPlayer.characterId, (charData) => {
+    const unsub = CharacterService.subscribeToCharacter(charId, (charData) => {
       if (charData) {
         setCharacterRaw(charData);
       }
@@ -98,20 +147,18 @@ export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = (
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [currentPlayer.characterId]);
+  }, [charId]);
 
-  // 2. Normalização computada da ficha
+  // Normalização computada da ficha
   const sheet: NormalizedSheetData | null = useMemo(() => {
     if (!characterRaw) return null;
-    return normalizeCharacterSheet(characterRaw, currentPlayer.characterId || '');
-  }, [characterRaw, currentPlayer.characterId]);
+    return normalizeCharacterSheet(characterRaw, currentPlayer?.characterId || '');
+  }, [characterRaw, currentPlayer?.characterId]);
 
-  // 3. Função de atualização com reflexo otimista imediato e debounce seguro
+  // Função de atualização com reflexo otimista imediato e debounce seguro
   const handleUpdateCharacterResource = useCallback((partial: { currentPV?: number; currentPM?: number }) => {
-    const charId = currentPlayer.characterId;
     if (!charId) return;
 
-    // Atualização otimista imediata na UI local
     setCharacterRaw((prev: any) => {
       if (!prev) return prev;
       return {
@@ -120,18 +167,15 @@ export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = (
       };
     });
 
-    // Enfileira alterações pendentes
     pendingUpdatesRef.current = {
       ...pendingUpdatesRef.current,
       ...partial
     };
 
-    // Cancela gravação anterior para evitar spam/conflito
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Dispara gravação única após 500ms de inatividade do toque
     saveTimeoutRef.current = setTimeout(async () => {
       const payload = { ...pendingUpdatesRef.current };
       pendingUpdatesRef.current = {};
@@ -140,8 +184,8 @@ export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = (
       } catch (err) {
         console.error(`[MobilePlayerSession] Falha ao sincronizar recursos do personagem ${charId}:`, err);
       }
-    }, 500);
-  }, [currentPlayer.characterId]);
+    }, 150);
+  }, [charId]);
 
   // Controles táteis de PV (+1 / -1) respeitando estritamente os limites [0, maxPV]
   const handleAdjustPV = useCallback((delta: number) => {
@@ -165,24 +209,118 @@ export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = (
     }
   }, [sheet, handleUpdateCharacterResource]);
 
-  // Toggle de itens expandidos (para ler descrição completa)
-  const toggleExpand = (id: string) => {
-    setExpandedItems(prev => ({ ...prev, [id]: !prev[id] }));
+  // Disparar rolagem com o Dado 3D oficial do sistema
+  const handleQuickRoll = (label: string, bonus: number, diceFormula = '1d20') => {
+    roll3DDice({
+      diceType: 'd20',
+      modifier: bonus,
+      label,
+      formula: `${diceFormula} ${bonus >= 0 ? '+' : '-'} ${Math.abs(bonus)}`
+    });
   };
 
-  // Disparar rolagem rápida a partir de um botão de perícia/ataque
-  const handleQuickRoll = (label: string, bonus: number, diceFormula = '1d20') => {
-    setDiceRollLabel(label);
-    setCustomModifier(bonus);
-    setIsDiceModalOpen(true);
-    const sign = bonus >= 0 ? '+' : '-';
-    const absBonus = Math.abs(bonus);
-    roll(`${diceFormula} ${sign} ${absBonus}`);
+  // =========================================================================
+  // GESTÃO DA MOCHILA E EQUIPAMENTO (ADICIONAR, REMOVER, QUANTIDADE, DINHEIRO)
+  // =========================================================================
+  const currentMoney = Number(characterRaw?.tibares ?? characterRaw?.money?.to ?? characterRaw?.money ?? 0);
+
+  const handleSaveNewItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItemName.trim() || !charId) return;
+
+    const currentInventory = Array.isArray(characterRaw?.inventory) 
+      ? [...characterRaw.inventory] 
+      : (Array.isArray(sheet?.inventory) ? [...sheet.inventory] : []);
+
+    const newItem = {
+      id: 'item_' + Date.now(),
+      name: newItemName.trim(),
+      quantity: Math.max(1, Number(newItemQty) || 1),
+      description: newItemDesc.trim(),
+      weight: 0
+    };
+
+    const updated = [...currentInventory, newItem];
+    setCharacterRaw((prev: any) => ({ ...prev, inventory: updated }));
+    setIsAddItemModalOpen(false);
+    setNewItemName('');
+    setNewItemQty(1);
+    setNewItemDesc('');
+
+    try {
+      await CharacterService.updateCharacter(charId, { inventory: updated });
+    } catch (err) {
+      console.error('Erro ao adicionar item:', err);
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    if (!charId) return;
+    const currentInventory = Array.isArray(characterRaw?.inventory) 
+      ? [...characterRaw.inventory] 
+      : (Array.isArray(sheet?.inventory) ? [...sheet.inventory] : []);
+
+    const updated = currentInventory.filter((it: any) => it.id !== itemId);
+    setCharacterRaw((prev: any) => ({ ...prev, inventory: updated }));
+
+    try {
+      await CharacterService.updateCharacter(charId, { inventory: updated });
+    } catch (err) {
+      console.error('Erro ao remover item:', err);
+    }
+  };
+
+  const handleAdjustItemQty = async (itemId: string, delta: number) => {
+    if (!charId) return;
+    const currentInventory = Array.isArray(characterRaw?.inventory) 
+      ? [...characterRaw.inventory] 
+      : (Array.isArray(sheet?.inventory) ? [...sheet.inventory] : []);
+
+    const updated = currentInventory.map((it: any) => {
+      if (it.id === itemId) {
+        const nextQty = Math.max(1, (Number(it.quantity) || 1) + delta);
+        return { ...it, quantity: nextQty };
+      }
+      return it;
+    });
+
+    setCharacterRaw((prev: any) => ({ ...prev, inventory: updated }));
+
+    try {
+      await CharacterService.updateCharacter(charId, { inventory: updated });
+    } catch (err) {
+      console.error('Erro ao alterar quantidade do item:', err);
+    }
+  };
+
+  const handleAdjustMoney = async (delta: number) => {
+    if (!charId) return;
+    const nextVal = Math.max(0, currentMoney + delta);
+    setCharacterRaw((prev: any) => ({ ...prev, tibares: nextVal, money: nextVal }));
+
+    try {
+      await CharacterService.updateCharacter(charId, { tibares: nextVal, money: nextVal });
+    } catch (err) {
+      console.error('Erro ao alterar dinheiro:', err);
+    }
+  };
+
+  const handleSetExactMoney = async (value: number) => {
+    if (!charId) return;
+    const nextVal = Math.max(0, Math.floor(value));
+    setCharacterRaw((prev: any) => ({ ...prev, tibares: nextVal, money: nextVal }));
+    setIsMoneyModalOpen(false);
+
+    try {
+      await CharacterService.updateCharacter(charId, { tibares: nextVal, money: nextVal });
+    } catch (err) {
+      console.error('Erro ao definir dinheiro:', err);
+    }
   };
 
   if (loadingChar) {
     return (
-      <div className="min-h-screen bg-[#0a0806] flex flex-col items-center justify-center p-6 text-center space-y-4 font-cinzel">
+      <div className="min-h-screen bg-[#070504] flex flex-col items-center justify-center p-6 text-center space-y-4 font-cinzel">
         <div className="relative">
           <div className="w-14 h-14 rounded-full border-2 border-amber-900/40 border-t-amber-500 animate-spin" />
           <Sword className="w-6 h-6 text-amber-500/80 absolute inset-0 m-auto" />
@@ -196,8 +334,8 @@ export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = (
 
   if (!sheet) {
     return (
-      <div className="min-h-screen bg-[#0a0806] flex flex-col items-center justify-center p-6 text-center space-y-4 font-cinzel max-w-md mx-auto">
-        <AlertTriangle className="w-12 h-12 text-amber-500" />
+      <div className="min-h-screen bg-[#070504] flex flex-col items-center justify-center p-6 text-center space-y-4 font-cinzel max-w-md mx-auto">
+        <Sword className="w-12 h-12 text-amber-500" />
         <h2 className="text-lg font-bold text-amber-100 uppercase">Herói Não Vinculado</h2>
         <p className="text-xs text-stone-400 font-serif">
           Você entrou na sala sem selecionar um personagem ativo.
@@ -205,7 +343,7 @@ export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = (
         {onExit && (
           <button
             onClick={onExit}
-            className="px-5 py-2.5 rounded-xl bg-amber-950 border border-amber-600/50 text-amber-200 text-xs font-bold uppercase tracking-wider"
+            className="px-5 py-2.5 rounded-xl bg-amber-950 border border-amber-600/50 text-amber-200 text-xs font-bold uppercase tracking-wider cursor-pointer"
           >
             Voltar ao Lobby
           </button>
@@ -223,13 +361,12 @@ export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = (
   const maxPM = Math.max(1, sheet.maxPM);
   const pmPercent = Math.min(100, Math.max(0, Math.round((currentPM / maxPM) * 100)));
 
-  // Estado de Saúde Reativo
-  const healthStatus = 
-    hpPercent <= 0 ? { text: 'Inconsciente / Derrotado', color: 'text-stone-500', bg: 'bg-stone-900/90 border-stone-700' } :
-    hpPercent <= 25 ? { text: 'À beira da morte', color: 'text-red-400 animate-pulse', bg: 'bg-red-950/80 border-red-800' } :
-    hpPercent <= 50 ? { text: 'Gravemente Ferido', color: 'text-amber-400', bg: 'bg-amber-950/80 border-amber-800' } :
-    hpPercent < 100 ? { text: 'Ferido', color: 'text-yellow-300', bg: 'bg-yellow-950/50 border-yellow-800/40' } :
-    { text: 'Com Saúde Total', color: 'text-emerald-400', bg: 'bg-emerald-950/40 border-emerald-800/40' };
+  const healthStatusText = 
+    hpPercent <= 0 ? 'Inconsciente' :
+    hpPercent <= 25 ? 'À beira da morte' :
+    hpPercent <= 50 ? 'Gravemente Ferido' :
+    hpPercent < 100 ? 'Ferido' :
+    'Saúde Total';
 
   // Perícias filtradas
   const filteredSkills = sheet.skills.filter(s => {
@@ -251,1197 +388,1185 @@ export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = (
     return true;
   });
 
-  const heroEmoji = getClassEmoji(sheet.className);
+  const modelPath = characterRaw?.model3D || characterRaw?.modelPath || characterRaw?.avatar3D || '3d/anaogrande-v1.glb';
+  const playersCount = roomPlayers.length > 0 ? roomPlayers.length : (game.maxPlayers || 4);
+
+  // Lista dos 6 atributos ordenados: FOR, DES, CON, INT, SAB, CAR
+  const attributeTiles = [
+    {
+      key: 'FOR',
+      label: 'FOR',
+      value: sheet.attributes.FOR,
+      icon: Sword,
+      borderClass: 'border-red-800/80 shadow-[0_0_10px_rgba(220,38,38,0.2)]',
+      bgClass: 'from-[#2a0f0f]/90 via-[#180808]/95 to-[#0f0505]',
+      labelColor: 'text-red-400',
+      iconColor: 'text-red-400'
+    },
+    {
+      key: 'DES',
+      label: 'DES',
+      value: sheet.attributes.DES,
+      icon: Feather,
+      borderClass: 'border-amber-700/80 shadow-[0_0_10px_rgba(217,119,6,0.2)]',
+      bgClass: 'from-[#2e1c0c]/90 via-[#1a0f06]/95 to-[#0d0703]',
+      labelColor: 'text-amber-400',
+      iconColor: 'text-amber-400'
+    },
+    {
+      key: 'CON',
+      label: 'CON',
+      value: sheet.attributes.CON,
+      icon: Heart,
+      borderClass: 'border-emerald-800/80 shadow-[0_0_10px_rgba(16,185,129,0.2)]',
+      bgClass: 'from-[#0e2719]/90 via-[#07160d]/95 to-[#040d07]',
+      labelColor: 'text-emerald-400',
+      iconColor: 'text-emerald-400'
+    },
+    {
+      key: 'INT',
+      label: 'INT',
+      value: sheet.attributes.INT,
+      icon: BookOpen,
+      borderClass: 'border-blue-800/80 shadow-[0_0_10px_rgba(37,99,235,0.2)]',
+      bgClass: 'from-[#0d1d36]/90 via-[#07101f]/95 to-[#030812]',
+      labelColor: 'text-blue-400',
+      iconColor: 'text-blue-400'
+    },
+    {
+      key: 'SAB',
+      label: 'SAB',
+      value: sheet.attributes.SAB,
+      icon: Sun,
+      borderClass: 'border-amber-500/80 shadow-[0_0_12px_rgba(245,158,11,0.25)]',
+      bgClass: 'from-[#332408]/90 via-[#1c1404]/95 to-[#0f0a02]',
+      labelColor: 'text-amber-300',
+      iconColor: 'text-amber-300'
+    },
+    {
+      key: 'CAR',
+      label: 'CAR',
+      value: sheet.attributes.CAR,
+      icon: Crown,
+      borderClass: 'border-purple-800/80 shadow-[0_0_10px_rgba(147,51,234,0.2)]',
+      bgClass: 'from-[#250d36]/90 via-[#15071f]/95 to-[#0a0310]',
+      labelColor: 'text-purple-400',
+      iconColor: 'text-purple-400'
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-[#0a0806] text-stone-200 pb-24 font-sans select-none antialiased">
+    <div className="min-h-screen bg-[#070504] text-stone-200 pb-24 font-sans select-none antialiased relative overflow-x-hidden">
       
+      {/* CENÁRIO MEDIEVAL DE FUNDO */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat opacity-45"
+        style={{
+          backgroundImage: `radial-gradient(circle at 50% 30%, rgba(245, 158, 11, 0.08) 0%, rgba(7, 5, 4, 0.95) 75%), url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&auto=format&fit=crop&q=85')`
+        }}
+      />
+      <div className="fixed bottom-0 inset-x-0 h-96 pointer-events-none z-0 bg-gradient-to-t from-[#070504] via-[#120b06]/60 to-transparent" />
+
       {/* ========================================================================= */}
-      {/* 1. BARRA SUPERIOR DE CONEXÃO & CONTROLES DA SESSÃO                        */}
+      {/* 1. BARRA SUPERIOR DA PARTIDA (SEM O QUADRADINHO DO DADO NO TOPO)          */}
       {/* ========================================================================= */}
-      <header className="sticky top-0 z-30 bg-[#0d0a08]/95 backdrop-blur-md border-b border-amber-900/40 px-3.5 py-2.5 flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-2 min-w-0">
+      <header className="sticky top-0 z-40 bg-[#0c0907]/90 backdrop-blur-md border-b border-amber-900/50 px-3 sm:px-4 py-2 flex items-center justify-between shadow-2xl">
+        <div className="flex items-center gap-2.5 min-w-0">
           {onExit && (
             <button
               onClick={onExit}
-              className="w-8 h-8 rounded-lg bg-stone-900/90 border border-amber-900/50 text-amber-400 flex items-center justify-center hover:bg-amber-950 transition-colors shrink-0 cursor-pointer"
-              title="Voltar ao Lobby"
+              className="w-8 h-8 rounded-lg bg-[#140f0a] border border-amber-600/50 text-amber-400 hover:text-amber-200 hover:border-amber-400 flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-md active:scale-95"
+              title="Sair da Partida"
+              aria-label="Voltar"
             >
               <ChevronLeft size={18} />
             </button>
           )}
+
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              <h1 className="text-xs font-cinzel font-bold text-amber-100 truncate uppercase">
-                {game.name}
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse shrink-0" />
+              <h1 className="text-xs sm:text-sm font-cinzel font-bold text-amber-100 uppercase tracking-widest truncate drop-shadow">
+                {game.name || 'A NOITE DO LUAR'}
               </h1>
             </div>
             <p className="text-[10px] text-stone-400 font-serif truncate">
-              Mestre: <strong className="text-stone-300 font-cinzel">{game.masterName || 'Mestre'}</strong>
+              Mestre: <strong className="text-amber-300 font-cinzel font-semibold">{game.masterName || 'MESTRE'}</strong>
             </p>
           </div>
         </div>
 
-        {/* Botão de Rolador de Dados Rápido Flutuante no Topo */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* Lado Direito: Ações da Sessão (👥 4, ⚙️ Configurações) */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Jogadores na Sala */}
           <button
             type="button"
-            onClick={() => {
-              setDiceRollLabel('Rolagem Livre');
-              setCustomModifier(0);
-              setIsDiceModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 text-stone-950 font-cinzel font-black text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(217,119,6,0.3)] border border-amber-400/60 active:scale-95 cursor-pointer"
+            onClick={() => setIsPlayersModalOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#140f0a] border border-amber-900/60 hover:border-amber-600/70 text-amber-300 text-xs font-cinzel font-bold transition-colors cursor-pointer"
+            title="Aventureiros na Mesa"
           >
-            <Dices size={15} className="text-stone-950 stroke-[2.5]" />
-            <span className="hidden xs:inline">DADOS</span>
+            <Users size={13} className="text-amber-400" />
+            <span className="text-[11px] font-mono">{playersCount}</span>
+          </button>
+
+          {/* Configurações */}
+          <button
+            type="button"
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="w-8 h-8 rounded-lg bg-[#140f0a] border border-amber-900/60 hover:border-amber-600/70 text-stone-400 hover:text-amber-300 flex items-center justify-center transition-colors cursor-pointer"
+            title="Configurações da Sessão"
+          >
+            <Settings size={15} />
           </button>
         </div>
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. CABEÇALHO DO PERSONAGEM (AVATAR, NOME, CLASSE, RAÇA, NÍVEL)            */}
+      {/* 6. DADO 3D REUTILIZADO DO SISTEMA — POSICIONADO ABAIXO DE CONFIGURAÇÕES   */}
       {/* ========================================================================= */}
-      <section className="px-3.5 pt-3 pb-2 max-w-xl mx-auto">
-        <div className="p-3.5 rounded-2xl bg-gradient-to-b from-[#18130e] via-[#120e0b] to-[#0e0b08] border border-amber-800/40 shadow-xl relative overflow-hidden">
-          {/* Cantoneiras decorativas */}
-          <div className="absolute top-2 left-2 w-2.5 h-2.5 border-t border-l border-amber-500/40 pointer-events-none" />
-          <div className="absolute top-2 right-2 w-2.5 h-2.5 border-t border-r border-amber-500/40 pointer-events-none" />
-
-          <div className="flex items-center gap-3.5">
-            {/* Foto / Avatar do Personagem */}
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#090705] border-2 border-amber-500/60 overflow-hidden flex items-center justify-center text-amber-300 text-2xl shrink-0 shadow-[0_0_15px_rgba(0,0,0,0.8)] relative group">
-              {sheet.imageUrl ? (
-                <img
-                  src={sheet.imageUrl}
-                  alt={sheet.name}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-top"
-                />
-              ) : (
-                <span>{heroEmoji}</span>
-              )}
-            </div>
-
-            {/* Informações de Identidade */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm">{heroEmoji}</span>
-                <h2 className="font-cinzel font-bold text-base sm:text-lg text-amber-100 truncate tracking-wide">
-                  {sheet.name}
-                </h2>
-              </div>
-              <p className="text-[11px] text-amber-300/90 font-cinzel font-semibold truncate mt-0.5">
-                {sheet.className} • Nível {sheet.level}
-              </p>
-              <p className="text-[10px] text-stone-400 font-serif truncate">
-                {sheet.raceName} {sheet.originName ? `• ${sheet.originName}` : ''} {sheet.deity ? `(Devoto de ${sheet.deity})` : ''}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Floating3DDice className="fixed right-3 top-14 z-40 flex flex-col items-center gap-1 select-none pointer-events-auto" />
 
       {/* ========================================================================= */}
-      {/* 3. ÁREA DE STATUS DINÂMICA (❤️ PV, 🔵 PM, DEFESA, INICIATIVA, ETC.)       */}
+      {/* 2. ÁREA PRINCIPAL DO HERÓI (PALCO 3D CENTRAL + HUD FLUTUANTE)              */}
       {/* ========================================================================= */}
-      <section className="px-3.5 py-1 space-y-2.5 max-w-xl mx-auto">
-        {/* Bloco de Barras de Recursos com Reatividade Visual */}
-        <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-3 shadow-lg">
+      <main 
+        style={{ display: activeTab === 'overview' ? 'block' : 'none' }}
+        className="relative z-10 max-w-md mx-auto px-2 xs:px-3 pt-1 pb-3 space-y-1.5"
+      >
           
-          {/* ❤️ Pontos de Vida (PV) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-5 h-5 rounded-md bg-red-950/80 border border-red-700/60 flex items-center justify-center text-red-400 shadow-sm shrink-0">
-                  <Heart size={12} className="fill-red-500/40" />
-                </div>
-                <span className="text-xs font-cinzel font-bold text-red-300 uppercase tracking-wider truncate">
-                  Pontos de Vida (PV)
-                </span>
+          {/* A. IDENTIDADE DO PERSONAGEM (SEM ÍCONE REDONDO, TEXTO COMPLETO E LEGÍVEL) */}
+          <section className="text-left pt-0.5 px-0.5 space-y-0.5">
+            <div className="flex items-center gap-1.5 text-amber-300">
+              <Sparkles size={15} className="text-amber-400 shrink-0 fill-amber-400/30" />
+              <h2 className="font-cinzel font-black text-lg xs:text-xl sm:text-2xl text-amber-100 uppercase tracking-wider drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] break-words">
+                {sheet.name}
+              </h2>
+            </div>
+
+            <div className="leading-tight space-y-0.5">
+              <p className="text-xs xs:text-[13px] font-cinzel font-bold text-amber-400 tracking-wider uppercase">
+                {sheet.className} • NÍVEL {sheet.level}
+              </p>
+              <p className="text-[11px] text-stone-200 font-serif font-medium">
+                {sheet.raceName}
+              </p>
+              <p className="text-[10px] text-amber-200/90 font-serif leading-snug">
+                {sheet.originName || 'Herói Camponês'} {sheet.deity ? `(Devoto de ${sheet.deity})` : ''}
+              </p>
+            </div>
+          </section>
+
+          {/* B. PALCO 3D CENTRAL COM CARDS DE STATUS MENORES E QUADRADOS NAS LATERAIS */}
+          <section className="relative w-full h-[330px] xs:h-[350px] sm:h-[370px] flex items-center justify-center overflow-visible my-0">
+            
+            {/* PALCO 3D DO PERSONAGEM LIMPO (ROTAÇÃO HORIZONTAL 360°, SEM BOTÕES OU TEXTOS) */}
+            <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-auto">
+              <div className="w-full h-full max-w-[280px] xs:max-w-[310px] relative">
+                <CharacterSelectionStage3D
+                  modelPath={modelPath}
+                  characterName={sheet.name}
+                  horizontalOnly={true}
+                  isVisible={activeTab === 'overview'}
+                />
               </div>
+            </div>
 
-              {/* Controles táteis discretos (− / +) e Valor Numérico */}
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="flex items-center bg-stone-950/90 border border-red-900/60 rounded-lg p-0.5 shadow-inner">
-                  <button
-                    type="button"
-                    onClick={() => handleAdjustPV(-1)}
-                    disabled={currentPV <= 0}
-                    className="w-7 h-7 rounded-md flex items-center justify-center text-red-400 hover:text-red-200 hover:bg-red-950/80 active:scale-90 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer select-none"
-                    title="Diminuir 1 PV"
-                    aria-label="Diminuir 1 PV"
-                  >
-                    <Minus size={14} strokeWidth={2.5} />
-                  </button>
-                  <div className="w-px h-3.5 bg-red-900/40" />
-                  <button
-                    type="button"
-                    onClick={() => handleAdjustPV(1)}
-                    disabled={currentPV >= maxPV}
-                    className="w-7 h-7 rounded-md flex items-center justify-center text-red-400 hover:text-red-200 hover:bg-red-950/80 active:scale-90 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer select-none"
-                    title="Aumentar 1 PV"
-                    aria-label="Aumentar 1 PV"
-                  >
-                    <Plus size={14} strokeWidth={2.5} />
-                  </button>
-                </div>
-
-                <div className="text-right min-w-[48px]">
-                  <span className="font-mono text-base font-black text-stone-100 tracking-tight">
-                    {currentPV}
-                  </span>
-                  <span className="text-xs font-mono text-stone-400 font-semibold">
-                    /{maxPV}
-                  </span>
-                  {sheet.tempPV > 0 && (
-                    <span className="ml-1 text-[9px] font-mono px-1 py-0.2 rounded bg-amber-950/80 border border-amber-600/50 text-amber-300 font-bold block">
-                      +{sheet.tempPV} temp
+            {/* OVERLAY DE HUD: CARDS DE COMBATE MENORES, QUADRADOS E PRÓXIMOS */}
+            <div className="relative z-10 w-full h-full flex justify-between items-stretch pointer-events-none px-0.5">
+              
+              {/* COLUNA ESQUERDA: PV (TOPO) + DEFESA E DESLOCAMENTO (QUADRADOS E PRÓXIMOS) */}
+              <div className="w-[84px] xs:w-[92px] sm:w-[100px] flex flex-col justify-between py-0.5 pointer-events-auto shrink-0">
+                
+                {/* 1. CARD: ❤️ PONTOS DE VIDA (PV) COMPACTO */}
+                <div className="p-1.5 rounded-xl bg-gradient-to-b from-[#2d0f0f]/95 via-[#1a0808]/95 to-[#0d0404]/98 border border-red-700/80 shadow-[0_0_12px_rgba(220,38,38,0.25)] relative overflow-hidden backdrop-blur-md">
+                  <OrnateCardCorners color="border-red-500/80" />
+                  
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <div className="w-3.5 h-3.5 rounded-full bg-red-950 border border-red-600 flex items-center justify-center text-red-400 shrink-0">
+                      <Heart size={8} className="fill-red-500" />
+                    </div>
+                    <span className="text-[7.5px] xs:text-[8px] font-cinzel font-black text-red-300 uppercase tracking-wider truncate">
+                      VIDA (PV)
                     </span>
-                  )}
-                </div>
-              </div>
-            </div>
+                  </div>
 
-            {/* Barra Reativa de PV */}
-            <div className="w-full h-3 rounded-full bg-[#0a0705] overflow-hidden border border-red-950/80 p-0.5 shadow-inner">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  hpPercent <= 25 
-                    ? 'bg-gradient-to-r from-red-700 via-red-600 to-red-500 shadow-[0_0_10px_rgba(239,68,68,0.7)] animate-pulse' 
-                    : hpPercent <= 50
-                    ? 'bg-gradient-to-r from-amber-700 via-amber-600 to-red-500'
-                    : 'bg-gradient-to-r from-red-700 via-emerald-600 to-emerald-500'
-                }`}
-                style={{ width: `${hpPercent}%` }}
-              />
-            </div>
-
-            {/* Status Descritivo da Saúde */}
-            <div className="flex items-center justify-between text-[10px] pt-0.5">
-              <span className={`font-cinzel font-semibold ${healthStatus.color}`}>
-                ● {healthStatus.text}
-              </span>
-              <span className="font-mono text-stone-400 font-medium">
-                {hpPercent}% restante
-              </span>
-            </div>
-          </div>
-
-          {/* 🔵 Pontos de Mana (PM) */}
-          <div className="space-y-1.5 pt-2 border-t border-amber-950/80">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-5 h-5 rounded-md bg-blue-950/80 border border-blue-700/60 flex items-center justify-center text-blue-400 shadow-sm shrink-0">
-                  <Droplet size={12} className="fill-blue-500/40" />
-                </div>
-                <span className="text-xs font-cinzel font-bold text-blue-300 uppercase tracking-wider truncate">
-                  Pontos de Mana (PM)
-                </span>
-              </div>
-
-              {/* Controles táteis discretos (− / +) e Valor Numérico */}
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="flex items-center bg-stone-950/90 border border-blue-900/60 rounded-lg p-0.5 shadow-inner">
-                  <button
-                    type="button"
-                    onClick={() => handleAdjustPM(-1)}
-                    disabled={currentPM <= 0}
-                    className="w-7 h-7 rounded-md flex items-center justify-center text-blue-400 hover:text-blue-200 hover:bg-blue-950/80 active:scale-90 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer select-none"
-                    title="Gastar 1 PM"
-                    aria-label="Gastar 1 PM"
-                  >
-                    <Minus size={14} strokeWidth={2.5} />
-                  </button>
-                  <div className="w-px h-3.5 bg-blue-900/40" />
-                  <button
-                    type="button"
-                    onClick={() => handleAdjustPM(1)}
-                    disabled={currentPM >= maxPM}
-                    className="w-7 h-7 rounded-md flex items-center justify-center text-blue-400 hover:text-blue-200 hover:bg-blue-950/80 active:scale-90 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer select-none"
-                    title="Recuperar 1 PM"
-                    aria-label="Recuperar 1 PM"
-                  >
-                    <Plus size={14} strokeWidth={2.5} />
-                  </button>
-                </div>
-
-                <div className="text-right min-w-[48px]">
-                  <span className="font-mono text-base font-black text-stone-100 tracking-tight">
-                    {currentPM}
-                  </span>
-                  <span className="text-xs font-mono text-stone-400 font-semibold">
-                    /{maxPM}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Barra Reativa de PM */}
-            <div className="w-full h-2.5 rounded-full bg-[#0a0705] overflow-hidden border border-blue-950/80 p-0.5 shadow-inner">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-blue-700 via-cyan-600 to-blue-400 transition-all duration-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
-                style={{ width: `${pmPercent}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Grade de Status de Combate (Defesa, Iniciativa, Deslocamento, CD de Magia) */}
-        <div className="grid grid-cols-3 gap-2">
-          {/* Defesa */}
-          <div className="p-2.5 rounded-xl bg-[#120e0b] border border-amber-900/40 text-center space-y-0.5 shadow">
-            <div className="flex items-center justify-center gap-1 text-amber-400 text-[10px] font-cinzel uppercase font-bold tracking-wider">
-              <Shield size={12} />
-              <span>DEFESA</span>
-            </div>
-            <span className="text-xl font-cinzel font-black text-amber-100 block">
-              {sheet.defense}
-            </span>
-            <span className="text-[9px] text-stone-400 font-serif block truncate">
-              Armadura & Esquiva
-            </span>
-          </div>
-
-          {/* Iniciativa */}
-          <div 
-            onClick={() => handleQuickRoll('Teste de Iniciativa', sheet.initiative)}
-            className="p-2.5 rounded-xl bg-[#120e0b] border border-amber-900/40 hover:border-amber-500/60 transition-all text-center space-y-0.5 shadow cursor-pointer active:scale-95"
-            title="Toque para rolar iniciativa"
-          >
-            <div className="flex items-center justify-center gap-1 text-amber-400 text-[10px] font-cinzel uppercase font-bold tracking-wider">
-              <Zap size={12} />
-              <span>INICIATIVA</span>
-            </div>
-            <span className="text-xl font-cinzel font-black text-amber-100 block">
-              {formatMod(sheet.initiative)}
-            </span>
-            <span className="text-[9px] text-amber-400/80 font-serif block truncate underline">
-              🎲 Rolar Teste
-            </span>
-          </div>
-
-          {/* Deslocamento */}
-          <div className="p-2.5 rounded-xl bg-[#120e0b] border border-amber-900/40 text-center space-y-0.5 shadow">
-            <div className="flex items-center justify-center gap-1 text-amber-400 text-[10px] font-cinzel uppercase font-bold tracking-wider">
-              <Footprints size={12} />
-              <span>DESLOC.</span>
-            </div>
-            <span className="text-xl font-cinzel font-black text-amber-100 block">
-              {sheet.movement}
-            </span>
-            <span className="text-[9px] text-stone-400 font-serif block truncate">
-              Por Ação
-            </span>
-          </div>
-        </div>
-
-        {/* Resistências Rápidas (Fortitude, Reflexos, Vontade) */}
-        <div className="p-2.5 rounded-xl bg-[#0f0c09] border border-amber-950 flex items-center justify-around gap-2 text-center shadow-inner">
-          <div 
-            onClick={() => handleQuickRoll('Teste de Fortitude', sheet.resistances.fortitude)}
-            className="flex-1 cursor-pointer py-1 px-1 rounded-lg hover:bg-amber-950/40 transition-colors"
-          >
-            <span className="text-[9px] font-cinzel text-stone-400 uppercase block">Fortitude</span>
-            <span className="text-sm font-cinzel font-bold text-amber-200">
-              {formatMod(sheet.resistances.fortitude)}
-            </span>
-          </div>
-          <div className="w-[1px] h-6 bg-amber-900/30" />
-          <div 
-            onClick={() => handleQuickRoll('Teste de Reflexos', sheet.resistances.reflexos)}
-            className="flex-1 cursor-pointer py-1 px-1 rounded-lg hover:bg-amber-950/40 transition-colors"
-          >
-            <span className="text-[9px] font-cinzel text-stone-400 uppercase block">Reflexos</span>
-            <span className="text-sm font-cinzel font-bold text-amber-200">
-              {formatMod(sheet.resistances.reflexos)}
-            </span>
-          </div>
-          <div className="w-[1px] h-6 bg-amber-900/30" />
-          <div 
-            onClick={() => handleQuickRoll('Teste de Vontade', sheet.resistances.vontade)}
-            className="flex-1 cursor-pointer py-1 px-1 rounded-lg hover:bg-amber-950/40 transition-colors"
-          >
-            <span className="text-[9px] font-cinzel text-stone-400 uppercase block">Vontade</span>
-            <span className="text-sm font-cinzel font-bold text-amber-200">
-              {formatMod(sheet.resistances.vontade)}
-            </span>
-          </div>
-          {sheet.spellDC > 10 && (
-            <>
-              <div className="w-[1px] h-6 bg-amber-900/30" />
-              <div className="flex-1 py-1 px-1">
-                <span className="text-[9px] font-cinzel text-purple-300 uppercase block">CD Magia</span>
-                <span className="text-sm font-cinzel font-bold text-purple-200">
-                  {sheet.spellDC}
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Condições Ativas (Se houver) */}
-        {sheet.conditions && sheet.conditions.length > 0 && (
-          <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-900/50 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-xs font-cinzel font-bold text-red-300">
-              <AlertTriangle size={13} className="text-red-400" />
-              <span>CONDIÇÕES ATIVAS</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {sheet.conditions.map(cond => (
-                <span 
-                  key={cond}
-                  className="px-2.5 py-1 rounded-lg bg-red-950/90 border border-red-700/60 text-red-200 text-xs font-cinzel font-bold"
-                >
-                  ⚠️ {cond}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 4. CONTEÚDO PRINCIPAL (COM BASE NA ABA SELECIONADA NA NAVEGAÇÃO INFERIOR)  */}
-      {/* ========================================================================= */}
-      <main className="px-3.5 pt-2 pb-6 max-w-xl mx-auto space-y-4">
-        
-        {/* Barra Informativa de Aba Ativa (quando não estiver na Visão Geral) */}
-        {activeTab !== 'overview' && (
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-amber-950/40 border border-amber-800/40 text-xs font-cinzel">
-            <span className="text-amber-300 font-bold tracking-wider uppercase flex items-center gap-1.5">
-              {activeTab === 'attacks' && <>⚔️ Ataques & Combate</>}
-              {activeTab === 'spells' && <>✨ Grimório de Magias</>}
-              {activeTab === 'skills' && <>🎯 Lista de Perícias</>}
-              {activeTab === 'inventory' && <>🎒 Mochila & Equipamentos</>}
-              {activeTab === 'powers' && <>⭐ Poderes & Habilidades</>}
-            </span>
-            <button
-              type="button"
-              onClick={() => setActiveTab('overview')}
-              className="text-[10px] font-bold text-stone-300 hover:text-amber-200 underline uppercase cursor-pointer"
-            >
-              [ Voltar ao Status ]
-            </button>
-          </div>
-        )}
-
-        {/* ----------------------------------------------------------------------- */}
-        {/* ABA: VISÃO GERAL (ATRIBUTOS, RESUMO, BIOGRAFIA)                        */}
-        {/* ----------------------------------------------------------------------- */}
-        {activeTab === 'overview' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Atributos Oficiais JdA */}
-            <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-2.5 shadow-lg">
-              <div className="flex items-center justify-between border-b border-amber-900/30 pb-2">
-                <h3 className="text-xs font-cinzel font-bold text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
-                  <Star size={14} className="text-amber-400" />
-                  <span>ATRIBUTOS (JdA)</span>
-                </h3>
-                <span className="text-[10px] text-stone-400 font-serif">
-                  Modificadores Diretos
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {(['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'] as Attribute[]).map(attr => {
-                  const val = sheet.attrModifiers[attr];
-                  return (
-                    <div
-                      key={attr}
-                      onClick={() => handleQuickRoll(`Teste de ${ATTRIBUTE_NAMES[attr]}`, val)}
-                      className="p-2 rounded-xl bg-[#0a0806] border border-amber-950 hover:border-amber-600/60 transition-all text-center space-y-0.5 cursor-pointer active:scale-95"
-                      title={`Rolar teste de ${ATTRIBUTE_NAMES[attr]}`}
-                    >
-                      <span className="text-[10px] font-cinzel font-bold text-amber-400 block">
-                        {attr}
+                  <div className="flex items-baseline justify-between pt-0.5">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="font-cinzel text-base xs:text-lg font-black text-stone-100 tracking-tight leading-none">
+                        {currentPV}
                       </span>
-                      <span className="text-lg font-cinzel font-black text-stone-100 block">
-                        {formatMod(val)}
-                      </span>
-                      <span className="text-[8px] text-stone-400 font-serif block truncate">
-                        {ATTRIBUTE_NAMES[attr]}
+                      <span className="text-[9px] font-cinzel font-bold text-red-300/80">
+                        /{maxPV}
                       </span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* Atalhos Rápidos para Ataques mais usados */}
-            {sheet.attacks.length > 0 && (
-              <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-2.5 shadow-lg">
-                <div className="flex items-center justify-between border-b border-amber-900/30 pb-2">
-                  <h3 className="text-xs font-cinzel font-bold text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sword size={14} className="text-amber-400" />
-                    <span>ATAQUES RÁPIDOS</span>
-                  </h3>
-                  <button
-                    onClick={() => setActiveTab('attacks')}
-                    className="text-[10px] font-cinzel font-bold text-amber-400 uppercase hover:underline"
-                  >
-                    Ver Todos ({sheet.attacks.length}) →
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {sheet.attacks.slice(0, 2).map((atk) => (
-                    <div
-                      key={atk.id}
-                      className="p-3 rounded-xl bg-[#0a0806] border border-amber-950 flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0">
-                        <h4 className="font-cinzel font-bold text-xs text-amber-100 truncate">
-                          {atk.name}
-                        </h4>
-                        <p className="text-[10px] text-stone-400 font-serif">
-                          Dano: <strong className="text-amber-300">{atk.damage}</strong> • Crítico: {atk.crit}
-                        </p>
-                      </div>
-
+                    <div className="flex items-center gap-0.5 bg-black/60 border border-red-900/80 rounded p-0.5">
                       <button
                         type="button"
-                        onClick={() => handleQuickRoll(`Ataque: ${atk.name}`, atk.attackBonus)}
-                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-700 to-amber-800 text-stone-950 font-cinzel font-bold text-xs uppercase tracking-wider shrink-0 flex items-center gap-1 shadow active:scale-95"
+                        onClick={() => handleAdjustPV(-1)}
+                        disabled={currentPV <= 0}
+                        className="w-3.5 h-3.5 rounded flex items-center justify-center text-red-400 hover:bg-red-950 active:scale-90 disabled:opacity-30 cursor-pointer"
+                        title="Diminuir PV"
                       >
-                        <Dices size={12} />
-                        <span>{formatMod(atk.attackBonus)}</span>
+                        <Minus size={8} strokeWidth={3} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustPV(1)}
+                        disabled={currentPV >= maxPV}
+                        className="w-3.5 h-3.5 rounded flex items-center justify-center text-red-400 hover:bg-red-950 active:scale-90 disabled:opacity-30 cursor-pointer"
+                        title="Aumentar PV"
+                      >
+                        <Plus size={8} strokeWidth={3} />
                       </button>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Informações de Equipamento e Peso Geral */}
-            <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 flex items-center justify-between shadow">
-              <div className="flex items-center gap-2">
-                <Backpack size={16} className="text-amber-400" />
-                <div>
-                  <span className="text-xs font-cinzel font-bold text-amber-200 uppercase block">
-                    Carga & Tibares
-                  </span>
-                  <span className="text-[10px] text-stone-400 font-serif">
-                    Peso: {sheet.totalWeight}kg / {sheet.maxWeight}kg • T$ {sheet.money}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveTab('inventory')}
-                className="px-3 py-1 rounded-lg bg-amber-950/80 border border-amber-700/50 text-amber-300 text-[10px] font-cinzel font-bold uppercase tracking-wider"
-              >
-                Abrir Mochila
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ----------------------------------------------------------------------- */}
-        {/* ABA: 🎒 MOCHILA (INVENTÁRIO COMPLETO, T$ TIBARES, CARGA)                 */}
-        {/* ----------------------------------------------------------------------- */}
-        {activeTab === 'inventory' && (
-          <div className="space-y-3.5 animate-in fade-in duration-200">
-            {/* Header da Mochila com Carga e Moedas */}
-            <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-2.5 shadow-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-950 border border-amber-700/50 flex items-center justify-center text-amber-400">
-                    <Backpack size={18} />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-cinzel font-bold text-amber-100 uppercase">
-                      🎒 MOCHILA & EQUIPAMENTO
-                    </h3>
-                    <p className="text-[10px] text-stone-400 font-serif">
-                      {sheet.inventory.length} itens guardados
+
+                  <div className="w-full h-1.5 rounded-full bg-[#0a0404] overflow-hidden border border-red-900/90 my-1 p-0.2">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-red-700 via-red-500 to-red-600 shadow-[0_0_8px_rgba(239,68,68,0.9)] transition-all duration-300"
+                      style={{ width: `${hpPercent}%` }}
+                    />
+                  </div>
+
+                  <p className="text-[7px] text-stone-300 font-serif italic text-center truncate leading-none">
+                    {hpPercent}% • {healthStatusText}
+                  </p>
+                </div>
+
+                {/* BLOCO INFERIOR ESQUERDO: DEFESA E DESLOCAMENTO PRÓXIMOS E QUADRADOS */}
+                <div className="space-y-1 mt-auto">
+                  {/* 2. CARD: 🛡️ DEFESA (QUADRADO, COMPACTO) */}
+                  <div className="p-1 xs:p-1.5 rounded-xl bg-gradient-to-b from-[#1c160e]/95 via-[#120e09]/95 to-[#090704]/98 border border-amber-600/70 shadow-md relative overflow-hidden backdrop-blur-md flex flex-col justify-between h-[52px] xs:h-[56px]">
+                    <OrnateCardCorners color="border-amber-400/70" />
+
+                    <div className="flex items-center gap-1">
+                      <Shield size={10} className="text-amber-400 shrink-0" />
+                      <span className="text-[7.5px] font-cinzel font-bold text-amber-300 uppercase tracking-widest truncate">
+                        DEFESA
+                      </span>
+                    </div>
+
+                    <div className="text-base xs:text-lg font-cinzel font-black text-stone-100 tracking-tight leading-none text-center">
+                      {sheet.defense}
+                    </div>
+
+                    <p className="text-[6.5px] text-stone-400 font-serif truncate text-center leading-none">
+                      Armadura
+                    </p>
+                  </div>
+
+                  {/* 3. CARD: 👢 DESLOCAMENTO (QUADRADO, COMPACTO) */}
+                  <div className="p-1 xs:p-1.5 rounded-xl bg-gradient-to-b from-[#1c160e]/95 via-[#120e09]/95 to-[#090704]/98 border border-amber-600/70 shadow-md relative overflow-hidden backdrop-blur-md flex flex-col justify-between h-[52px] xs:h-[56px]">
+                    <OrnateCardCorners color="border-amber-400/70" />
+
+                    <div className="flex items-center gap-1">
+                      <Footprints size={10} className="text-amber-400 shrink-0" />
+                      <span className="text-[7.5px] font-cinzel font-bold text-amber-300 uppercase tracking-widest truncate">
+                        DESLOC.
+                      </span>
+                    </div>
+
+                    <div className="text-base xs:text-lg font-cinzel font-black text-stone-100 tracking-tight leading-none text-center">
+                      {sheet.movement || '9m'}
+                    </div>
+
+                    <p className="text-[6.5px] text-stone-400 font-serif truncate text-center leading-none">
+                      Por Ação
                     </p>
                   </div>
                 </div>
 
-                <div className="px-3 py-1 rounded-xl bg-amber-950/90 border border-amber-500/50 flex items-center gap-1.5 shadow">
-                  <Coins size={14} className="text-amber-400" />
-                  <span className="font-cinzel font-bold text-xs text-amber-200">
-                    T$ {sheet.money}
-                  </span>
-                </div>
               </div>
 
-              {/* Barra de Carga */}
-              <div className="space-y-1 pt-1 border-t border-amber-950">
-                <div className="flex justify-between text-[10px] font-cinzel">
-                  <span className="text-stone-400">Capacidade de Carga</span>
-                  <span className={`font-bold ${sheet.totalWeight > sheet.maxWeight ? 'text-red-400' : 'text-amber-300'}`}>
-                    {sheet.totalWeight}kg / {sheet.maxWeight}kg {sheet.totalWeight > sheet.maxWeight ? '(Sobrecarregado)' : ''}
-                  </span>
-                </div>
-                <div className="w-full h-1.5 rounded-full bg-[#0a0806] overflow-hidden border border-amber-950">
-                  <div
-                    className={`h-full rounded-full ${sheet.totalWeight > sheet.maxWeight ? 'bg-red-500' : 'bg-amber-500'}`}
-                    style={{ width: `${Math.min(100, Math.round((sheet.totalWeight / Math.max(1, sheet.maxWeight)) * 100))}%` }}
-                  />
-                </div>
-              </div>
-            </div>
+              {/* COLUNA DIREITA: PM (TOPO) + INICIATIVA E CD MAGIA (QUADRADOS E PRÓXIMOS) */}
+              <div className="w-[84px] xs:w-[92px] sm:w-[100px] flex flex-col justify-between py-0.5 pointer-events-auto shrink-0">
+                
+                {/* 1. CARD: 💧 PONTOS DE MANA (PM) COMPACTO */}
+                <div className="p-1.5 rounded-xl bg-gradient-to-b from-[#0e2233]/95 via-[#081521]/95 to-[#040b12]/98 border border-cyan-600/80 shadow-[0_0_12px_rgba(6,182,212,0.25)] relative overflow-hidden backdrop-blur-md">
+                  <OrnateCardCorners color="border-cyan-400/80" />
 
-            {/* Lista de Itens */}
-            <div className="space-y-2">
-              {sheet.inventory.length === 0 ? (
-                <div className="p-6 rounded-xl bg-[#120e0b] border border-dashed border-amber-900/40 text-center space-y-1">
-                  <p className="text-xs font-cinzel text-stone-400">
-                    Nenhum item na mochila do herói.
-                  </p>
-                </div>
-              ) : (
-                sheet.inventory.map(item => {
-                  const isExpanded = expandedItems[item.id];
-                  return (
-                    <div
-                      key={item.id}
-                      className="p-3 rounded-xl bg-[#120e0b] border border-amber-950 hover:border-amber-800/60 transition-all space-y-1.5 shadow"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-cinzel font-bold text-xs text-amber-100 truncate">
-                              {item.name}
-                            </h4>
-                            {item.equipped && (
-                              <span className="px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-[9px] font-cinzel font-bold">
-                                EQUIPADO
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-stone-400 font-serif">
-                            Qtd: <strong className="text-stone-200">{item.quantity}</strong> • Peso: {item.weight}kg cada {item.type ? `• Tipo: ${item.type}` : ''}
-                          </p>
-                        </div>
-
-                        {item.description && (
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(item.id)}
-                            className="text-stone-400 hover:text-amber-300 p-1"
-                          >
-                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                          </button>
-                        )}
-                      </div>
-
-                      {item.description && isExpanded && (
-                        <p className="text-[11px] text-stone-300 font-serif leading-relaxed pt-1.5 border-t border-amber-950/80">
-                          {item.description}
-                        </p>
-                      )}
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <div className="w-3.5 h-3.5 rounded-full bg-cyan-950 border border-cyan-500 flex items-center justify-center text-cyan-300 shrink-0">
+                      <Droplet size={8} className="fill-cyan-400" />
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
+                    <span className="text-[7.5px] xs:text-[8px] font-cinzel font-black text-cyan-300 uppercase tracking-wider truncate">
+                      MANA (PM)
+                    </span>
+                  </div>
 
-        {/* ----------------------------------------------------------------------- */}
-        {/* ABA: ⚔️ ATAQUES (GOLPES, ARMAS, BÔNUS DE ATAQUE, DANO)                    */}
-        {/* ----------------------------------------------------------------------- */}
-        {activeTab === 'attacks' && (
-          <div className="space-y-3.5 animate-in fade-in duration-200">
-            <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 flex items-center justify-between shadow-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-950 border border-amber-700/50 flex items-center justify-center text-amber-400">
-                  <Sword size={18} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-cinzel font-bold text-amber-100 uppercase">
-                    ⚔️ ATAQUES & COMBATE
-                  </h3>
-                  <p className="text-[10px] text-stone-400 font-serif">
-                    Toque no botão para rolar o teste de ataque
-                  </p>
-                </div>
-              </div>
-            </div>
+                  <div className="flex items-baseline justify-between pt-0.5">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="font-cinzel text-base xs:text-lg font-black text-stone-100 tracking-tight leading-none">
+                        {currentPM}
+                      </span>
+                      <span className="text-[9px] font-cinzel font-bold text-cyan-300/80">
+                        /{maxPM}
+                      </span>
+                    </div>
 
-            <div className="space-y-2.5">
-              {sheet.attacks.length === 0 ? (
-                <div className="p-6 rounded-xl bg-[#120e0b] border border-dashed border-amber-900/40 text-center space-y-1">
-                  <p className="text-xs font-cinzel text-stone-400">
-                    Nenhum ataque cadastrado na ficha do herói.
-                  </p>
-                </div>
-              ) : (
-                sheet.attacks.map(atk => (
-                  <div
-                    key={atk.id}
-                    className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-2.5 shadow-lg"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <Sword size={14} className="text-amber-400 shrink-0" />
-                          <h4 className="font-cinzel font-bold text-sm text-amber-100 truncate">
-                            {atk.name}
-                          </h4>
-                        </div>
-                        <span className="text-[10px] text-stone-400 font-serif block">
-                          Alcance: {atk.range || 'Corpo a corpo'} • Tipo: {atk.type || 'Físico'}
-                        </span>
-                      </div>
-
-                      {/* Botão de Rolagem de Teste de Ataque */}
+                    <div className="flex items-center gap-0.5 bg-black/60 border border-cyan-900/80 rounded p-0.5">
                       <button
                         type="button"
-                        onClick={() => handleQuickRoll(`Ataque: ${atk.name}`, atk.attackBonus)}
-                        className="py-2 px-3.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 text-stone-950 font-cinzel font-black text-xs uppercase tracking-wider shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
+                        onClick={() => handleAdjustPM(-1)}
+                        disabled={currentPM <= 0}
+                        className="w-3.5 h-3.5 rounded flex items-center justify-center text-cyan-400 hover:bg-cyan-950 active:scale-90 disabled:opacity-30 cursor-pointer"
+                        title="Diminuir PM"
                       >
-                        <Dices size={14} className="stroke-[2.5]" />
-                        <span>TESTE {formatMod(atk.attackBonus)}</span>
+                        <Minus size={8} strokeWidth={3} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustPM(1)}
+                        disabled={currentPM >= maxPM}
+                        className="w-3.5 h-3.5 rounded flex items-center justify-center text-cyan-400 hover:bg-cyan-950 active:scale-90 disabled:opacity-30 cursor-pointer"
+                        title="Aumentar PM"
+                      >
+                        <Plus size={8} strokeWidth={3} />
                       </button>
                     </div>
+                  </div>
 
-                    {/* Detalhes de Dano e Crítico */}
-                    <div className="p-2.5 rounded-xl bg-[#090705] border border-amber-950 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="text-[10px] font-cinzel text-stone-400 uppercase block">
-                          Dano
-                        </span>
-                        <span className="font-cinzel font-bold text-amber-300 text-sm">
-                          {atk.damage}
-                        </span>
-                      </div>
+                  <div className="w-full h-1.5 rounded-full bg-[#03090e] overflow-hidden border border-cyan-900/90 my-1 p-0.2">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-blue-700 via-cyan-500 to-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.9)] transition-all duration-300"
+                      style={{ width: `${pmPercent}%` }}
+                    />
+                  </div>
 
-                      <div>
-                        <span className="text-[10px] font-cinzel text-stone-400 uppercase block">
-                          Crítico
-                        </span>
-                        <span className="font-cinzel font-bold text-stone-200">
-                          {atk.crit}
-                        </span>
-                      </div>
+                  <p className="text-[7px] text-stone-300 font-serif italic text-center truncate leading-none">
+                    {pmPercent}% • {pmPercent === 100 ? 'Total' : `${currentPM} PM`}
+                  </p>
+                </div>
 
-                      <div>
-                        <span className="text-[10px] font-cinzel text-stone-400 uppercase block">
-                          Tipo
-                        </span>
-                        <span className="font-serif text-stone-300 text-xs">
-                          {atk.type}
-                        </span>
-                      </div>
+                {/* BLOCO INFERIOR DIREITO: INICIATIVA E CD DE MAGIA PRÓXIMOS E QUADRADOS */}
+                <div className="space-y-1 mt-auto">
+                  {/* 2. CARD: ⚡ INICIATIVA (QUADRADO, COMPACTO) */}
+                  <div 
+                    onClick={() => handleQuickRoll('Iniciativa', sheet.initiative)}
+                    className="p-1 xs:p-1.5 rounded-xl bg-gradient-to-b from-[#1c160e]/95 via-[#120e09]/95 to-[#090704]/98 border border-amber-600/70 shadow-md relative overflow-hidden backdrop-blur-md hover:border-amber-400 transition-all cursor-pointer group flex flex-col justify-between h-[52px] xs:h-[56px]"
+                    title="Clique para Rolar Iniciativa"
+                  >
+                    <OrnateCardCorners color="border-amber-400/70" />
+
+                    <div className="flex items-center gap-1">
+                      <Zap size={10} className="text-amber-400 shrink-0" />
+                      <span className="text-[7.5px] font-cinzel font-bold text-amber-300 uppercase tracking-widest truncate">
+                        INICIAT.
+                      </span>
                     </div>
+
+                    <div className="text-base xs:text-lg font-cinzel font-black text-stone-100 tracking-tight leading-none text-center">
+                      {formatMod(sheet.initiative)}
+                    </div>
+
+                    <p className="text-[6.5px] text-amber-300/80 font-serif group-hover:text-amber-200 text-center leading-none">
+                      Rolar 🎲
+                    </p>
+                  </div>
+
+                  {/* 3. CARD: ✨ CD DE MAGIA (QUADRADO, COMPACTO) */}
+                  <div className="p-1 xs:p-1.5 rounded-xl bg-gradient-to-b from-[#240f33]/95 via-[#14081d]/95 to-[#09030e]/98 border border-purple-600/70 shadow-md relative overflow-hidden backdrop-blur-md flex flex-col justify-between h-[52px] xs:h-[56px]">
+                    <OrnateCardCorners color="border-purple-400/70" />
+
+                    <div className="flex items-center gap-1">
+                      <Sparkles size={10} className="text-purple-400 shrink-0" />
+                      <span className="text-[7.5px] font-cinzel font-bold text-purple-300 uppercase tracking-widest truncate">
+                        CD MAGIA
+                      </span>
+                    </div>
+
+                    <div className="text-base xs:text-lg font-cinzel font-black text-stone-100 tracking-tight leading-none text-center">
+                      {sheet.spellDC || 17}
+                    </div>
+
+                    <p className="text-[6.5px] text-purple-300/70 font-serif truncate text-center leading-none">
+                      Resistência
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+          {/* C. ATRIBUTOS (JDA) — ENCAIXADOS LOGO ABAIXO DO PALCO */}
+          <section className="pt-0 mt-0">
+            <div className="flex items-center gap-1.5 mb-1 px-0.5">
+              <Star size={12} className="text-amber-400 fill-amber-400/40 shrink-0" />
+              <h3 className="text-[11px] xs:text-xs font-cinzel font-bold text-amber-200 uppercase tracking-widest">
+                ATRIBUTOS (JDA)
+              </h3>
+              <div className="flex-1 h-px bg-gradient-to-r from-amber-600/50 via-amber-900/30 to-transparent" />
+            </div>
+
+            <div className="grid grid-cols-6 gap-1 xs:gap-1.5">
+              {attributeTiles.map(attr => {
+                const IconComponent = attr.icon;
+                return (
+                  <button
+                    key={attr.key}
+                    type="button"
+                    onClick={() => handleQuickRoll(`Teste de ${ATTRIBUTE_NAMES[attr.key as Attribute] || attr.label}`, attr.value)}
+                    className={`py-1.5 px-0.5 rounded-xl bg-gradient-to-b ${attr.bgClass} border ${attr.borderClass} flex flex-col items-center justify-between text-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-md group relative overflow-hidden min-h-[52px] xs:min-h-[56px]`}
+                    title={`Rolar Teste de ${attr.label} (${formatMod(attr.value)})`}
+                  >
+                    <OrnateCardCorners color={attr.borderClass.split(' ')[0]} />
+
+                    <IconComponent size={12} className={`${attr.iconColor} group-hover:scale-110 transition-transform mb-0.5`} />
+                    
+                    <span className={`text-[8px] xs:text-[8.5px] font-cinzel font-black uppercase tracking-wider ${attr.labelColor} leading-none`}>
+                      {attr.label}
+                    </span>
+
+                    <span className="font-cinzel text-xs xs:text-sm font-black text-stone-100 tracking-tight mt-0.5 leading-none">
+                      {formatMod(attr.value)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+        </main>
+
+      {/* ========================================================================= */}
+      {/* 3. SEÇÕES SECUNDÁRIAS (QUANDO UMA ABA FOR SELECIONADA NA BARRA INFERIOR)   */}
+      {/* ========================================================================= */}
+      {activeTab !== 'overview' && (
+        <main className={`relative z-10 ${activeTab === 'map' ? 'max-w-5xl px-1 sm:px-2' : 'max-w-lg px-3'} mx-auto pt-1 pb-16 space-y-2 animate-in fade-in duration-200`}>
+          
+          {/* 1. BOTÃO VOLTAR: PEQUENO ÍCONE DE SETA ← DISCRETO (Oculto no mapa pois ele possui header próprio) */}
+          {activeTab !== 'map' && (
+            <div className="flex items-center justify-between pb-1 border-b border-amber-900/40">
+              <button
+                type="button"
+                onClick={() => setActiveTab('overview')}
+                className="w-8 h-8 rounded-lg bg-[#140f0a] border border-amber-600/50 text-amber-400 hover:text-amber-200 hover:border-amber-400 flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                title="Voltar à Ficha"
+                aria-label="Voltar"
+              >
+                <ChevronLeft size={18} />
+              </button>
+
+              <span className="text-xs font-cinzel font-bold text-amber-300 uppercase tracking-widest">
+                {activeTab === 'inventory' ? '🎒 Equipamento' :
+                 activeTab === 'powers' ? '✨ Poderes' :
+                 activeTab === 'spells' ? '📖 Magias' :
+                 activeTab === 'skills' ? '🎯 Perícias' : '📜 História'}
+              </span>
+            </div>
+          )}
+
+          {/* ABA: 🎒 EQUIPAMENTO & INVENTÁRIO (COM ADICIONAR/REMOVER ITENS E DINHEIRO) */}
+          {activeTab === 'inventory' && (
+            <div className="space-y-3">
+              {/* Dinheiro / Tibares (T$) */}
+              <div className="p-3.5 rounded-2xl bg-[#120e0b]/95 border border-amber-900/50 space-y-2 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Coins size={16} className="text-amber-400" />
+                    <h4 className="text-xs font-cinzel font-bold text-amber-200 uppercase tracking-wider">
+                      Riqueza do Personagem
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomMoneyValue(currentMoney);
+                      setIsMoneyModalOpen(true);
+                    }}
+                    className="p-1 rounded-lg bg-black/40 hover:bg-amber-950 text-amber-400 border border-amber-900/60 transition-colors cursor-pointer"
+                    title="Editar valor exato"
+                  >
+                    <Edit3 size={13} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between bg-black/50 p-2.5 rounded-xl border border-amber-950/80">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-cinzel font-black text-amber-300">
+                      {currentMoney}
+                    </span>
+                    <span className="text-xs font-cinzel font-bold text-amber-500">
+                      T$ (Tibares)
+                    </span>
+                  </div>
+
+                  {/* Botões Rápidos de Dinheiro */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustMoney(-10)}
+                      disabled={currentMoney < 10}
+                      className="px-2 py-1 rounded bg-[#18130e] hover:bg-red-950 border border-red-900/50 text-[10px] font-mono font-bold text-red-300 cursor-pointer disabled:opacity-30"
+                    >
+                      -10
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustMoney(-1)}
+                      disabled={currentMoney <= 0}
+                      className="px-2 py-1 rounded bg-[#18130e] hover:bg-red-950 border border-red-900/50 text-[10px] font-mono font-bold text-red-300 cursor-pointer disabled:opacity-30"
+                    >
+                      -1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustMoney(1)}
+                      className="px-2 py-1 rounded bg-[#18130e] hover:bg-emerald-950 border border-emerald-900/50 text-[10px] font-mono font-bold text-emerald-300 cursor-pointer"
+                    >
+                      +1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustMoney(10)}
+                      className="px-2 py-1 rounded bg-[#18130e] hover:bg-emerald-950 border border-emerald-900/50 text-[10px] font-mono font-bold text-emerald-300 cursor-pointer"
+                    >
+                      +10
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Armas & Ataques */}
+              <div className="p-3.5 rounded-2xl bg-[#120e0b]/95 border border-amber-900/50 space-y-2.5 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-cinzel font-bold text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sword size={14} className="text-amber-400" />
+                    <span>Armas & Ataques</span>
+                  </h4>
+                  <span className="text-[10px] text-stone-400 font-serif">Toque no bônus para rolar</span>
+                </div>
+
+                {sheet.attacks.length === 0 ? (
+                  <p className="text-xs text-stone-400 italic p-3 bg-black/40 rounded-xl text-center">
+                    Nenhuma arma cadastrada.
+                  </p>
+                ) : (
+                  sheet.attacks.map((att, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-[#18130e] border border-amber-950 hover:border-amber-700/60 transition-colors flex items-center justify-between gap-2 shadow-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-cinzel font-bold text-xs text-amber-100 truncate">{att.name}</p>
+                        <p className="text-[10px] text-stone-400 font-serif truncate">
+                          Dano: <strong className="text-stone-200">{att.damage}</strong> • Crítico: <strong className="text-amber-300">{att.crit}</strong>
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleQuickRoll(`Ataque: ${att.name}`, att.attackBonus)}
+                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 hover:brightness-110 text-stone-950 font-cinzel font-black text-xs uppercase tracking-wider shrink-0 cursor-pointer shadow-md"
+                      >
+                        {formatMod(att.attackBonus)} ⚔️
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Mochila & Itens (Adicionar / Remover / Alterar Quantidade) */}
+              <div className="p-3.5 rounded-2xl bg-[#120e0b]/95 border border-amber-900/50 space-y-2.5 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-cinzel font-bold text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Backpack size={14} className="text-amber-400" />
+                    <span>Mochila & Itens</span>
+                  </h4>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setIsAddItemModalOpen(true)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-700 hover:bg-amber-600 text-stone-950 text-[11px] font-cinzel font-black tracking-wide uppercase transition-colors cursor-pointer shadow-sm"
+                  >
+                    <Plus size={12} strokeWidth={3} />
+                    <span>Item</span>
+                  </button>
+                </div>
+
+                {sheet.inventory.length === 0 ? (
+                  <p className="text-xs text-stone-400 italic p-3 bg-black/40 rounded-xl text-center">
+                    Mochila vazia. Toque em "+ Item" para adicionar.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {sheet.inventory.map(item => (
+                      <div key={item.id} className="p-2.5 rounded-xl bg-[#18130e] border border-amber-950/80 flex items-center justify-between gap-2 text-xs">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-cinzel font-bold text-stone-200 truncate">{item.name}</p>
+                          {item.description && <p className="text-[10px] text-stone-400 font-serif truncate">{item.description}</p>}
+                        </div>
+
+                        {/* Controles de Quantidade e Exclusão */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center bg-black/60 border border-amber-950 rounded-lg p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustItemQty(item.id, -1)}
+                              className="w-5 h-5 rounded flex items-center justify-center text-amber-400 hover:bg-amber-950 active:scale-90 cursor-pointer"
+                              title="Diminuir"
+                            >
+                              <Minus size={10} strokeWidth={3} />
+                            </button>
+                            <span className="w-6 text-center font-mono font-bold text-stone-200 text-xs">
+                              {item.quantity || 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustItemQty(item.id, 1)}
+                              className="w-5 h-5 rounded flex items-center justify-center text-amber-400 hover:bg-amber-950 active:scale-90 cursor-pointer"
+                              title="Aumentar"
+                            >
+                              <Plus size={10} strokeWidth={3} />
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="p-1 rounded text-stone-500 hover:text-red-400 hover:bg-red-950/40 transition-colors cursor-pointer"
+                            title="Remover Item"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ABA: ✨ PODERES */}
+          {activeTab === 'powers' && (
+            <div className="space-y-2.5">
+              {sheet.powers.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-[#120e0b] border border-dashed border-amber-900/40 text-center text-xs text-stone-400">
+                  Nenhum poder ou habilidade cadastrado nesta ficha.
+                </div>
+              ) : (
+                sheet.powers.map(power => (
+                  <div key={power.id} className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-1 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-cinzel font-bold text-xs text-amber-200">{power.name}</h4>
+                      <span className="text-[10px] font-cinzel font-bold px-2 py-0.5 rounded-full bg-amber-950 border border-amber-700/50 text-amber-300">
+                        {power.type}
+                      </span>
+                    </div>
+                    {power.description && (
+                      <p className="text-xs text-stone-300 font-serif leading-relaxed pt-1 border-t border-amber-950/80">
+                        {power.description}
+                      </p>
+                    )}
                   </div>
                 ))
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ----------------------------------------------------------------------- */}
-        {/* ABA: ✨ MAGIAS (GRIMÓRIO, CUSTO DE PM, CÍRCULO, ESCOLA)                 */}
-        {/* ----------------------------------------------------------------------- */}
-        {activeTab === 'spells' && (
-          <div className="space-y-3.5 animate-in fade-in duration-200">
-            {/* Header com Filtros de Círculo e Busca */}
-            <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-3 shadow-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-purple-950 border border-purple-700/50 flex items-center justify-center text-purple-300">
-                    <Sparkles size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-cinzel font-bold text-amber-100 uppercase">
-                      ✨ GRIMÓRIO DE MAGIAS
-                    </h3>
-                    <p className="text-[10px] text-stone-400 font-serif">
-                      {sheet.spells.length} magias aprendidas • CD {sheet.spellDC}
-                    </p>
-                  </div>
+          {/* ABA: 📖 MAGIAS */}
+          {activeTab === 'spells' && (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-purple-900/40 space-y-2.5 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-cinzel font-bold text-purple-200 uppercase tracking-wider">
+                    Grimório Arcano & Divino
+                  </h4>
+                  <span className="text-[10px] font-cinzel font-bold text-purple-300">
+                    CD de Resistência: <strong>{sheet.spellDC}</strong>
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder="Filtrar magias..."
+                    value={spellSearch}
+                    onChange={(e) => setSpellSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#080604] border border-purple-950 text-xs text-stone-200 placeholder:text-stone-500 font-serif focus:outline-none focus:border-purple-600/60"
+                  />
                 </div>
               </div>
 
-              {/* Busca de Magia */}
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar magia pelo nome ou escola..."
-                  value={spellSearch}
-                  onChange={(e) => setSpellSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-[#090705] border border-amber-950 text-xs text-stone-200 placeholder:text-stone-500 font-serif focus:outline-none focus:border-amber-600/60"
-                />
-              </div>
-
-              {/* Filtros de Círculo (Todos, 1º, 2º, 3º, etc.) */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                <button
-                  type="button"
-                  onClick={() => setSpellCircleFilter('all')}
-                  className={`px-3 py-1 rounded-lg text-xs font-cinzel font-bold uppercase shrink-0 cursor-pointer transition-colors ${
-                    spellCircleFilter === 'all'
-                      ? 'bg-amber-600 text-stone-950'
-                      : 'bg-[#090705] text-stone-400 border border-amber-950'
-                  }`}
-                >
-                  Todas
-                </button>
-                {[1, 2, 3, 4, 5].map(circle => (
-                  <button
-                    key={circle}
-                    type="button"
-                    onClick={() => setSpellCircleFilter(circle)}
-                    className={`px-3 py-1 rounded-lg text-xs font-cinzel font-bold uppercase shrink-0 cursor-pointer transition-colors ${
-                      spellCircleFilter === circle
-                        ? 'bg-purple-700 text-purple-100 border border-purple-400/60'
-                        : 'bg-[#090705] text-stone-400 border border-amber-950'
-                    }`}
-                  >
-                    {circle}º Círculo
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Lista de Magias */}
-            <div className="space-y-2.5">
-              {filteredSpells.length === 0 ? (
-                <div className="p-6 rounded-xl bg-[#120e0b] border border-dashed border-amber-900/40 text-center space-y-1">
-                  <p className="text-xs font-cinzel text-stone-400">
-                    Nenhuma magia encontrada para este filtro.
+              <div className="space-y-2">
+                {filteredSpells.length === 0 ? (
+                  <p className="text-xs text-stone-400 italic p-4 bg-[#120e0b] rounded-xl text-center">
+                    Nenhuma magia encontrada.
                   </p>
-                </div>
-              ) : (
-                filteredSpells.map(spell => {
-                  const isExpanded = expandedItems[spell.id] ?? true;
-                  return (
-                    <div
-                      key={spell.id}
-                      className="p-3.5 rounded-2xl bg-[#120e0b] border border-purple-950/80 hover:border-purple-800/60 transition-all space-y-2 shadow-lg"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-cinzel font-bold text-sm text-purple-200 truncate">
-                              {spell.name}
-                            </h4>
-                            <span className="px-2 py-0.2 rounded-full bg-purple-950 border border-purple-600/40 text-purple-300 text-[10px] font-cinzel font-bold">
-                              {spell.circle}º Círculo
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-stone-400 font-serif">
-                            Escola: <strong className="text-stone-300">{spell.school}</strong> • Custo: <strong className="text-blue-400">{spell.cost} PM</strong>
-                          </p>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(spell.id)}
-                          className="text-stone-400 hover:text-purple-300 p-1"
-                        >
-                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
+                ) : (
+                  filteredSpells.map(spell => (
+                    <div key={spell.id} className="p-3.5 rounded-2xl bg-[#120e0b] border border-purple-950 space-y-1.5 shadow-md">
+                      <div className="flex items-center justify-between">
+                        <span className="font-cinzel font-bold text-xs text-purple-200">{spell.name}</span>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-950 border border-purple-700/50 text-cyan-300">
+                          {spell.cost} PM
+                        </span>
                       </div>
-
-                      {/* Parâmetros da Magia */}
-                      {(spell.range || spell.duration) && (
-                        <div className="flex flex-wrap gap-2 text-[10px] font-serif text-stone-400 bg-[#090705] p-2 rounded-lg border border-amber-950/60">
-                          {spell.range && <span>Alcance: <strong className="text-stone-300">{spell.range}</strong></span>}
-                          {spell.duration && <span>• Duração: <strong className="text-stone-300">{spell.duration}</strong></span>}
-                        </div>
-                      )}
-
-                      {/* Descrição */}
-                      {spell.description && isExpanded && (
-                        <p className="text-xs text-stone-300 font-serif leading-relaxed pt-1.5 border-t border-purple-950/60">
+                      <p className="text-[10px] text-stone-400 font-serif">
+                        {spell.school} • {spell.circle}º Círculo {spell.range ? `• Alcance: ${spell.range}` : ''}
+                      </p>
+                      {spell.description && (
+                        <p className="text-xs text-stone-300 font-serif leading-relaxed pt-1 border-t border-purple-950/60">
                           {spell.description}
                         </p>
                       )}
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ----------------------------------------------------------------------- */}
-        {/* ABA: 🎯 PERÍCIAS (TESTES DE PERÍCIA, TREINADAS, MODIFICADORES)           */}
-        {/* ----------------------------------------------------------------------- */}
-        {activeTab === 'skills' && (
-          <div className="space-y-3.5 animate-in fade-in duration-200">
-            {/* Header de Perícias */}
-            <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-3 shadow-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-950 border border-amber-700/50 flex items-center justify-center text-amber-400">
-                    <Target size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-cinzel font-bold text-amber-100 uppercase">
-                      🎯 PERÍCIAS (TORMENTA 20)
-                    </h3>
-                    <p className="text-[10px] text-stone-400 font-serif">
-                      Toque no bônus para rolar o teste de perícia
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Barra de Busca de Perícias */}
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar perícia..."
-                  value={skillSearch}
-                  onChange={(e) => setSkillSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-[#090705] border border-amber-950 text-xs text-stone-200 placeholder:text-stone-500 font-serif focus:outline-none focus:border-amber-600/60"
-                />
-              </div>
-
-              {/* Toggle de Apenas Treinadas */}
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={() => setOnlyTrainedSkills(prev => !prev)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-cinzel font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
-                    onlyTrainedSkills
-                      ? 'bg-amber-500 text-stone-950 shadow'
-                      : 'bg-[#090705] text-stone-400 border border-amber-950'
-                  }`}
-                >
-                  <CheckCircle2 size={13} />
-                  <span>Apenas Treinadas</span>
-                </button>
-
-                <span className="text-[11px] text-stone-400 font-serif">
-                  {filteredSkills.length} de {sheet.skills.length}
-                </span>
+                  ))
+                )}
               </div>
             </div>
+          )}
 
-            {/* Lista de Perícias */}
-            <div className="space-y-1.5">
-              {filteredSkills.map(skill => (
-                <div
-                  key={skill.id}
-                  className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
-                    skill.trained
-                      ? 'bg-[#15100c] border-amber-700/50 shadow-sm'
-                      : 'bg-[#0e0b08] border-amber-950/70 opacity-90'
-                  }`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-cinzel font-bold text-xs text-stone-100 truncate">
-                        {skill.name}
-                      </span>
-                      {skill.trained ? (
-                        <span className="px-1.5 py-0.2 rounded bg-emerald-950/90 border border-emerald-500/40 text-emerald-300 text-[9px] font-cinzel font-bold">
-                          TREINADA
-                        </span>
-                      ) : (
-                        <span className="text-[9px] text-stone-500 font-serif">
-                          (Não Treinada)
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-stone-400 font-serif">
-                      Atributo: <strong className="text-amber-300">{skill.attr}</strong> ({formatMod(skill.attrMod)}) • Metade Nv: +{skill.halfLevel} {skill.trained ? `• Treino: +${skill.trainingBonus}` : ''}
-                    </p>
-                  </div>
-
-                  {/* Botão de Rolagem */}
+          {/* ABA: 🎯 PERÍCIAS */}
+          {activeTab === 'skills' && (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-2.5 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-cinzel font-bold text-amber-200 uppercase tracking-wider">
+                    Testes de Perícia
+                  </h4>
                   <button
                     type="button"
-                    onClick={() => handleQuickRoll(`Teste de ${skill.name}`, skill.total)}
-                    className={`py-1.5 px-3 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider shrink-0 flex items-center gap-1 cursor-pointer active:scale-95 shadow ${
-                      skill.trained
-                        ? 'bg-amber-600 hover:bg-amber-500 text-stone-950'
-                        : 'bg-stone-900 hover:bg-stone-850 text-stone-300 border border-stone-800'
+                    onClick={() => setOnlyTrainedSkills(prev => !prev)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-cinzel font-bold transition-colors cursor-pointer ${
+                      onlyTrainedSkills ? 'bg-amber-600 text-stone-950' : 'bg-black/40 text-stone-400 border border-amber-950'
                     }`}
                   >
-                    <Dices size={12} />
-                    <span>{formatMod(skill.total)}</span>
+                    Apenas Treinadas
                   </button>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* ----------------------------------------------------------------------- */}
-        {/* ABA: ⭐ PODERES (HABILIDADES DE CLASSE, ORIGEM, GERAIS, DIVINOS)          */}
-        {/* ----------------------------------------------------------------------- */}
-        {activeTab === 'powers' && (
-          <div className="space-y-3.5 animate-in fade-in duration-200">
-            <div className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 flex items-center justify-between shadow-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-950 border border-amber-700/50 flex items-center justify-center text-amber-400">
-                  <Star size={18} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-cinzel font-bold text-amber-100 uppercase">
-                    ⭐ PODERES & HABILIDADES
-                  </h3>
-                  <p className="text-[10px] text-stone-400 font-serif">
-                    {sheet.powers.length} poderes cadastrados
-                  </p>
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar perícia..."
+                    value={skillSearch}
+                    onChange={(e) => setSkillSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#080604] border border-amber-950 text-xs text-stone-200 placeholder:text-stone-500 font-serif focus:outline-none focus:border-amber-600/60"
+                  />
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-2.5">
-              {sheet.powers.length === 0 ? (
-                <div className="p-6 rounded-xl bg-[#120e0b] border border-dashed border-amber-900/40 text-center space-y-1">
-                  <p className="text-xs font-cinzel text-stone-400">
-                    Nenhum poder ou habilidade cadastrada na ficha.
-                  </p>
-                </div>
-              ) : (
-                sheet.powers.map(power => {
-                  const isExpanded = expandedItems[power.id] ?? true;
-                  return (
-                    <div
-                      key={power.id}
-                      className="p-3.5 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-2 shadow-lg"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-cinzel font-bold text-sm text-amber-100 truncate">
-                              {power.name}
-                            </h4>
-                            {power.type && (
-                              <span className="px-2 py-0.2 rounded-full bg-amber-950 border border-amber-700/50 text-amber-300 text-[10px] font-cinzel font-bold">
-                                {power.type}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(power.id)}
-                          className="text-stone-400 hover:text-amber-300 p-1"
-                        >
-                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      </div>
-
-                      {power.description && isExpanded && (
-                        <p className="text-xs text-stone-300 font-serif leading-relaxed pt-1.5 border-t border-amber-950">
-                          {power.description}
-                        </p>
-                      )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {filteredSkills.map(skill => (
+                  <div
+                    key={skill.id}
+                    onClick={() => handleQuickRoll(`Perícia: ${skill.name}`, skill.total)}
+                    className="p-2.5 rounded-xl bg-[#120e0b] border border-amber-950 hover:border-amber-600/60 flex items-center justify-between transition-colors cursor-pointer shadow-sm group"
+                  >
+                    <div>
+                      <span className={`text-xs font-cinzel font-bold ${skill.trained ? 'text-amber-200' : 'text-stone-300'}`}>
+                        {skill.name}
+                      </span>
+                      <span className="text-[9px] text-stone-500 ml-1.5 font-mono uppercase">
+                        ({skill.attr})
+                      </span>
                     </div>
-                  );
-                })
-              )}
+
+                    <span className="font-cinzel text-xs font-black text-amber-400 group-hover:scale-110 transition-transform">
+                      {formatMod(skill.total)} 🎲
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </main>
+          )}
+
+          {/* ABA: 📜 HISTÓRIA & BIOGRAFIA */}
+          {activeTab === 'biography' && (
+            <div className="p-4 rounded-2xl bg-[#120e0b] border border-amber-900/40 space-y-3 shadow-xl">
+              <h4 className="text-xs font-cinzel font-bold text-amber-200 uppercase tracking-widest flex items-center gap-1.5">
+                <Scroll size={14} className="text-amber-400" />
+                <span>Crônicas & Anotações do Herói</span>
+              </h4>
+
+              <div className="space-y-2 text-xs font-serif text-stone-300 leading-relaxed bg-[#080604] p-3 rounded-xl border border-amber-950">
+                <p>
+                  <strong className="text-amber-300 font-cinzel font-bold">Origem:</strong> {sheet.originName || 'Camponês de Arton'}
+                </p>
+                <p>
+                  <strong className="text-amber-300 font-cinzel font-bold">Divindade:</strong> {sheet.deity || 'Panteão de Arton'}
+                </p>
+                <p className="pt-2 border-t border-amber-950 text-stone-400 italic">
+                  "As grandes lendas não nascem prontas; são forjadas sob o calor da batalha e os mistérios dos deuses."
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ABA: 🗺️ MAPA DA CAMPANHA (Visualização Oficial + Camada de Anotações Pessoais) */}
+          {activeTab === 'map' && (
+            <div className="w-full">
+              <PlayerCampaignMapView
+                campaignId={campaignId}
+                playerId={currentPlayer.userId || currentPlayer.id}
+                playerName={currentPlayer.displayName || currentPlayer.characterName || characterRaw?.name || 'Aventureiro'}
+                onClose={() => setActiveTab('overview')}
+              />
+            </div>
+          )}
+
+        </main>
+      )}
 
       {/* ========================================================================= */}
-      {/* 5. BARRA DE NAVEGAÇÃO INFERIOR FIXA EXCLUSIVA DA AVENTURA                   */}
+      {/* 7. MENU INFERIOR GÓTICO COM EXATAMENTE 6 OPÇÕES ABREVIADAS                */}
       {/* ========================================================================= */}
       <nav 
-        id="player-adventure-bottom-nav"
-        aria-label="Navegação do Jogador na Aventura"
-        className="fixed bottom-0 inset-x-0 z-50 bg-[#0c0907]/95 backdrop-blur-xl border-t border-amber-600/50 px-1.5 py-1 shadow-[0_-12px_35px_rgba(0,0,0,0.95)] max-w-xl mx-auto pb-[max(0.4rem,env(safe-area-inset-bottom))]"
+        id="player-bottom-hud-nav"
+        aria-label="Navegação da Ficha do Jogador"
+        className="fixed bottom-0 inset-x-0 z-40 bg-[#0c0907]/98 backdrop-blur-xl border-t border-amber-900/60 shadow-[0_-10px_35px_rgba(0,0,0,0.95)] pb-[max(0.35rem,env(safe-area-inset-bottom))]"
       >
-        <div className="grid grid-cols-5 gap-1">
-          {/* 1. ⚔️ ATAQUES */}
-          <button
-            type="button"
-            onClick={() => setActiveTab(prev => prev === 'attacks' ? 'overview' : 'attacks')}
-            className={`flex flex-col items-center justify-center py-2 px-0.5 rounded-xl transition-all cursor-pointer min-h-[48px] select-none ${
-              activeTab === 'attacks'
-                ? 'bg-gradient-to-b from-amber-950/90 to-amber-900/60 border border-amber-400/80 text-amber-200 shadow-[0_0_15px_rgba(217,119,6,0.35)] scale-[1.02]'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/40'
-            }`}
-          >
-            <Sword size={19} className={activeTab === 'attacks' ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]' : 'text-stone-400'} />
-            <span className={`text-[10px] font-cinzel tracking-wider mt-1 truncate uppercase ${activeTab === 'attacks' ? 'font-black text-amber-100' : 'font-bold'}`}>
-              Ataques
-            </span>
-          </button>
-
-          {/* 2. ✨ MAGIAS */}
-          <button
-            type="button"
-            onClick={() => setActiveTab(prev => prev === 'spells' ? 'overview' : 'spells')}
-            className={`flex flex-col items-center justify-center py-2 px-0.5 rounded-xl transition-all cursor-pointer min-h-[48px] select-none ${
-              activeTab === 'spells'
-                ? 'bg-gradient-to-b from-purple-950/90 to-purple-900/60 border border-purple-400/80 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.35)] scale-[1.02]'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/40'
-            }`}
-          >
-            <Sparkles size={19} className={activeTab === 'spells' ? 'text-purple-300 drop-shadow-[0_0_6px_rgba(168,85,247,0.6)]' : 'text-stone-400'} />
-            <span className={`text-[10px] font-cinzel tracking-wider mt-1 truncate uppercase ${activeTab === 'spells' ? 'font-black text-purple-100' : 'font-bold'}`}>
-              Magias
-            </span>
-          </button>
-
-          {/* 3. 🎯 PERÍCIAS */}
-          <button
-            type="button"
-            onClick={() => setActiveTab(prev => prev === 'skills' ? 'overview' : 'skills')}
-            className={`flex flex-col items-center justify-center py-2 px-0.5 rounded-xl transition-all cursor-pointer min-h-[48px] select-none ${
-              activeTab === 'skills'
-                ? 'bg-gradient-to-b from-amber-950/90 to-amber-900/60 border border-amber-400/80 text-amber-200 shadow-[0_0_15px_rgba(217,119,6,0.35)] scale-[1.02]'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/40'
-            }`}
-          >
-            <Target size={19} className={activeTab === 'skills' ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]' : 'text-stone-400'} />
-            <span className={`text-[10px] font-cinzel tracking-wider mt-1 truncate uppercase ${activeTab === 'skills' ? 'font-black text-amber-100' : 'font-bold'}`}>
-              Perícias
-            </span>
-          </button>
-
-          {/* 4. 🎒 MOCHILA */}
+        <div className="max-w-md mx-auto grid grid-cols-6 h-14 items-center px-1 gap-1">
+          
+          {/* 1. EQUIP. */}
           <button
             type="button"
             onClick={() => setActiveTab(prev => prev === 'inventory' ? 'overview' : 'inventory')}
-            className={`flex flex-col items-center justify-center py-2 px-0.5 rounded-xl transition-all cursor-pointer min-h-[48px] select-none ${
+            className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-all cursor-pointer select-none relative group ${
               activeTab === 'inventory'
-                ? 'bg-gradient-to-b from-amber-950/90 to-amber-900/60 border border-amber-400/80 text-amber-200 shadow-[0_0_15px_rgba(217,119,6,0.35)] scale-[1.02]'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/40'
+                ? 'bg-gradient-to-b from-amber-900/50 to-amber-950/80 border border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                : 'bg-black/30 border border-amber-950/60 text-stone-400 hover:text-amber-300 hover:border-amber-700/50'
             }`}
           >
-            <Backpack size={19} className={activeTab === 'inventory' ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]' : 'text-stone-400'} />
-            <span className={`text-[10px] font-cinzel tracking-wider mt-1 truncate uppercase ${activeTab === 'inventory' ? 'font-black text-amber-100' : 'font-bold'}`}>
-              Mochila
+            <Backpack size={15} className={activeTab === 'inventory' ? 'text-amber-300' : 'text-stone-400'} />
+            <span className="text-[8px] xs:text-[8.5px] font-cinzel font-black uppercase tracking-wider mt-0.5 truncate">
+              EQUIP.
             </span>
           </button>
 
-          {/* 5. ⭐ PODERES */}
+          {/* 2. PODERES */}
           <button
             type="button"
             onClick={() => setActiveTab(prev => prev === 'powers' ? 'overview' : 'powers')}
-            className={`flex flex-col items-center justify-center py-2 px-0.5 rounded-xl transition-all cursor-pointer min-h-[48px] select-none ${
+            className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-all cursor-pointer select-none relative group ${
               activeTab === 'powers'
-                ? 'bg-gradient-to-b from-amber-950/90 to-amber-900/60 border border-amber-400/80 text-amber-200 shadow-[0_0_15px_rgba(217,119,6,0.35)] scale-[1.02]'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/40'
+                ? 'bg-gradient-to-b from-amber-900/50 to-amber-950/80 border border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                : 'bg-black/30 border border-amber-950/60 text-stone-400 hover:text-amber-300 hover:border-amber-700/50'
             }`}
           >
-            <Star size={19} className={activeTab === 'powers' ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]' : 'text-stone-400'} />
-            <span className={`text-[10px] font-cinzel tracking-wider mt-1 truncate uppercase ${activeTab === 'powers' ? 'font-black text-amber-100' : 'font-bold'}`}>
-              Poderes
+            <Sparkles size={15} className={activeTab === 'powers' ? 'text-amber-300' : 'text-stone-400'} />
+            <span className="text-[8px] xs:text-[8.5px] font-cinzel font-black uppercase tracking-wider mt-0.5 truncate">
+              PODERES
             </span>
           </button>
+
+          {/* 3. MAGIAS */}
+          <button
+            type="button"
+            onClick={() => setActiveTab(prev => prev === 'spells' ? 'overview' : 'spells')}
+            className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-all cursor-pointer select-none relative group ${
+              activeTab === 'spells'
+                ? 'bg-gradient-to-b from-purple-900/50 to-purple-950/80 border border-purple-400 text-purple-200 shadow-[0_0_15px_rgba(147,51,234,0.3)]'
+                : 'bg-black/30 border border-amber-950/60 text-stone-400 hover:text-amber-300 hover:border-amber-700/50'
+            }`}
+          >
+            <BookOpen size={15} className={activeTab === 'spells' ? 'text-purple-300' : 'text-stone-400'} />
+            <span className="text-[8px] xs:text-[8.5px] font-cinzel font-black uppercase tracking-wider mt-0.5 truncate">
+              MAGIAS
+            </span>
+          </button>
+
+          {/* 4. PERÍCIAS */}
+          <button
+            type="button"
+            onClick={() => setActiveTab(prev => prev === 'skills' ? 'overview' : 'skills')}
+            className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-all cursor-pointer select-none relative group ${
+              activeTab === 'skills'
+                ? 'bg-gradient-to-b from-amber-900/50 to-amber-950/80 border border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                : 'bg-black/30 border border-amber-950/60 text-stone-400 hover:text-amber-300 hover:border-amber-700/50'
+            }`}
+          >
+            <Target size={15} className={activeTab === 'skills' ? 'text-amber-300' : 'text-stone-400'} />
+            <span className="text-[8px] xs:text-[8.5px] font-cinzel font-black uppercase tracking-wider mt-0.5 truncate">
+              PERÍCIAS
+            </span>
+          </button>
+
+          {/* 5. HISTÓRIA */}
+          <button
+            type="button"
+            onClick={() => setActiveTab(prev => prev === 'biography' ? 'overview' : 'biography')}
+            className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-all cursor-pointer select-none relative group ${
+              activeTab === 'biography'
+                ? 'bg-gradient-to-b from-amber-900/50 to-amber-950/80 border border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                : 'bg-black/30 border border-amber-950/60 text-stone-400 hover:text-amber-300 hover:border-amber-700/50'
+            }`}
+          >
+            <Scroll size={15} className={activeTab === 'biography' ? 'text-amber-300' : 'text-stone-400'} />
+            <span className="text-[8px] xs:text-[8.5px] font-cinzel font-black uppercase tracking-wider mt-0.5 truncate">
+              HISTÓRIA
+            </span>
+          </button>
+
+          {/* 6. MAPA */}
+          <button
+            type="button"
+            onClick={() => setActiveTab(prev => prev === 'map' ? 'overview' : 'map')}
+            className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-all cursor-pointer select-none relative group ${
+              activeTab === 'map'
+                ? 'bg-gradient-to-b from-emerald-900/50 to-emerald-950/80 border border-emerald-400 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                : 'bg-black/30 border border-amber-950/60 text-stone-400 hover:text-emerald-300 hover:border-emerald-700/50'
+            }`}
+          >
+            <MapIcon size={15} className={activeTab === 'map' ? 'text-emerald-300' : 'text-stone-400'} />
+            <span className="text-[8px] xs:text-[8.5px] font-cinzel font-black uppercase tracking-wider mt-0.5 truncate">
+              MAPA
+            </span>
+          </button>
+
         </div>
       </nav>
 
       {/* ========================================================================= */}
-      {/* 6. MODAL / BOTTOM SHEET DE ROLAGEM DE DADOS TORMENTA 20                   */}
+      {/* MODAL: ADICIONAR ITEM À MOCHILA                                           */}
       {/* ========================================================================= */}
-      {isDiceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200 font-cinzel">
-          <div 
-            className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl border-t sm:border border-amber-600/60 bg-gradient-to-b from-[#1c1611] via-[#14100c] to-[#0c0907] p-5 space-y-4 shadow-[0_-10px_40px_rgba(0,0,0,0.95)] relative"
-            style={{
-              boxShadow: 'inset 0 1px 0 rgba(212,175,55,0.25), 0 -10px 40px rgba(0,0,0,0.95)'
-            }}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-amber-900/40">
-              <div className="flex items-center gap-2 text-amber-300">
-                <Dices size={20} className="text-amber-400" />
-                <h3 className="font-bold text-sm uppercase tracking-wider">
-                  {diceRollLabel || 'Rolador de Dados'}
-                </h3>
-              </div>
+      {isAddItemModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-2xl bg-[#0e0b08] border border-amber-600/70 p-5 space-y-4 shadow-2xl relative">
+            <OrnateCardCorners color="border-amber-400" />
+
+            <div className="flex items-center justify-between border-b border-amber-900/50 pb-2.5">
+              <h3 className="font-cinzel font-bold text-sm text-amber-100 uppercase tracking-widest flex items-center gap-2">
+                <Backpack size={16} className="text-amber-400" />
+                <span>Adicionar Novo Item</span>
+              </h3>
               <button
                 type="button"
-                onClick={() => setIsDiceModalOpen(false)}
-                className="w-8 h-8 rounded-lg bg-stone-900 hover:bg-stone-850 text-stone-400 hover:text-stone-200 flex items-center justify-center cursor-pointer border border-stone-800"
+                onClick={() => setIsAddItemModalOpen(false)}
+                className="text-stone-400 hover:text-stone-200 p-1 cursor-pointer"
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
-            {/* Painel do Resultado do Dado */}
-            <div className="h-28 flex flex-col items-center justify-center bg-[#090705] rounded-xl border border-amber-950/80 relative overflow-hidden shadow-inner">
-              {isRolling ? (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs text-amber-400 font-serif italic">Os deuses de Arton decidem seu destino...</span>
-                </div>
-              ) : lastResult ? (
-                <div className="text-center space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-amber-400/80 tracking-widest font-mono">
-                    {lastResult.formula} • {lastResult.details}
-                  </p>
-                  <span className="text-5xl font-medieval font-black text-amber-200 drop-shadow-[0_0_20px_rgba(217,119,6,0.6)]">
-                    {lastResult.result}
-                  </span>
-                </div>
-              ) : (
-                <p className="text-xs text-stone-500 font-serif italic">
-                  Selecione um dado abaixo para traçar seu destino
-                </p>
-              )}
-            </div>
+            <form onSubmit={handleSaveNewItem} className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-cinzel font-bold text-stone-300 uppercase mb-1">
+                  Nome do Item *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Corda Élfica (15m), Poção de Cura"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#140f0a] border border-amber-900/80 text-xs text-stone-100 placeholder:text-stone-600 font-serif focus:outline-none focus:border-amber-500"
+                />
+              </div>
 
-            {/* Dados Disponíveis para Toque Rápido */}
-            <div className="grid grid-cols-6 gap-2">
-              {[4, 6, 8, 10, 12, 20].map(d => (
-                <button
-                  key={d}
-                  type="button"
-                  disabled={isRolling}
-                  onClick={() => {
-                    const mod = customModifier;
-                    const formula = mod !== 0 ? `1d${d} ${mod >= 0 ? '+' : '-'} ${Math.abs(mod)}` : `1d${d}`;
-                    roll(formula);
-                  }}
-                  className={`p-2.5 rounded-xl border text-center font-bold font-medieval text-base transition-all active:scale-95 cursor-pointer disabled:opacity-50 ${
-                    d === 20
-                      ? 'bg-amber-950/90 border-amber-500/70 text-amber-300 shadow-[0_0_10px_rgba(217,119,6,0.2)]'
-                      : 'bg-stone-900 border-amber-950 text-stone-300 hover:border-amber-700/50'
-                  }`}
-                >
-                  d{d}
-                </button>
-              ))}
-            </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-cinzel font-bold text-stone-300 uppercase mb-1">
+                    Quantidade
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newItemQty}
+                    onChange={(e) => setNewItemQty(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-3 py-2 rounded-xl bg-[#140f0a] border border-amber-900/80 text-xs text-stone-100 font-mono focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
 
-            {/* Ajuste de Modificador Personalizado */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#090705] border border-amber-950">
-              <span className="text-xs font-cinzel text-stone-300">Modificador Adicional:</span>
-              <div className="flex items-center gap-2">
+              <div>
+                <label className="block text-[10px] font-cinzel font-bold text-stone-300 uppercase mb-1">
+                  Descrição / Notas
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Efeito, propriedades ou peso..."
+                  value={newItemDesc}
+                  onChange={(e) => setNewItemDesc(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#140f0a] border border-amber-900/80 text-xs text-stone-100 placeholder:text-stone-600 font-serif focus:outline-none focus:border-amber-500 resize-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setCustomModifier(prev => prev - 1)}
-                  className="w-7 h-7 rounded-lg bg-stone-900 border border-stone-800 text-stone-300 flex items-center justify-center font-bold text-sm cursor-pointer"
+                  onClick={() => setIsAddItemModalOpen(false)}
+                  className="flex-1 py-2 rounded-xl bg-black/40 border border-stone-800 text-stone-400 text-xs font-cinzel font-bold uppercase cursor-pointer"
                 >
-                  -
+                  Cancelar
                 </button>
-                <span className="font-mono text-sm font-bold text-amber-300 w-8 text-center">
-                  {formatMod(customModifier)}
-                </span>
                 <button
-                  type="button"
-                  onClick={() => setCustomModifier(prev => prev + 1)}
-                  className="w-7 h-7 rounded-lg bg-stone-900 border border-stone-800 text-stone-300 flex items-center justify-center font-bold text-sm cursor-pointer"
+                  type="submit"
+                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 text-stone-950 text-xs font-cinzel font-black uppercase tracking-wider shadow-md hover:brightness-110 cursor-pointer"
                 >
-                  +
+                  Adicionar
                 </button>
               </div>
-            </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-            {/* Fechar */}
-            <div className="pt-1">
+      {/* ========================================================================= */}
+      {/* MODAL: EDITAR DINHEIRO (TIBARES T$)                                       */}
+      {/* ========================================================================= */}
+      {isMoneyModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-xs rounded-2xl bg-[#0e0b08] border border-amber-600/70 p-5 space-y-4 shadow-2xl relative text-center">
+            <OrnateCardCorners color="border-amber-400" />
+
+            <div className="flex items-center justify-between border-b border-amber-900/50 pb-2">
+              <h3 className="font-cinzel font-bold text-sm text-amber-100 uppercase tracking-widest flex items-center gap-2">
+                <Coins size={16} className="text-amber-400" />
+                <span>Definir Tibares (T$)</span>
+              </h3>
               <button
                 type="button"
-                onClick={() => setIsDiceModalOpen(false)}
-                className="w-full py-2.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-600/50 text-amber-200 text-xs font-bold uppercase tracking-wider cursor-pointer shadow"
+                onClick={() => setIsMoneyModalOpen(false)}
+                className="text-stone-400 hover:text-stone-200 p-1 cursor-pointer"
               >
-                Voltar à Ficha
+                <X size={18} />
               </button>
+            </div>
+
+            <div className="space-y-3 py-2">
+              <div>
+                <label className="block text-[10px] font-cinzel font-bold text-stone-400 uppercase mb-1">
+                  Valor Atual em Tibares
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={customMoneyValue}
+                  onChange={(e) => setCustomMoneyValue(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-full text-center px-3 py-2.5 rounded-xl bg-[#140f0a] border border-amber-600/70 text-xl font-cinzel font-black text-amber-300 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsMoneyModalOpen(false)}
+                  className="flex-1 py-2 rounded-xl bg-black/40 border border-stone-800 text-stone-400 text-xs font-cinzel font-bold uppercase cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetExactMoney(customMoneyValue)}
+                  className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 text-xs font-cinzel font-black uppercase tracking-wider shadow-md cursor-pointer"
+                >
+                  Salvar
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL DE JOGADORES NA SESSÃO                                              */}
+      {/* ========================================================================= */}
+      {isPlayersModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-2xl bg-[#0e0b08] border border-amber-600/70 p-5 space-y-3 shadow-2xl relative">
+            <OrnateCardCorners color="border-amber-400" />
+
+            <div className="flex items-center justify-between border-b border-amber-900/50 pb-2.5">
+              <h3 className="font-cinzel font-bold text-sm text-amber-100 uppercase tracking-widest flex items-center gap-2">
+                <Users size={16} className="text-amber-400" />
+                <span>Mesa de Aventura ({playersCount})</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsPlayersModalOpen(false)}
+                className="text-stone-400 hover:text-stone-200 p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-2 py-1 max-h-60 overflow-y-auto">
+              <div className="p-2.5 rounded-xl bg-[#140f0a] border border-amber-900/50 flex items-center justify-between text-xs">
+                <div>
+                  <p className="font-cinzel font-bold text-amber-300">👑 {game.masterName || 'Mestre'}</p>
+                  <p className="text-[10px] text-stone-400">Narrador de Tormenta 20</p>
+                </div>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+              </div>
+
+              {roomPlayers.length > 0 ? (
+                roomPlayers.map(p => (
+                  <div key={p.id} className="p-2.5 rounded-xl bg-[#18130e] border border-amber-950 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-cinzel font-bold text-amber-100">
+                        ⚔️ {p.characterName || p.displayName} {p.userId === currentPlayer?.userId ? '(Você)' : ''}
+                      </p>
+                      <p className="text-[10px] text-stone-400">
+                        {p.characterClass ? `${p.characterClass} Nv ${p.characterLevel || 1}` : 'Aventureiro'}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                      {p.status === 'online' ? 'Online' : 'Aguardando'}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-600/60 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-cinzel font-bold text-amber-100">⚔️ {sheet.name} (Você)</p>
+                    <p className="text-[10px] text-stone-300">{sheet.className} Nv {sheet.level}</p>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold">Online</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL DE CONFIGURAÇÕES DA SESSÃO                                         */}
+      {/* ========================================================================= */}
+      {isSettingsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-2xl bg-[#0e0b08] border border-amber-600/70 p-5 space-y-4 shadow-2xl relative text-center">
+            <OrnateCardCorners color="border-amber-400" />
+
+            <div className="flex items-center justify-between border-b border-amber-900/50 pb-2">
+              <h3 className="font-cinzel font-bold text-sm text-amber-100 uppercase tracking-widest">
+                Configurações da Sessão
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsSettingsModalOpen(false)}
+                className="text-stone-400 hover:text-stone-200 p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-left text-xs font-serif text-stone-300 py-1">
+              <p>Campanha: <strong className="text-amber-200 font-cinzel">{game.name}</strong></p>
+              <p>Código de Convite: <strong className="text-amber-400 font-mono">{game.inviteCode}</strong></p>
+            </div>
+
+            <div className="pt-2 border-t border-amber-900/40">
+              {onExit && (
+                <button
+                  type="button"
+                  onClick={onExit}
+                  className="w-full py-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700 text-red-200 font-cinzel font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors"
+                >
+                  Sair da Partida
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

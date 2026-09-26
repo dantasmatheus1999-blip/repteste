@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   User, 
   Sparkles, 
@@ -25,20 +25,27 @@ import {
   Flame, 
   ExternalLink,
   Loader2,
-  Award
+  Award,
+  Crown,
+  Swords,
+  ArrowLeftRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
+import { useProfile } from '../context/ProfileContext';
 import { useFriendship } from '../context/FriendshipContext';
 import { UserProfileService, PlayerProfileData, UserStats } from '../services/userProfileService';
 import { CharacterService } from '../services/characterService';
 import { EditProfileModal } from '../components/profile/EditProfileModal';
+import { ProfileSettingsModal } from '../components/profile/ProfileSettingsModal';
 import { T20Character } from '../types/t20';
 
 export const PlayerProfilePage: React.FC = () => {
   const { userId: routeUserId } = useParams<{ userId?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: currentUser, profile: authProfile, logout } = useAuth();
+  const { isMaster, activeMode, selectProfile, toggleMode } = useProfile();
   const { 
     friends, 
     incomingRequests, 
@@ -57,14 +64,23 @@ export const PlayerProfilePage: React.FC = () => {
   const [characters, setCharacters] = useState<(T20Character & { id: string })[]>([]);
   const [loadingChars, setLoadingChars] = useState(false);
 
-  // Edit Modal state
+  // Edit and Settings Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(() => {
+    return location.pathname === '/settings' || location.search.includes('tab=settings');
+  });
   const [actionLoading, setActionLoading] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Determine if viewing own profile
   const targetUid = routeUserId || currentUser?.uid || '';
   const isOwner = Boolean(currentUser && currentUser.uid === targetUid);
+
+  useEffect(() => {
+    if (location.pathname === '/settings' || location.search.includes('tab=settings')) {
+      setIsSettingsModalOpen(true);
+    }
+  }, [location.pathname, location.search]);
 
   // Load profile, stats and characters
   const loadProfile = async () => {
@@ -304,15 +320,15 @@ export const PlayerProfilePage: React.FC = () => {
             {copiedLink ? <Check size={16} className="text-emerald-400" /> : <Share2 size={16} />}
           </button>
 
-          {/* Se for o próprio perfil: Botão de Configurações / Sair */}
+          {/* Se for o próprio perfil: Botão de Configurações */}
           {isOwner && (
-            <Link
-              to="/settings"
-              className="p-2 rounded-lg bg-[#0d0e12] hover:bg-[#151720] border border-amber-900/40 text-stone-400 hover:text-amber-300 transition-colors"
-              title="Configurações"
+            <button
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="p-2 rounded-lg bg-[#0d0e12] hover:bg-[#151720] border border-amber-900/40 text-stone-400 hover:text-amber-300 transition-colors cursor-pointer"
+              title="Configurações do Perfil & Modo de Jogo"
             >
               <Settings size={16} />
-            </Link>
+            </button>
           )}
         </div>
       </div>
@@ -760,7 +776,129 @@ export const PlayerProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* 7. OPÇÃO DE LOGOUT SE FOR O PRÓPRIO PERFIL */}
+      {/* 7. SEÇÃO DE CONFIGURAÇÕES & TROCA DE MODO (Para o Dono do Perfil) */}
+      {isOwner && (
+        <div className="space-y-3 pt-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm sm:text-base font-cinzel font-black uppercase text-amber-200 tracking-wider flex items-center gap-2">
+              <Settings size={16} className="text-amber-400" />
+              Configurações & Modo de Jogo
+            </h2>
+            <button
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="text-xs font-cinzel font-bold text-amber-400 hover:text-amber-200 uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>Abrir Ajustes</span>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#0b0c10] border border-amber-600/40 space-y-4 shadow-xl relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-amber-900/40">
+              <div>
+                <h3 className="font-cinzel font-bold text-sm text-stone-200 uppercase tracking-wide">
+                  Alternar entre Modo Mestre e Modo Jogador
+                </h3>
+                <p className="text-xs text-stone-400 font-sans">
+                  Modo ativo no momento:{' '}
+                  <strong className={isMaster ? 'text-amber-300 uppercase' : 'text-blue-300 uppercase'}>
+                    {isMaster ? '👑 Modo Mestre' : '⚔️ Modo Jogador'}
+                  </strong>
+                </p>
+              </div>
+
+              {/* Botão de Troca Imediata */}
+              <button
+                type="button"
+                onClick={toggleMode}
+                className="py-2 px-4 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-stone-950 font-cinzel text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all cursor-pointer"
+              >
+                <ArrowLeftRight size={14} />
+                <span>Trocar para {isMaster ? 'Modo Jogador' : 'Modo Mestre'}</span>
+              </button>
+            </div>
+
+            {/* Segmented Control / Cards de Escolha de Modo */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Botão Seletor Modo Mestre */}
+              <button
+                type="button"
+                onClick={() => selectProfile('master')}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                  isMaster
+                    ? 'bg-amber-950/70 border-amber-400 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.2)] ring-1 ring-amber-400/40'
+                    : 'bg-stone-900/40 hover:bg-stone-900/80 border-stone-800 text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center border shrink-0 ${
+                    isMaster ? 'bg-amber-500 text-stone-950 border-amber-300 font-bold' : 'bg-stone-950 border-stone-800 text-amber-500/60'
+                  }`}>
+                    <Crown size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-cinzel font-bold text-xs uppercase tracking-wider">
+                      Modo Mestre
+                    </h4>
+                    <p className="text-[10px] font-sans text-stone-400">
+                      Campanhas, monstros e mapas
+                    </p>
+                  </div>
+                </div>
+
+                {isMaster ? (
+                  <span className="px-2 py-0.5 rounded text-[9px] font-cinzel font-bold bg-amber-500 text-stone-950 flex items-center gap-1">
+                    <Check size={10} strokeWidth={3} /> Ativo
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-cinzel text-stone-500 uppercase">
+                    Selecionar
+                  </span>
+                )}
+              </button>
+
+              {/* Botão Seletor Modo Jogador */}
+              <button
+                type="button"
+                onClick={() => selectProfile('player')}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                  !isMaster
+                    ? 'bg-blue-950/70 border-blue-400 text-blue-100 shadow-[0_0_15px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/40'
+                    : 'bg-stone-900/40 hover:bg-stone-900/80 border-stone-800 text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center border shrink-0 ${
+                    !isMaster ? 'bg-blue-500 text-stone-950 border-blue-300 font-bold' : 'bg-stone-950 border-stone-800 text-blue-500/60'
+                  }`}>
+                    <Swords size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-cinzel font-bold text-xs uppercase tracking-wider">
+                      Modo Jogador
+                    </h4>
+                    <p className="text-[10px] font-sans text-stone-400">
+                      Fichas, dados e grimório
+                    </p>
+                  </div>
+                </div>
+
+                {!isMaster ? (
+                  <span className="px-2 py-0.5 rounded text-[9px] font-cinzel font-bold bg-blue-500 text-stone-950 flex items-center gap-1">
+                    <Check size={10} strokeWidth={3} /> Ativo
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-cinzel text-stone-500 uppercase">
+                    Selecionar
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. OPÇÃO DE LOGOUT SE FOR O PRÓPRIO PERFIL */}
       {isOwner && (
         <div className="pt-6 border-t border-stone-800/60 flex justify-center">
           <button
@@ -786,6 +924,13 @@ export const PlayerProfilePage: React.FC = () => {
           loadProfile();
         }}
         userId={targetUid}
+      />
+
+      {/* Modal de Configurações & Troca de Modo */}
+      <ProfileSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        onOpenEditProfile={() => setIsEditModalOpen(true)}
       />
     </div>
   );

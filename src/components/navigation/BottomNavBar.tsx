@@ -5,7 +5,9 @@ import {
   Dices, 
   Swords, 
   Library, 
-  Users 
+  Users,
+  Map,
+  Settings
 } from 'lucide-react';
 import { useFriendship } from '../../context/FriendshipContext';
 
@@ -22,32 +24,25 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   const currentPath = location.pathname;
   const { pendingCount } = useFriendship();
 
-  // Itens da barra inferior correspondendo exatamente à referência
-  const navItems = [
+  // Itens do Mestre (Grimório, Mapas, Compêndio, Amigos, Configurações)
+  const masterNavItems = [
     {
-      id: 'inicio',
-      label: 'INÍCIO',
+      id: 'grimorio',
+      label: 'GRIMÓRIO',
       icon: BookOpen,
       path: '/',
-      isActive: (path: string) => path === '/' || path === '/grimorio'
+      isActive: (path: string) => path === '/' || path === '/grimorio' || path === '/mestre' || path === '/master'
     },
     {
-      id: 'aventuras',
-      label: 'AVENTUR...',
-      icon: Dices,
-      path: isMaster ? '/master/campaigns' : '/immersive-rpg',
-      isActive: (path: string) => path.startsWith('/immersive-rpg') || path.startsWith('/master/campaigns') || path.startsWith('/campaigns')
+      id: 'mapas',
+      label: 'MAPAS',
+      icon: Map,
+      path: '/maps',
+      isActive: (path: string) => path.startsWith('/map') || path.startsWith('/master/maps') || path === '/maps'
     },
     {
-      id: 'personagens',
-      label: 'PERSONA...',
-      icon: Swords,
-      path: isMaster ? '/master' : '/characters',
-      isActive: (path: string) => path.startsWith('/characters') || path === '/master'
-    },
-    {
-      id: 'biblioteca',
-      label: 'BIBLIOTEC...',
+      id: 'compendio',
+      label: 'COMPÊNDIO',
       icon: Library,
       path: '/codex',
       isActive: (path: string) => path.startsWith('/codex') || path.startsWith('/spells') || path.startsWith('/biblioteca')
@@ -59,8 +54,57 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       path: '/amigos',
       badge: pendingCount,
       isActive: (path: string) => path.startsWith('/amigos') || path.startsWith('/friends')
+    },
+    {
+      id: 'configuracoes',
+      label: 'CONFIG...',
+      icon: Settings,
+      path: '/settings',
+      isActive: (path: string) => path.startsWith('/settings') || path.startsWith('/configuracoes') || path.startsWith('/profile') || path.startsWith('/perfil')
     }
   ];
+
+  // Itens do Jogador
+  const playerNavItems = [
+    {
+      id: 'inicio',
+      label: 'INÍCIO',
+      icon: BookOpen,
+      path: '/',
+      isActive: (path: string) => path === '/' || path === '/grimorio'
+    },
+    {
+      id: 'aventuras',
+      label: 'AVENTUR...',
+      icon: Dices,
+      path: '/immersive-rpg',
+      isActive: (path: string) => path.startsWith('/jogador') || path.startsWith('/immersive-rpg')
+    },
+    {
+      id: 'personagens',
+      label: 'PERSONA...',
+      icon: Users,
+      path: '/characters',
+      isActive: (path: string) => path.startsWith('/characters')
+    },
+    {
+      id: 'compendio',
+      label: 'BIBLIOTEC...',
+      icon: Library,
+      path: '/codex',
+      isActive: (path: string) => path.startsWith('/codex') || path.startsWith('/spells') || path.startsWith('/biblioteca')
+    },
+    {
+      id: 'amigos',
+      label: 'MAIS',
+      icon: Users,
+      path: '/amigos',
+      badge: pendingCount,
+      isActive: (path: string) => path.startsWith('/amigos') || path.startsWith('/friends')
+    }
+  ];
+
+  const navItems = isMaster ? masterNavItems : playerNavItems;
 
   return (
     <nav 

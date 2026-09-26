@@ -27,7 +27,11 @@ function getRollingDiceScale(width: number, height: number): number {
   return 0.52;
 }
 
-export const Floating3DDice: React.FC = () => {
+export interface Floating3DDiceProps {
+  className?: string;
+}
+
+export const Floating3DDice: React.FC<Floating3DDiceProps> = ({ className }) => {
   const {
     activeDiceType,
     activeSkin,
@@ -129,16 +133,24 @@ export const Floating3DDice: React.FC = () => {
         }
       });
 
-      // Gentle idle spin loop
+      // Gentle idle spin loop (30 FPS capped & paused when tab hidden)
       let angle = 0;
+      let lastTime = performance.now();
       const animateIdle = () => {
+        idleAnimFrameRef.current = requestAnimationFrame(animateIdle);
+
+        if (document.hidden) return;
+
+        const now = performance.now();
+        if (now - lastTime < 32) return; // Cap idle die at ~30 FPS
+        lastTime = now;
+
         angle += 0.015;
         if (diceInfo.mesh) {
           diceInfo.mesh.rotation.x = Math.sin(angle * 0.7) * 0.4 + 0.3;
           diceInfo.mesh.rotation.y = angle;
         }
         renderer.render(scene, camera);
-        idleAnimFrameRef.current = requestAnimationFrame(animateIdle);
       };
 
       idleAnimFrameRef.current = requestAnimationFrame(animateIdle);
@@ -147,8 +159,10 @@ export const Floating3DDice: React.FC = () => {
         if (idleAnimFrameRef.current) cancelAnimationFrame(idleAnimFrameRef.current);
         if (diceInfo.mesh) {
           scene.remove(diceInfo.mesh);
+          diceInfo.mesh.geometry?.dispose();
         }
         renderer.dispose();
+        renderer.forceContextLoss();
       };
     } else {
       // 2D Smooth Fallback rendering if WebGL is unavailable
@@ -537,7 +551,7 @@ export const Floating3DDice: React.FC = () => {
           ---------------------------------------------------- */}
       <div 
         id="realmor-floating-3d-dice-container"
-        className="fixed right-3.5 bottom-20 sm:bottom-6 z-40 flex flex-col items-center gap-1 select-none pointer-events-auto"
+        className={className || "fixed right-3.5 bottom-20 sm:bottom-6 z-40 flex flex-col items-center gap-1 select-none pointer-events-auto"}
       >
         <div className="relative group">
           {/* Touch Area / Glow Ring */}

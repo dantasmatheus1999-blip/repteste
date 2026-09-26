@@ -89,6 +89,8 @@ service cloud.firestore {
              (!('photoURL' in data) || data.photoURL is string) &&
              (!('avatarUrl' in data) || data.avatarUrl is string) &&
              (!('coverUrl' in data) || data.coverUrl is string) &&
+             (!('isOnline' in data) || data.isOnline is bool) &&
+             (!('lastSeen' in data) || data.lastSeen is timestamp) &&
              (!('mainCharacterId' in data) || (data.mainCharacterId is string && data.mainCharacterId.size() <= 128)) &&
              (!('mainCharacterName' in data) || (data.mainCharacterName is string && data.mainCharacterName.size() <= 100)) &&
              (!('mainCharacterClass' in data) || (data.mainCharacterClass is string && data.mainCharacterClass.size() <= 100)) &&
@@ -161,20 +163,36 @@ service cloud.firestore {
 
     // Friendships Collection (Sistema de Amigos)
     match /friendships/{friendshipId} {
-      allow read: if isAuthenticated() && (request.auth.uid in resource.data.userIds || isAdmin());
-      allow create: if isAuthenticated() && 
-                    request.resource.data.requesterId == request.auth.uid && 
-                    request.auth.uid in request.resource.data.userIds &&
-                    request.resource.data.userIds.size() == 2;
-      allow update: if isAuthenticated() && (request.auth.uid in resource.data.userIds || isAdmin());
-      allow delete: if isAuthenticated() && (request.auth.uid in resource.data.userIds || isAdmin());
+      allow get: if isAuthenticated() && (
+        resource == null || 
+        request.auth.uid in resource.data.userIds || 
+        isAdmin()
+      );
+      allow list: if isAuthenticated() && (
+        request.auth.uid in resource.data.userIds || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        (request.resource.data.requesterId == request.auth.uid && 
+         request.auth.uid in request.resource.data.userIds &&
+         request.resource.data.userIds.size() == 2) ||
+        isAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        (resource != null && request.auth.uid in resource.data.userIds) || 
+        isAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        (resource != null && request.auth.uid in resource.data.userIds) || 
+        isAdmin()
+      );
     }
 
     // Characters Collection
     match /characters/{charId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid && isValidCharacter(request.resource.data);
-      allow update: if isDocOwner() && isValidCharacter(request.resource.data);
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated();
       allow delete: if isDocOwner() || isAdmin();
     }
 
@@ -376,16 +394,56 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Test Maps Collection (Módulo de Teste de Mapas do Mestre)
+    // Test Maps Collection (Biblioteca Pessoal de Mapas do Mestre - Isolada por UID)
     match /testMaps/{mapId} {
-      allow read: if true;
-      allow create, update, delete: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || 
+        request.resource.data.ownerId == request.auth.uid
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin()
+      ) && (
+        // Impede alterar o ownerId / userId para outro usuário
+        (!('userId' in request.resource.data) || !('userId' in resource.data) || request.resource.data.userId == resource.data.userId) &&
+        (!('ownerId' in request.resource.data) || !('ownerId' in resource.data) || request.resource.data.ownerId == resource.data.ownerId)
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin()
+      );
     }
 
-    // Map Folders Collection (Pastas da Biblioteca de Mapas)
+    // Map Folders Collection (Pastas da Biblioteca de Mapas - Isolada por UID)
     match /mapFolders/{folderId} {
-      allow read: if true;
-      allow create, update, delete: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || 
+        request.resource.data.ownerId == request.auth.uid
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin()
+      ) && (
+        (!('userId' in request.resource.data) || !('userId' in resource.data) || request.resource.data.userId == resource.data.userId)
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin()
+      );
     }
 
     // Test TV Synchronization (Transmissão em tempo real Mestre -> TV)
@@ -399,6 +457,18 @@ service cloud.firestore {
       allow read: if isAuthenticated() || true;
       allow create: if true;
       allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Campaign World Maps
+    match /campaign_maps/{campaignId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Campaign Player Personal Annotations
+    match /campaign_annotations/{annotationId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
     // Dice Skins Collection (Skins Cosméticas com Texturas Planificadas)

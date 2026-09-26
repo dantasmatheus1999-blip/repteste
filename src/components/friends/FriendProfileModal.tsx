@@ -215,6 +215,11 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                     <h3 className="text-lg sm:text-xl font-cinzel font-bold text-amber-100 uppercase tracking-wider">
                       {targetUser.name || targetUser.displayName}
                     </h3>
+                    {targetUser.username && (
+                      <p className="text-xs text-amber-400 font-mono mt-0.5 tracking-wide">
+                        @{targetUser.username.replace(/^@+/, '')}
+                      </p>
+                    )}
                     <p className="text-xs text-stone-400 font-sans mt-0.5">
                       {targetUser.mainCharacterName ? (
                         <span className="text-amber-300 font-medium">"{targetUser.mainCharacterName}"</span>

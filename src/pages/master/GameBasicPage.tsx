@@ -34,6 +34,8 @@ import { useAuth } from '../../context/AuthContext';
 import { MapEditor } from '../../components/map/MapEditor';
 import { MobilePlayerSessionPage } from '../jogador/MobilePlayerSessionPage';
 import { RealmorLoading } from '../../components/common/RealmorLoading';
+import { PlayerCampaignMapView } from '../../components/campaign-map/PlayerCampaignMapView';
+import { MasterCampaignMapModal } from '../../components/campaign-map/MasterCampaignMapModal';
 
 // Brasão / Estandarte Heráldico Medieval do Canto Superior Esquerdo da Capa
 const HeraldicBannerBadge: React.FC = () => (
@@ -103,6 +105,7 @@ export const GameBasicPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMasterMapModalOpen, setIsMasterMapModalOpen] = useState(false);
   const [isChangeHeroModalOpen, setIsChangeHeroModalOpen] = useState(false);
   const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
   const [comingSoonModal, setComingSoonModal] = useState<{ title: string; desc: string } | null>(null);
@@ -216,16 +219,16 @@ export const GameBasicPage: React.FC = () => {
   const adventurers = players.filter(p => p.role === 'player' && p.userId !== game?.masterId);
   const currentPlayer = adventurers.find(p => p.userId === user?.uid);
 
-  // Carrega ficha do personagem vinculado para detalhes de raça/imagem
+  // Carrega ficha do personagem vinculado para detalhes de raça/imagem apenas fora da sessão
   useEffect(() => {
-    if (currentPlayer?.characterId) {
+    if (currentPlayer?.characterId && !isInSession) {
       CharacterService.getCharacter(currentPlayer.characterId).then(char => {
         if (char) setMyCharacterDoc(char);
       }).catch(err => console.error('Erro ao carregar personagem:', err));
-    } else {
+    } else if (!currentPlayer?.characterId) {
       setMyCharacterDoc(null);
     }
-  }, [currentPlayer?.characterId]);
+  }, [currentPlayer?.characterId, isInSession]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -353,7 +356,7 @@ export const GameBasicPage: React.FC = () => {
     }
 
     if (isMaster) {
-      navigate(campaignId ? `/master/campaigns/${campaignId}` : '/mestre');
+      navigate('/mestre');
     } else {
       navigate('/jogador');
     }
@@ -374,7 +377,7 @@ export const GameBasicPage: React.FC = () => {
         <h2 className="text-lg font-cinzel font-bold text-stone-100">Mesa Inacessível</h2>
         <p className="text-xs text-stone-400 font-serif">{error || 'A mesa solicitada não foi encontrada.'}</p>
         <button 
-          onClick={() => navigate(campaignId ? `/master/campaigns/${campaignId}` : '/jogador')}
+          onClick={() => navigate(isMaster ? '/mestre' : '/jogador')}
           className="py-2.5 px-5 rounded-xl bg-amber-950/80 border border-amber-600/50 text-amber-200 text-xs font-cinzel font-bold uppercase tracking-wider cursor-pointer"
         >
           Voltar
@@ -399,6 +402,7 @@ export const GameBasicPage: React.FC = () => {
           gameId={gameId || game.id}
           game={game}
           currentPlayer={currentPlayer}
+          players={players}
           onExit={() => setIsInSession(false)}
         />
       </div>
@@ -438,7 +442,13 @@ export const GameBasicPage: React.FC = () => {
       <div className="flex items-center justify-between pt-1 pb-1 px-0.5 gap-2">
         <button
           type="button"
-          onClick={() => setIsExitConfirmOpen(true)}
+          onClick={() => {
+            if (isMaster) {
+              navigate('/mestre');
+            } else {
+              navigate('/jogador');
+            }
+          }}
           className="inline-flex items-center gap-1 text-stone-300 hover:text-amber-300 transition-colors text-xs font-cinzel font-semibold py-1.5 px-2 rounded-xl hover:bg-amber-950/30 cursor-pointer shrink-0"
         >
           <ChevronLeft size={16} className="text-stone-400" />
@@ -561,7 +571,7 @@ export const GameBasicPage: React.FC = () => {
           {[
             { id: 'visao_geral', label: 'VISÃO GERAL', icon: Info, available: true },
             { id: 'jogadores', label: `JOGADORES (${currentAdventurersCount}/${maxPlayersCount})`, icon: Users, available: true },
-            { id: 'mapa', label: 'MAPA', icon: Map, available: false, desc: 'O mapa da campanha estará disponível em uma próxima atualização.' },
+            { id: 'mapa', label: 'MAPA', icon: Map, available: true },
             { id: 'diario', label: 'DIÁRIO', icon: BookOpen, available: false, desc: 'O diário de crônicas da mesa estará disponível em uma próxima atualização.' },
             { id: 'configuracoes', label: 'CONFIGURAÇÕES', icon: Settings, available: isMaster, desc: 'As configurações da mesa são gerenciadas exclusivamente pelo Mestre da sessão.' }
           ].map((tab) => {
@@ -925,8 +935,34 @@ export const GameBasicPage: React.FC = () => {
         </div>
       )}
 
-      {/* ABA: MAPA / DIÁRIO / OUTROS COM EM BREVE */}
-      {(activeTab === 'mapa' || activeTab === 'diario' || (activeTab as any) === 'arquivos') && (
+      {/* ABA: MAPA DA CAMPANHA */}
+      {activeTab === 'mapa' && campaignId && (
+        <div className="space-y-3.5 animate-in fade-in duration-200">
+          {isMaster && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsMasterMapModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-amber-950/80 hover:bg-amber-900/90 border border-amber-500/60 text-amber-200 font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-lg"
+              >
+                <Map size={15} className="text-amber-400" />
+                <span>GERENCIAR MAPA DA CAMPANHA (MESTRE)</span>
+              </button>
+            </div>
+          )}
+
+          <div className="w-full min-h-[500px] h-[75vh] rounded-2xl overflow-hidden border border-amber-900/60 shadow-2xl relative bg-stone-950">
+            <PlayerCampaignMapView
+              campaignId={campaignId}
+              playerId={user?.uid || (isMaster ? 'master' : currentPlayer?.id || 'player')}
+              playerName={user?.displayName || currentPlayer?.displayName || (isMaster ? 'Mestre' : 'Aventureiro')}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ABA: DIÁRIO / ARQUIVOS COM EM BREVE */}
+      {(activeTab === 'diario' || (activeTab as any) === 'arquivos') && (
         <div className="space-y-3.5 animate-in fade-in duration-200">
           <div className="rounded-2xl border border-amber-900/50 bg-[#090705]/95 p-6 space-y-3 shadow-xl backdrop-blur-sm relative text-center">
             <OrnateCorners color="border-amber-500/40" />
@@ -937,43 +973,14 @@ export const GameBasicPage: React.FC = () => {
 
             <div className="space-y-1">
               <h3 className="font-cinzel font-bold text-base text-amber-200 uppercase tracking-widest">
-                {activeTab === 'mapa' ? 'MAPA DA CAMPANHA' : activeTab === 'diario' ? 'DIÁRIO DE CRÔNICAS' : 'ARQUIVOS'}
+                {activeTab === 'diario' ? 'DIÁRIO DE CRÔNICAS' : 'ARQUIVOS'}
               </h3>
               <p className="text-xs text-stone-300 font-serif leading-relaxed max-w-sm mx-auto">
-                {activeTab === 'mapa'
-                  ? 'O mapa da campanha estará disponível em uma próxima atualização.'
-                  : activeTab === 'diario'
+                {activeTab === 'diario'
                   ? 'O diário de crônicas da mesa estará disponível em uma próxima atualização.'
                   : 'O compêndio de arquivos estará disponível em uma próxima atualização.'}
               </p>
             </div>
-          </div>
-
-          {/* BOTÃO PRINCIPAL: ENTRAR NA SALA */}
-          <div className="pt-1">
-            <button
-              onClick={handleEnterRoom}
-              disabled={isStartingGame || isTogglingReady}
-              className="relative w-full py-3.5 sm:py-4 rounded-xl bg-gradient-to-r from-[#d97706] via-[#f59e0b] to-[#d97706] hover:brightness-110 active:scale-[0.98] text-stone-950 font-cinzel font-black text-sm sm:text-base tracking-[0.2em] uppercase shadow-[0_0_25px_rgba(245,158,11,0.45)] transition-all border border-amber-200/60 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
-            >
-              <OrnateCorners color="border-stone-950/70" />
-              
-              <span className="text-lg">⚔</span>
-
-              <span>
-                {isMaster ? (
-                  game.status === 'lobby' ? 'INICIAR NA SALA' : 'ENTRAR NA SALA'
-                ) : !currentPlayer?.characterId ? (
-                  'ESCOLHER HERÓI & ENTRAR'
-                ) : game.status === 'active' || game.status === 'paused' ? (
-                  'ENTRAR NA SALA'
-                ) : currentPlayer.ready ? (
-                  'PRONTO NA SALA'
-                ) : (
-                  'ENTRAR NA SALA'
-                )}
-              </span>
-            </button>
           </div>
         </div>
       )}
@@ -1080,6 +1087,16 @@ export const GameBasicPage: React.FC = () => {
           showToast('Herói da aventura atualizado com sucesso!');
         }}
       />
+
+      {/* Modal de Mapa da Campanha (apenas Mestre) */}
+      {campaignId && (
+        <MasterCampaignMapModal
+          campaignId={campaignId}
+          campaignName={game?.name || 'Campanha'}
+          isOpen={isMasterMapModalOpen}
+          onClose={() => setIsMasterMapModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

@@ -247,12 +247,16 @@ export const normalizeCharacterSheet = (raw: any, charId: string = ''): Normaliz
   const pvBonus = Number(raw?.pvBonus || 0);
   const pmBonus = Number(raw?.pmBonus || 0);
 
-  const maxPV = calculatedMaxPV + pvBonus;
-  const currentPV = raw?.currentPV !== undefined ? Math.min(maxPV, Number(raw.currentPV)) : maxPV;
-  const tempPV = Number(raw?.tempPV || 0);
+  const maxPV = Math.max(1, calculatedMaxPV + pvBonus);
+  const currentPV = raw?.currentPV !== undefined 
+    ? Math.max(0, Math.min(maxPV, Number(raw.currentPV))) 
+    : maxPV;
+  const tempPV = Math.max(0, Number(raw?.tempPV || 0));
 
-  const maxPM = calculatedMaxPM + pmBonus;
-  const currentPM = raw?.currentPM !== undefined ? Math.min(maxPM, Number(raw.currentPM)) : maxPM;
+  const maxPM = Math.max(0, calculatedMaxPM + pmBonus);
+  const currentPM = raw?.currentPM !== undefined 
+    ? Math.max(0, Math.min(maxPM, Number(raw.currentPM))) 
+    : maxPM;
 
   // Equipment & Defense
   const inventoryList = Array.isArray(raw?.inventory) ? raw.inventory : [];

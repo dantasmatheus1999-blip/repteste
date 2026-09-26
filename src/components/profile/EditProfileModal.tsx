@@ -11,9 +11,14 @@ import {
   AlertCircle,
   Sword,
   Shield,
-  Trash2
+  Trash2,
+  Crown,
+  Swords,
+  ArrowLeftRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../../context/AuthContext';
+import { useProfile } from '../../context/ProfileContext';
 import { UserProfileService, PRESET_AVATARS, PRESET_COVERS, PlayerProfileData } from '../../services/userProfileService';
 import { CharacterService } from '../../services/characterService';
 import { T20Character } from '../../types/t20';
@@ -33,6 +38,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onProfileUpdated,
   userId
 }) => {
+  const { refreshProfile } = useAuth();
+  const { isMaster, selectProfile, toggleMode } = useProfile();
+
   // Form states
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -234,6 +242,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       };
 
       await UserProfileService.updateUserProfile(userId, updatedData);
+      try {
+        await refreshProfile();
+      } catch (refErr) {
+        console.warn('Erro ao atualizar contexto de autenticação:', refErr);
+      }
       onProfileUpdated(updatedData);
       onClose();
     } catch (err: any) {
@@ -583,6 +596,53 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <p className="text-[10px] text-stone-400 mt-1 font-sans">
                   O personagem principal ganha destaque no topo do seu perfil de RPG.
                 </p>
+              </div>
+
+              {/* SEÇÃO: MODO DE JOGO (MESTRE / JOGADOR) */}
+              <div className="pt-3 border-t border-amber-900/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-cinzel font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <ArrowLeftRight size={14} className="text-amber-400" />
+                    Modo de Jogo Ativo
+                  </label>
+                  <span className="text-[10px] font-mono text-stone-400">
+                    {isMaster ? '👑 Mestre' : '⚔️ Jogador'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => selectProfile('master')}
+                    className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between ${
+                      isMaster
+                        ? 'bg-amber-950/80 border-amber-400 text-amber-200 shadow-md ring-1 ring-amber-400/50'
+                        : 'bg-stone-900/50 hover:bg-stone-900 border-stone-800 text-stone-400 hover:text-stone-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Crown size={15} className={isMaster ? 'text-amber-400' : 'text-stone-500'} />
+                      <span className="font-cinzel font-bold text-xs uppercase">Mestre</span>
+                    </div>
+                    {isMaster && <Check size={12} className="text-amber-400 stroke-[3]" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => selectProfile('player')}
+                    className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between ${
+                      !isMaster
+                        ? 'bg-blue-950/80 border-blue-400 text-blue-200 shadow-md ring-1 ring-blue-400/50'
+                        : 'bg-stone-900/50 hover:bg-stone-900 border-stone-800 text-stone-400 hover:text-stone-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Swords size={15} className={!isMaster ? 'text-blue-400' : 'text-stone-500'} />
+                      <span className="font-cinzel font-bold text-xs uppercase">Jogador</span>
+                    </div>
+                    {!isMaster && <Check size={12} className="text-blue-400 stroke-[3]" />}
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -64,6 +64,8 @@ export interface VisionArea {
 
 export interface MapFolder {
   id: string;
+  userId?: string;
+  ownerId?: string;
   name: string;
   description?: string;
   icon: string;
@@ -73,8 +75,15 @@ export interface MapFolder {
 
 export interface TestMap {
   id: string;
+  userId?: string;
+  ownerId?: string;
   name: string;
+  fileName?: string;
+  storagePath?: string;
+  downloadURL?: string;
   imageUrl: string;
+  fileSize?: number;
+  fileType?: string;
   folderId?: string;
   createdAt: string;
   updatedAt: string;
@@ -111,6 +120,7 @@ export type ToolType =
   | 'draw'
   | 'shape'
   | 'eraser'
+  | 'sounds'
   | 'image'
   | 'delete';
 
@@ -125,7 +135,7 @@ export interface TvSyncQuadrantItem {
   drawings?: MapDrawing[];
   shapes?: MapShape[];
   visionAreas?: VisionArea[];
-  viewport: {
+  viewport?: {
     zoom: number;
     panX: number;
     panY: number;
@@ -143,7 +153,7 @@ export interface TvSyncState {
   drawings?: MapDrawing[];
   shapes?: MapShape[];
   visionAreas?: VisionArea[];
-  viewport: {
+  viewport?: {
     zoom: number;
     panX: number;
     panY: number;
@@ -151,6 +161,8 @@ export interface TvSyncState {
   // Suporte a tela dividida
   splitCount?: SplitLayoutCount;
   quadrants?: TvSyncQuadrantItem[];
+  campaignId?: string;
+  gameId?: string;
   updatedAt: string;
   tvLastSeen?: string;
 }

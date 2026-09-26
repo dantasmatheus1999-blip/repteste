@@ -5,8 +5,6 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signOut, 
-  setPersistence, 
-  browserLocalPersistence,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -17,11 +15,6 @@ import {
 import app from './config';
 
 const auth = getAuth(app);
-
-// Configurar persistência local para melhor suporte em iframes
-setPersistence(auth, browserLocalPersistence).catch(err => {
-  console.error('[Firebase Auth] Erro ao configurar persistência:', err);
-});
 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({

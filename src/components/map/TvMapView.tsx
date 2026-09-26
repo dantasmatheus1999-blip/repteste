@@ -3,6 +3,7 @@ import { subscribeTvSync, getStoredTvState } from './mapService';
 import { TvSyncState, TvSyncQuadrantItem } from './types';
 import { calculateAutomaticGrid } from './gridUtils';
 import { MapCanvas } from './MapCanvas';
+import { subscribeToSessionAudio } from '../../services/audioService';
 import { Tv, Maximize2, Minimize2, Radio, Compass } from 'lucide-react';
 
 export const TvMapView: React.FC = () => {
@@ -11,7 +12,15 @@ export const TvMapView: React.FC = () => {
   const [isIdle, setIsIdle] = useState(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Escuta as transmissões do Mestre em tempo real (Estritamente Leitura via onSnapshot)
+  // Escuta áudio da sessão em tempo real (mesma máquina via Broadcast/Storage ou remoto via Firestore)
+  useEffect(() => {
+    const unsubscribeAudio = subscribeToSessionAudio(tvState?.campaignId, tvState?.gameId);
+    return () => {
+      unsubscribeAudio();
+    };
+  }, [tvState?.campaignId, tvState?.gameId]);
+
+  // Escuta as transmissões do Mestre em tempo real (Estritamente Leitura via onSnapshot / BroadcastChannel / Storage)
   useEffect(() => {
     const unsubscribe = subscribeTvSync((state) => {
       if (state && (state.imageUrl || (state.quadrants && state.quadrants.length > 0))) {
@@ -87,8 +96,7 @@ export const TvMapView: React.FC = () => {
         visionAreas: tvState.visionAreas || [],
         markers: tvState.markers || [],
         drawings: tvState.drawings || [],
-        shapes: tvState.shapes || [],
-        viewport: tvState.viewport || { zoom: 1, panX: 0, panY: 0 }
+        shapes: tvState.shapes || []
       }]
     : [];
 
@@ -125,16 +133,16 @@ export const TvMapView: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* Visualização Exclusiva e 100% Limpa da TV (Sem menus, sem textos, sem água, sem bordas) */
+        /* Visualização Exclusiva, 100% Limpa e Independente da Câmera do Mestre */
         <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
           {splitCount === 1 ? (
-            /* 1 MAPA (Ocupa 100% da tela preservando a proporção 16:9) */
-            <TvQuadrantCanvas item={quadrants[0] || tvState} />
+            /* 1 MAPA (Ocupa 100% da tela centralizado preservando a proporção 16:9) */
+            <TvQuadrantCanvas key="tv-slot-0" item={quadrants[0] || tvState} />
           ) : splitCount === 2 ? (
             /* 2 MAPAS (Lado a Lado) */
             <div className="w-full h-full grid grid-cols-2 gap-1 bg-black p-0.5">
               {quadrants.map((quad, idx) => (
-                <div key={quad.mapId || idx} className="relative w-full h-full overflow-hidden bg-black">
+                <div key={`tv-slot-${idx}`} className="relative w-full h-full overflow-hidden bg-black">
                   <TvQuadrantCanvas item={quad} />
                 </div>
               ))}
@@ -142,13 +150,13 @@ export const TvMapView: React.FC = () => {
           ) : splitCount === 3 ? (
             /* 3 MAPAS */
             <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-1 bg-black p-0.5">
-              <div className="relative w-full h-full overflow-hidden bg-black">
+              <div key="tv-slot-0" className="relative w-full h-full overflow-hidden bg-black">
                 {quadrants[0] && <TvQuadrantCanvas item={quadrants[0]} />}
               </div>
-              <div className="relative w-full h-full overflow-hidden bg-black row-span-2">
+              <div key="tv-slot-1" className="relative w-full h-full overflow-hidden bg-black row-span-2">
                 {quadrants[1] && <TvQuadrantCanvas item={quadrants[1]} />}
               </div>
-              <div className="relative w-full h-full overflow-hidden bg-black">
+              <div key="tv-slot-2" className="relative w-full h-full overflow-hidden bg-black">
                 {quadrants[2] && <TvQuadrantCanvas item={quadrants[2]} />}
               </div>
             </div>
@@ -156,7 +164,7 @@ export const TvMapView: React.FC = () => {
             /* 4 MAPAS (Grade 2x2) */
             <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-1 bg-black p-0.5">
               {quadrants.map((quad, idx) => (
-                <div key={quad.mapId || idx} className="relative w-full h-full overflow-hidden bg-black">
+                <div key={`tv-slot-${idx}`} className="relative w-full h-full overflow-hidden bg-black">
                   <TvQuadrantCanvas item={quad} />
                 </div>
               ))}
@@ -188,23 +196,24 @@ export const TvMapView: React.FC = () => {
 };
 
 // Subcomponente de Canvas Isolado para cada Quadrante da TV
+// CÂMERA 100% INDEPENDENTE: O mapa na TV fica sempre centralizado, no tamanho correto e com enquadramento fixo
 const TvQuadrantCanvas: React.FC<{ item: any }> = ({ item }) => {
-  const [zoom, setZoom] = useState(item.viewport?.zoom || 1);
-  const [pan, setPan] = useState({ 
-    x: item.viewport?.panX || 0, 
-    y: item.viewport?.panY || 0 
-  });
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [resetTrigger, setResetTrigger] = useState(0);
+  const prevMapIdentifierRef = useRef<string | null>(null);
 
+  const currentMapIdentifier = item.mapId || item.imageUrl || '';
+
+  // Somente recalcula enquadramento inicial e em caso de troca completa de mapa
   useEffect(() => {
-    if (item.viewport) {
-      if (typeof item.viewport.zoom === 'number') {
-        setZoom(item.viewport.zoom);
-      }
-      if (typeof item.viewport.panX === 'number' && typeof item.viewport.panY === 'number') {
-        setPan({ x: item.viewport.panX, y: item.viewport.panY });
-      }
+    if (!currentMapIdentifier) return;
+    if (prevMapIdentifierRef.current !== null && prevMapIdentifierRef.current !== currentMapIdentifier) {
+      // Mapa trocado: dispara auto-fit e centralização
+      setResetTrigger(prev => prev + 1);
     }
-  }, [item.viewport?.zoom, item.viewport?.panX, item.viewport?.panY]);
+    prevMapIdentifierRef.current = currentMapIdentifier;
+  }, [currentMapIdentifier]);
 
   if (!item.imageUrl) {
     return (
@@ -244,6 +253,7 @@ const TvQuadrantCanvas: React.FC<{ item: any }> = ({ item }) => {
           setZoom(1);
           setPan({ x: 0, y: 0 });
         }}
+        resetViewTrigger={resetTrigger}
         isReadOnly={true}
         isTvMode={true}
       />

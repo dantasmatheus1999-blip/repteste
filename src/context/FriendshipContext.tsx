@@ -126,12 +126,13 @@ export const FriendshipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const pendingCount = incomingRequests.length;
 
-  const sendRequest = useCallback(async (targetUser: { uid: string; name: string; displayName?: string; photoURL?: string }) => {
+  const sendRequest = useCallback(async (targetUser: { uid: string; name: string; displayName?: string; photoURL?: string; username?: string }) => {
     if (!user?.uid) throw new Error('Usuário não autenticado.');
     const currentUserInfo = {
       uid: user.uid,
       name: profile?.name || profile?.displayName || user.displayName || 'Aventureiro',
       displayName: profile?.displayName || profile?.name || user.displayName || 'Aventureiro',
+      username: profile?.username || '',
       photoURL: profile?.photoURL || user.photoURL || ''
     };
     await FriendshipService.sendFriendRequest(currentUserInfo, targetUser);

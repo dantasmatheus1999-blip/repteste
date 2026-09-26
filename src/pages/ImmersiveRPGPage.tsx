@@ -311,9 +311,9 @@ export const ImmersiveRPGPage: React.FC = () => {
         </div>
       ) : (
         /* ========================================================= */
-        /* LISTA COMPACTA DE CARDS DE CAMPANHA (ESTILO D&D BEYOND)   */
+        /* LISTA COMPACTA DE CARDS DE CAMPANHA                       */
         /* ========================================================= */
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {isMaster
             ? masterGames.map((game, idx) => {
                 const cover = game.coverUrl?.trim() || DEFAULT_COVERS[idx % DEFAULT_COVERS.length];
@@ -321,10 +321,10 @@ export const ImmersiveRPGPage: React.FC = () => {
                 return (
                   <div
                     key={game.id}
-                    className="group relative rounded-xl border border-amber-900/35 hover:border-amber-500/60 bg-[#0e0c0a]/95 hover:bg-[#14110e] transition-all duration-200 overflow-hidden shadow-md flex items-stretch"
+                    className="group relative rounded-xl border border-amber-900/50 hover:border-amber-500/60 bg-[#0c0907] transition-all duration-200 overflow-hidden shadow-lg flex items-stretch min-h-[135px]"
                   >
                     {/* Imagem de Capa do Livro / Aventura à Esquerda */}
-                    <div className="relative w-20 xs:w-24 sm:w-28 shrink-0 bg-stone-950 overflow-hidden border-r border-amber-900/25">
+                    <div className="relative w-24 xs:w-28 sm:w-32 shrink-0 bg-stone-950 overflow-hidden border-r border-amber-900/30">
                       <img
                         src={cover}
                         alt={game.name}
@@ -335,40 +335,33 @@ export const ImmersiveRPGPage: React.FC = () => {
                     </div>
 
                     {/* Conteúdo à Direita: Informações & Ação */}
-                    <div className="flex-1 p-3 sm:p-3.5 flex flex-col justify-between min-w-0 space-y-2">
+                    <div className="flex-1 p-3 sm:p-3.5 flex flex-col justify-between min-w-0 space-y-1.5">
                       {/* Topo: Badges de Status e Sistema */}
                       <div className="flex flex-wrap items-center gap-1.5">
                         {getStatusBadge(game.status)}
-                        <span className="text-[9px] font-cinzel font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-700/40 text-amber-300/90">
-                          {game.system || 'Tormenta 20'}
+                        <span className="text-[9px] font-cinzel font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-950/70 border border-amber-700/50 text-amber-400">
+                          {game.system || 'TORMENTA 20'}
                         </span>
                       </div>
 
                       {/* Nome da Campanha / Jogo */}
                       <div className="space-y-0.5">
-                        <h3 className="font-cinzel font-bold text-sm sm:text-base text-stone-100 group-hover:text-amber-200 transition-colors truncate flex items-center gap-1.5">
+                        <h3 className="font-cinzel font-black text-sm sm:text-base text-stone-100 group-hover:text-amber-200 transition-colors truncate flex items-center gap-1.5 uppercase tracking-wider">
                           <span className="text-amber-400 text-xs shrink-0">⚔️</span>
                           <span className="truncate">{game.name}</span>
                         </h3>
 
-                        {/* Detalhes: Mestre e Convite */}
-                        <div className="text-[11px] font-serif text-stone-400 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                          <span>
-                            Mestre: <strong className="text-amber-100 font-cinzel font-semibold">{game.masterName || 'Você'}</strong>
-                          </span>
-                          {game.inviteCode && (
-                            <span className="font-mono text-[10px] text-stone-400">
-                              Convite: <strong className="text-amber-300 tracking-wider">{game.inviteCode}</strong>
-                            </span>
-                          )}
-                        </div>
+                        {/* Detalhes: Mestre */}
+                        <p className="text-[11px] font-serif text-stone-400 truncate">
+                          Mestre: <strong className="text-stone-100 font-cinzel font-bold uppercase tracking-wide">{game.masterName || 'VOCÊ'}</strong>
+                        </p>
                       </div>
 
-                      {/* Botão de Ação "CONTINUAR" Alinhado à Direita */}
-                      <div className="flex items-center justify-end pt-1">
+                      {/* Botão de Ação "CONTINUAR >" Alinhado à Direita */}
+                      <div className="flex items-center justify-end pt-0.5">
                         <button
                           onClick={() => navigate(`/campaigns/${game.campaignId}/games/${game.id}`)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 font-cinzel font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-150 shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
+                          className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 font-cinzel font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-150 shadow-md active:scale-95 cursor-pointer whitespace-nowrap border border-amber-300/40"
                         >
                           <span>CONTINUAR</span>
                           <ChevronRight size={13} strokeWidth={3} />
@@ -384,10 +377,10 @@ export const ImmersiveRPGPage: React.FC = () => {
                 return (
                   <div
                     key={player.id || game.id}
-                    className="group relative rounded-xl border border-amber-900/35 hover:border-amber-500/60 bg-[#0e0c0a]/95 hover:bg-[#14110e] transition-all duration-200 overflow-hidden shadow-md flex items-stretch"
+                    className="group relative rounded-xl border border-amber-900/50 hover:border-amber-500/60 bg-[#0c0907] transition-all duration-200 overflow-hidden shadow-lg flex items-stretch min-h-[135px]"
                   >
                     {/* Imagem de Capa do Livro / Aventura à Esquerda */}
-                    <div className="relative w-20 xs:w-24 sm:w-28 shrink-0 bg-stone-950 overflow-hidden border-r border-amber-900/25">
+                    <div className="relative w-24 xs:w-28 sm:w-32 shrink-0 bg-stone-950 overflow-hidden border-r border-amber-900/30">
                       <img
                         src={cover}
                         alt={game.name}
@@ -398,40 +391,38 @@ export const ImmersiveRPGPage: React.FC = () => {
                     </div>
 
                     {/* Conteúdo à Direita: Informações & Ação */}
-                    <div className="flex-1 p-3 sm:p-3.5 flex flex-col justify-between min-w-0 space-y-2">
+                    <div className="flex-1 p-3 sm:p-3.5 flex flex-col justify-between min-w-0 space-y-1.5">
                       {/* Topo: Badges de Status e Sistema */}
                       <div className="flex flex-wrap items-center gap-1.5">
                         {getStatusBadge(game.status)}
-                        <span className="text-[9px] font-cinzel font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-700/40 text-amber-300/90">
-                          {game.system || 'Tormenta 20'}
+                        <span className="text-[9px] font-cinzel font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-950/70 border border-amber-700/50 text-amber-400">
+                          {game.system || 'TORMENTA 20'}
                         </span>
                       </div>
 
                       {/* Nome da Campanha / Jogo */}
                       <div className="space-y-0.5">
-                        <h3 className="font-cinzel font-bold text-sm sm:text-base text-stone-100 group-hover:text-amber-200 transition-colors truncate flex items-center gap-1.5">
+                        <h3 className="font-cinzel font-black text-sm sm:text-base text-stone-100 group-hover:text-amber-200 transition-colors truncate flex items-center gap-1.5 uppercase tracking-wider">
                           <span className="text-amber-400 text-xs shrink-0">⚔️</span>
                           <span className="truncate">{game.name}</span>
                         </h3>
 
-                        {/* Detalhes: Mestre e Personagem */}
-                        <div className="text-[11px] font-serif text-stone-400 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                          <span>
-                            Mestre: <strong className="text-stone-200 font-cinzel">{game.masterName || 'Mestre da Mesa'}</strong>
-                          </span>
-                          {player.displayName && (
-                            <span className="text-amber-300/90 font-cinzel">
-                              Personagem: <strong className="text-amber-200">{player.displayName}</strong>
-                            </span>
-                          )}
-                        </div>
+                        {/* Detalhes: Mestre */}
+                        <p className="text-[11px] font-serif text-stone-400 truncate">
+                          Mestre: <strong className="text-stone-100 font-cinzel font-bold uppercase tracking-wide">{game.masterName || 'MESTRE DA MESA'}</strong>
+                        </p>
+
+                        {/* Personagem */}
+                        <p className="text-[11px] font-cinzel font-bold text-amber-400 uppercase tracking-wider truncate">
+                          PERSONAGEM: <strong className="text-amber-200">{player.displayName || 'Aventureiro'}</strong>
+                        </p>
                       </div>
 
-                      {/* Botão de Ação "CONTINUAR" Alinhado à Direita */}
-                      <div className="flex items-center justify-end pt-1">
+                      {/* Botão de Ação "CONTINUAR >" Alinhado à Direita */}
+                      <div className="flex items-center justify-end pt-0.5">
                         <button
                           onClick={() => navigate(`/campaigns/${game.campaignId}/games/${game.id}`)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 font-cinzel font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-150 shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
+                          className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-950 font-cinzel font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-150 shadow-md active:scale-95 cursor-pointer whitespace-nowrap border border-amber-300/40"
                         >
                           <span>CONTINUAR</span>
                           <ChevronRight size={13} strokeWidth={3} />

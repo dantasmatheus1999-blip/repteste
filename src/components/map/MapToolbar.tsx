@@ -9,6 +9,8 @@ import {
   Pencil, 
   Shapes, 
   Eraser, 
+  Volume2,
+  Map as MapIcon,
   BookOpen, 
   RotateCcw, 
   ChevronLeft, 
@@ -35,10 +37,15 @@ import {
   MapShape
 } from './types';
 import { MapPropertiesPanel } from './MapPropertiesPanel';
+import { MapSoundsPanel } from './MapSoundsPanel';
+import { AudioService } from '../../services/audioService';
 
 interface MapToolbarProps {
   activeTool: ToolType;
   onSelectTool: (tool: ToolType) => void;
+  // Sessão / Campanha
+  campaignId?: string;
+  gameId?: string;
   // Identificação do Mapa Ativo
   activeMapName?: string;
   activeQuadrantIndex?: number;
@@ -91,6 +98,7 @@ interface MapToolbarProps {
   isBestiaryOpen?: boolean;
   onToggleBestiary?: () => void;
   onCloseBestiary?: () => void;
+  onOpenCampaignMap?: () => void;
 }
 
 const T20_PALETTE = [
@@ -112,6 +120,8 @@ const MonsterIcon: React.FC<{ size?: number; className?: string }> = ({ size = 1
 export const MapToolbar: React.FC<MapToolbarProps> = ({
   activeTool,
   onSelectTool,
+  campaignId,
+  gameId,
   activeMapName,
   activeQuadrantIndex,
   activeQuadrantNumber,
@@ -154,10 +164,20 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   onCloseLibrary,
   isBestiaryOpen,
   onToggleBestiary,
-  onCloseBestiary
+  onCloseBestiary,
+  onOpenCampaignMap
 }) => {
-  // Painel de configuração acoplado ('grid' | 'fog' | 'draw' | 'shape' | 'measure' | null)
-  const [activeConfigPanel, setActiveConfigPanel] = useState<'grid' | 'fog' | 'draw' | 'shape' | 'measure' | null>(null);
+  // Painel de configuração acoplado ('grid' | 'fog' | 'draw' | 'shape' | 'measure' | 'sounds' | null)
+  const [activeConfigPanel, setActiveConfigPanel] = useState<'grid' | 'fog' | 'draw' | 'shape' | 'measure' | 'sounds' | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+
+  useEffect(() => {
+    const unsub = AudioService.subscribe((state) => {
+      const anyPlaying = state.isAmbientPlaying || Object.values(state.statusBySoundId).some(s => s === 'playing');
+      setIsAudioPlaying(anyPlaying);
+    });
+    return () => unsub();
+  }, []);
 
   const isFogActive = activeTool === 'fog' || activeTool === 'fog-paint' || activeTool === 'fog-reveal';
   const currentFogMode: FogMode = fogSettings.mode || (activeTool === 'fog-reveal' ? 'reveal' : 'hide');
@@ -223,6 +243,10 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     } else if (toolId === 'measure') {
       const willOpen = activeConfigPanel !== 'measure';
       setActiveConfigPanel(willOpen ? 'measure' : null);
+      if (willOpen) closeDrawersIfOpen();
+    } else if (toolId === 'sounds') {
+      const willOpen = activeConfigPanel !== 'sounds';
+      setActiveConfigPanel(willOpen ? 'sounds' : null);
       if (willOpen) closeDrawersIfOpen();
     } else {
       setActiveConfigPanel(null);
@@ -405,6 +429,30 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
             badge={activeTool === 'eraser'}
             badgeColor="bg-red-400"
             onClick={() => handleToolClick('eraser')}
+          />
+
+          {/* 12. 🔊 SONS */}
+          <ToolIconBtn
+            id="tool-sounds"
+            active={activeTool === 'sounds' || activeConfigPanel === 'sounds'}
+            title="Sons Temáticos & Efeitos RPG (🔊)"
+            icon={Volume2}
+            badge={isAudioPlaying}
+            badgeColor="bg-emerald-400"
+            onClick={() => handleToolClick('sounds')}
+          />
+
+          {/* 13. 🗺️ MAPA DA CAMPANHA */}
+          <ToolIconBtn
+            id="tool-campaign-map"
+            active={false}
+            title="Mapa da Campanha (🗺️)"
+            icon={MapIcon}
+            onClick={() => {
+              if (onOpenCampaignMap) {
+                onOpenCampaignMap();
+              }
+            }}
           />
         </div>
 
@@ -1144,6 +1192,17 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
                     </button>
                   </div>
                 </div>
+              )}
+
+              {/* ==================================================== */}
+              {/* 6. CONFIGURAÇÃO: SONS TEMÁTICOS                     */}
+              {/* ==================================================== */}
+              {activeConfigPanel === 'sounds' && (
+                <MapSoundsPanel
+                  campaignId={campaignId}
+                  gameId={gameId}
+                  onClose={() => setActiveConfigPanel(null)}
+                />
               )}
             </>
           )}

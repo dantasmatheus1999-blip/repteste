@@ -394,6 +394,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   // Tratar Zoom com a roda do mouse (focado no cursor)
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+    if (isReadOnly || isTvMode) return;
     if (!containerRef.current) return;
 
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;

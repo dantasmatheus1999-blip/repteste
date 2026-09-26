@@ -386,12 +386,18 @@
     },
     "TestMap": {
       "title": "Mapa de Teste",
-      "description": "Dados do mapa de teste do mestre para VTT e TV.",
+      "description": "Dados do mapa de teste do mestre para VTT e TV, isolado por UID do proprietário.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
+        "userId": { "type": "string", "description": "UID do Firebase Auth do proprietário do mapa" },
+        "ownerId": { "type": "string", "description": "UID do Firebase Auth do proprietário do mapa" },
         "name": { "type": "string" },
+        "fileName": { "type": "string" },
+        "storagePath": { "type": "string" },
         "imageUrl": { "type": "string" },
+        "fileSize": { "type": "number" },
+        "mimeType": { "type": "string" },
         "folderId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
@@ -399,21 +405,23 @@
         "fogData": { "type": "string" },
         "markers": { "type": "array" }
       },
-      "required": ["name", "imageUrl"]
+      "required": ["name", "imageUrl", "userId"]
     },
     "MapFolder": {
       "title": "Pasta de Mapas",
-      "description": "Pasta para organização de mapas no editor.",
+      "description": "Pasta para organização de mapas no editor, isolada por UID do proprietário.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
+        "userId": { "type": "string", "description": "UID do Firebase Auth do proprietário da pasta" },
+        "ownerId": { "type": "string", "description": "UID do Firebase Auth do proprietário da pasta" },
         "name": { "type": "string" },
         "description": { "type": "string" },
         "icon": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "icon"]
+      "required": ["name", "icon", "userId"]
     },
     "TestTvSync": {
       "title": "Sincronização com TV",

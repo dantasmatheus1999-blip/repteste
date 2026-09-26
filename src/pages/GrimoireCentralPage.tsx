@@ -3,20 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { 
   LogIn, 
   AlertCircle,
-  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { storage, ref, getDownloadURL } from '../firebase/storage';
 import { GameService } from '../services/gameService';
 import { CornerBracket } from '../components/common/FantasyOrnaments';
+import { AssetCacheService } from '../services/assetCacheService';
 
 // URL base estável do Firebase Storage para a imagem de capa e ícone
 const HERO_IMAGE_DEFAULT_URL =
-  'https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0150741197.firebasestorage.app/o/img-capas%2Fcapa1.png?alt=media';
+  'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600&auto=format&fit=crop&q=80';
 
-const ICON_IMAGE_DEFAULT_URL =
-  'https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0150741197.firebasestorage.app/o/img-capas%2Fswordandstaff.png?alt=media';
+const ICON_IMAGE_DEFAULT_URL = '/icone-main.png';
 
 // Cache global em memória para garantir URL imutável e transição instantânea entre abas
 let globalCachedHeroUrl: string = HERO_IMAGE_DEFAULT_URL;
@@ -46,10 +45,14 @@ export const GrimoireCentralPage: React.FC = () => {
   const [isJoining, setIsJoining] = useState(false);
 
   // Imagem de Destaque da Tela Inicial (iniciada diretamente do cache para evitar flicker)
-  const [heroImageUrl, setHeroImageUrl] = useState<string>(globalCachedHeroUrl);
+  const [heroImageUrl, setHeroImageUrl] = useState<string>(() =>
+    AssetCacheService.getCachedUrl(HERO_IMAGE_DEFAULT_URL)
+  );
 
   // Ícone Principal (espada + cajado) carregado do Firebase Storage
-  const [iconImageUrl, setIconImageUrl] = useState<string>(globalCachedIconUrl);
+  const [iconImageUrl, setIconImageUrl] = useState<string>(() =>
+    AssetCacheService.getCachedUrl(ICON_IMAGE_DEFAULT_URL)
+  );
 
   useEffect(() => {
     // 1. Resolução da Capa Principal no Firebase Storage
@@ -147,14 +150,16 @@ export const GrimoireCentralPage: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full flex flex-col justify-start pb-8 sm:pb-12 selection:bg-amber-500/30 selection:text-amber-200">
+    <div className="relative w-full min-h-[calc(100vh-4rem)] flex flex-col justify-end items-center px-4 pb-24 sm:pb-28 pt-8 overflow-hidden select-none bg-black">
       
-      {/* PARTE 1 — IMAGEM GRANDE COM ESPADINHAS E TÍTULO SOBRE A PARTE INFERIOR */}
-      <div className="relative w-full block bg-black overflow-hidden">
+      {/* ========================================================= */}
+      {/* FUNDO: 100% PREENCHIDO (COVER), SEM BORDAS E SEM MARGEM   */}
+      {/* ========================================================= */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <img
           src={heroImageUrl}
-          alt="REALMOR - Sua aventura começa agora"
-          className="w-full h-auto block"
+          alt="HELMOR - Sua aventura começa agora"
+          className="w-full h-full object-cover object-center"
           loading="eager"
           decoding="async"
           fetchPriority="high"
@@ -163,59 +168,61 @@ export const GrimoireCentralPage: React.FC = () => {
           }}
         />
 
-        {/* Camada sutil de neblina/fade na base da imagem para integrar o título à cena cinematográfica */}
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
-
-        {/* ÍCONE PRINCIPAL + TÍTULO POSICIONADOS SOBRE A PARTE INFERIOR DA IMAGEM */}
-        <div className="absolute inset-x-0 bottom-3 sm:bottom-4 z-10 flex flex-col items-center text-center px-4">
-          <div className="mb-2 sm:mb-2.5 flex items-center justify-center">
-            <img
-              src={iconImageUrl}
-              alt="REALMOR - Espada e Cajado"
-              className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)]"
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-              referrerPolicy="no-referrer"
-              onError={() => {
-                setIconImageUrl(ICON_IMAGE_DEFAULT_URL);
-              }}
-            />
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight font-cinzel drop-shadow-[0_3px_12px_rgba(0,0,0,0.95)] max-w-lg">
-            SUA AVENTURA COMEÇA AGORA
-          </h1>
-        </div>
+        {/* Gradiente suave integrado para legibilidade sem criar caixas artificiais */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/20" />
       </div>
 
-      {/* PARTE 2 — ABAIXO DA IMAGEM: SOMENTE DESCRIÇÃO E BOTÕES */}
-      <div className="relative w-full flex flex-col items-center text-center px-4 pt-4 sm:pt-5 pb-6">
+      {/* ========================================================= */}
+      {/* CONTEÚDO PRINCIPAL SOBREPOSTO AO FUNDO                     */}
+      {/* ========================================================= */}
+      <div className="relative z-10 w-full max-w-lg flex flex-col items-center text-center space-y-4 sm:space-y-5 my-auto">
+        
+        {/* Ícone de Espadas e Cajado */}
+        <div className="flex items-center justify-center">
+          <img
+            src={iconImageUrl}
+            alt="Espada e Cajado"
+            className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] filter brightness-110"
+            loading="eager"
+            referrerPolicy="no-referrer"
+            onError={() => {
+              setIconImageUrl(ICON_IMAGE_DEFAULT_URL);
+            }}
+          />
+        </div>
+
+        {/* Título Principal */}
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-tight font-cinzel drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)]">
+          SUA AVENTURA COMEÇA AGORA
+        </h1>
+
         {/* Descrição */}
-        <p className="text-sm sm:text-base text-gray-300 font-normal leading-relaxed max-w-md">
+        <p className="text-sm sm:text-base text-gray-200 font-normal leading-relaxed max-w-md drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
           Entre em um reino, encontre sua campanha e comece a escrever sua própria história.
         </p>
 
-        {/* Dois botões de ação */}
-        <div className="mt-5 sm:mt-6 w-full max-w-md grid grid-cols-2 gap-3 sm:gap-4">
+        {/* Dois Botões de Ação */}
+        <div className="w-full pt-2 grid grid-cols-2 gap-3 sm:gap-4">
           {/* BOTÃO 1: PROCURAR CAMPANHAS */}
           <button
+            id="btn-procurar-campanhas"
             onClick={() => {
               if (isMaster) {
-                navigate('/master/campaigns');
+                navigate('/mestre');
               } else {
-                navigate('/immersive-rpg');
+                navigate('/jogador');
               }
             }}
-            className="w-full bg-[#0085ff] hover:bg-[#0074e0] active:bg-[#0060c0] text-white font-bold text-xs sm:text-sm uppercase tracking-wider py-3.5 px-2 rounded-lg flex items-center justify-center text-center transition-colors min-h-[46px] cursor-pointer shadow-md active:scale-98"
+            className="w-full bg-[#0085ff] hover:bg-[#0074e0] active:bg-[#0060c0] text-white font-bold text-xs sm:text-sm uppercase tracking-wider py-3.5 px-2 rounded-lg flex items-center justify-center text-center transition-all min-h-[48px] cursor-pointer shadow-[0_4px_15px_rgba(0,133,255,0.35)] active:scale-95"
           >
             PROCURAR CAMPANHAS
           </button>
 
           {/* BOTÃO 2: ENTRAR EM CAMPANHA */}
           <button
+            id="btn-entrar-campanha"
             onClick={() => setIsJoinModalOpen(true)}
-            className="w-full bg-[#0085ff] hover:bg-[#0074e0] active:bg-[#0060c0] text-white font-bold text-xs sm:text-sm uppercase tracking-wider py-3.5 px-2 rounded-lg flex items-center justify-center text-center transition-colors min-h-[46px] cursor-pointer shadow-md active:scale-98"
+            className="w-full bg-[#0085ff] hover:bg-[#0074e0] active:bg-[#0060c0] text-white font-bold text-xs sm:text-sm uppercase tracking-wider py-3.5 px-2 rounded-lg flex items-center justify-center text-center transition-all min-h-[48px] cursor-pointer shadow-[0_4px_15px_rgba(0,133,255,0.35)] active:scale-95"
           >
             ENTRAR EM CAMPANHA
           </button>

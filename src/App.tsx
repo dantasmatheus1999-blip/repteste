@@ -15,7 +15,7 @@ import { useDiceRoller } from './hooks/useDiceRoller';
 import { FirestoreDevHud } from './components/dev/FirestoreDevHud';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-import { ProfileProvider } from './context/ProfileContext';
+import { ProfileProvider, useProfile } from './context/ProfileContext';
 import { AuthProvider } from './context/AuthContext';
 import { FriendshipProvider } from './context/FriendshipContext';
 import { Dice3DProvider } from './components/dice3d/Dice3DContext';
@@ -254,18 +254,24 @@ const PlaceholderPage = ({ title }: { title: string }) => (
 );
 
 const Home = () => {
-  return <GrimoireCentralPage />;
+  const { isMaster } = useProfile();
+  return isMaster ? <NewMasterPage /> : <GrimoireCentralPage />;
 };
 
 export default function App() {
   const isTvMode = typeof window !== 'undefined' && (
-    window.location.pathname.startsWith('/tv') ||
+    window.location.pathname === '/tv' ||
+    window.location.pathname.startsWith('/tv/') ||
     window.location.hash.startsWith('#/tv') ||
     window.location.search.includes('mode=tv')
   );
 
   if (isTvMode) {
-    return <TvMapView />;
+    return (
+      <ErrorBoundary>
+        <TvMapView />
+      </ErrorBoundary>
+    );
   }
 
   return (
@@ -300,8 +306,8 @@ export default function App() {
                   } />
 
                   {/* Início / Grimório Central */}
-                  <Route path="/" element={<ProtectedRoute><AppLayout><GrimoireCentralPage /></AppLayout></ProtectedRoute>} />
-                  <Route path="/grimorio" element={<ProtectedRoute><AppLayout><GrimoireCentralPage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/" element={<ProtectedRoute><AppLayout><Home /></AppLayout></ProtectedRoute>} />
+                  <Route path="/grimorio" element={<ProtectedRoute><AppLayout><Home /></AppLayout></ProtectedRoute>} />
                   <Route path="/select-profile" element={<ProtectedRoute><AppLayout><ProfileSelection /></AppLayout></ProtectedRoute>} />
                   
                   {/* Novas rotas principais do REALMOR */}
@@ -312,11 +318,13 @@ export default function App() {
                   <Route path="/amigos" element={<ProtectedRoute><AppLayout><FriendsPage /></AppLayout></ProtectedRoute>} />
                   <Route path="/friends" element={<Navigate to="/amigos" replace />} />
 
-                  {/* Perfil Interativo do Jogador */}
+                  {/* Perfil Interativo do Jogador & Configurações */}
                   <Route path="/profile" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
                   <Route path="/profile/:userId" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
                   <Route path="/perfil" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
                   <Route path="/perfil/:userId" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
+                  <Route path="/configuracoes" element={<ProtectedRoute><AppLayout><PlayerProfilePage /></AppLayout></ProtectedRoute>} />
 
                   {/* Módulos legados preservados como rascunho para consulta futura */}
                   <Route path="/legacy/dashboard" element={<ProtectedRoute><AppLayout><Home /></AppLayout></ProtectedRoute>} />
@@ -345,7 +353,7 @@ export default function App() {
                   <Route path="/characters/:id" element={<ProtectedRoute><AppLayout><CharacterSheetView /></AppLayout></ProtectedRoute>} />
                   
                   {/* Master Routes */}
-                  <Route path="/master" element={<ProtectedRoute><AppLayout><MasterGrimoire /></AppLayout></ProtectedRoute>} />
+                  <Route path="/master" element={<ProtectedRoute><AppLayout><NewMasterPage /></AppLayout></ProtectedRoute>} />
                   <Route path="/master/campaigns" element={<ProtectedRoute><AppLayout><CampaignListPage /></AppLayout></ProtectedRoute>} />
                   <Route path="/master/campaigns/new" element={<ProtectedRoute><AppLayout><CampaignForm /></AppLayout></ProtectedRoute>} />
                   <Route path="/master/campaigns/:id" element={<ProtectedRoute><AppLayout><CampaignDetailPage /></AppLayout></ProtectedRoute>} />

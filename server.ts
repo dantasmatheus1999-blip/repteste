@@ -22,9 +22,11 @@ try {
 }
 
 // Multer memory storage - holds buffers in memory before uploading permanently to Firebase Storage
+export const MAX_MAP_FILE_SIZE = 50 * 1024 * 1024; // 50 MB = 52.428.800 bytes
+
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+  limits: { fileSize: MAX_MAP_FILE_SIZE } // 50MB limit = 52.428.800 bytes
 });
 
 // Legacy uploads dir for reading existing files if any
@@ -53,8 +55,8 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
   // Health check
   app.get("/api/ping", (req, res) => res.json({ status: "ok", message: "pong" }));
@@ -71,16 +73,51 @@ async function startServer() {
     res.status(404).json({ error: "Arquivo não encontrado no servidor" });
   });
 
+  // Middlewares com tratamento amigável de limites de upload (50 MB)
+  const handleFileUpload = (req: any, res: any, next: any) => {
+    upload.single("file")(req, res, (err: any) => {
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(413).json({ 
+            error: "O arquivo é muito grande. O limite máximo para o mapa é de 50 MB." 
+          });
+        }
+        return res.status(400).json({ error: `Erro no upload: ${err.message}` });
+      }
+      next();
+    });
+  };
+
+  const handleMapUpload = (req: any, res: any, next: any) => {
+    upload.single("map")(req, res, (err: any) => {
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(413).json({ 
+            error: "O arquivo é muito grande. O limite máximo para o mapa é de 50 MB." 
+          });
+        }
+        return res.status(400).json({ error: `Erro no upload: ${err.message}` });
+      }
+      next();
+    });
+  };
+
   // Upload endpoint unificado permanente para qualquer arquivo (Mapas, Monstros, Fichas, Documentos, PDFs)
-  app.post("/api/upload-file", upload.single("file"), async (req, res) => {
+  app.post("/api/upload-file", handleFileUpload, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "Nenhum arquivo enviado." });
       }
 
-      const cleanName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
       const category = (req.body.category || "other") as string;
+      const cleanName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
       const targetPath = req.body.storagePath || `${category}s/server_${Date.now()}_${cleanName}`;
+
+      // Validação estrita específica para mapas (limite de 50 MB = 52.428.800 bytes)
+      if ((category === "map" || targetPath.includes("map")) && req.file.size > MAX_MAP_FILE_SIZE) {
+        return res.status(400).json({ error: "O arquivo é muito grande. O limite máximo para o mapa é de 50 MB." });
+      }
+
       const filename = `${Date.now()}_${cleanName}`;
       const localFilePath = path.join(uploadsDir, filename);
 
@@ -121,14 +158,20 @@ async function startServer() {
   });
 
   // Upload endpoint de compatibilidade para mapas
-  app.post("/api/upload-map", upload.single("map"), async (req, res) => {
+  app.post("/api/upload-map", handleMapUpload, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "Nenhum mapa enviado." });
       }
 
+      // Validação estrita para mapas (limite de 50 MB = 52.428.800 bytes)
+      if (req.file.size > MAX_MAP_FILE_SIZE) {
+        return res.status(400).json({ error: "O arquivo é muito grande. O limite máximo para o mapa é de 50 MB." });
+      }
+
+      const userId = (req.body.userId || "anonymous") as string;
       const cleanName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const targetPath = `maps/shared/${Date.now()}_${cleanName}`;
+      const targetPath = req.body.storagePath || `maps/${userId}/${Date.now()}_${cleanName}`;
       const filename = `map_${Date.now()}_${cleanName}`;
       const localFilePath = path.join(uploadsDir, filename);
 
@@ -473,6 +516,19 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+  });
+
+  // Multer error handling middleware (interrompe uploads que excedam 50 MB)
+  app.use((err: any, req: any, res: any, next: any) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ 
+          error: "O arquivo é muito grande. O limite máximo para o mapa é de 50 MB." 
+        });
+      }
+      return res.status(400).json({ error: `Erro no upload: ${err.message}` });
+    }
+    next(err);
   });
 
   // Global error handler

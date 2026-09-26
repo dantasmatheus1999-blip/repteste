@@ -179,6 +179,11 @@ export const UserProfileService = {
         updatedAt: serverTimestamp()
       };
 
+      // Normalização imediata do username
+      if (data.username !== undefined) {
+        updatePayload.username = data.username.toLowerCase().trim().replace(/^@+/, '');
+      }
+
       // Se displayName mudou, também atualiza name para compatibilidade
       if (data.displayName && !data.name) {
         updatePayload.name = data.displayName;
@@ -192,6 +197,19 @@ export const UserProfileService = {
       }
 
       await setDoc(docRef, updatePayload, { merge: true });
+
+      // Sincroniza cache local do perfil
+      try {
+        const stored = localStorage.getItem(`profile_${uid}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          localStorage.setItem(`profile_${uid}`, JSON.stringify({
+            ...parsed,
+            ...updatePayload,
+            updatedAt: new Date().toISOString()
+          }));
+        }
+      } catch {}
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users/${uid}`);
     }

@@ -43,7 +43,11 @@ export const SecondaryMenuSheet: React.FC<SecondaryMenuSheetProps> = ({
   const handleToggleMode = () => {
     toggleMode();
     onClose();
-    navigate('/');
+    if (isMaster) {
+      navigate('/jogador');
+    } else {
+      navigate('/mestre');
+    }
   };
 
   const handleLogout = () => {

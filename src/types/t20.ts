@@ -56,6 +56,7 @@ export interface T20Character {
   }[];
   notes: string;
   money: number;
+  tibares?: number;
   xp?: number;
   xpTotal?: number;
   xpCurrent?: number;

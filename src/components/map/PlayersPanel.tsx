@@ -80,7 +80,7 @@ export const PlayersPanel: React.FC<PlayersPanelProps> = ({
     };
   }, [players]);
 
-  // 3. Atualização agrupada de personagem com debounce de 600ms (Regra de Ouro: Estabilidade + Baixo Consumo)
+  // 3. Atualização agrupada de personagem com persistência rápida (150ms)
   const handleUpdateCharacter = useCallback((charId: string, partial: Record<string, any>) => {
     if (!charId) return;
 
@@ -104,7 +104,7 @@ export const PlayersPanel: React.FC<PlayersPanelProps> = ({
       clearTimeout(saveTimeoutRef.current[charId]);
     }
 
-    // Dispara gravação única após 600ms de inatividade
+    // Dispara gravação única após 150ms de inatividade
     saveTimeoutRef.current[charId] = setTimeout(async () => {
       const payload = { ...pendingUpdatesRef.current[charId] };
       delete pendingUpdatesRef.current[charId];
@@ -113,7 +113,7 @@ export const PlayersPanel: React.FC<PlayersPanelProps> = ({
       } catch (err) {
         console.error(`[PlayersPanel] Falha ao salvar alterações do personagem ${charId}:`, err);
       }
-    }, 600);
+    }, 150);
   }, []);
 
   const getClassIcon = (clsName?: string) => {
