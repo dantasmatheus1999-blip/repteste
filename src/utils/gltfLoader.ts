@@ -47,19 +47,34 @@ export function cloneGLTFScene(sourceScene: THREE.Object3D): THREE.Group {
   cloned.traverse((child: THREE.Object3D) => {
     if ((child as THREE.Mesh).isMesh) {
       const mesh = child as THREE.Mesh;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
 
-      // Se for SkinnedMesh, atualiza o esqueleto e previne culling prematuro de bounding box
+      // Otimização de sombras: apenas meshes opacos projetam e recebem sombras
+      const isTransparent = mesh.material && (
+        Array.isArray(mesh.material)
+          ? mesh.material.some((m: any) => m && (m.transparent || m.opacity < 0.95))
+          : ((mesh.material as any).transparent || (mesh.material as any).opacity < 0.95)
+      );
+
+      if (isTransparent) {
+        mesh.castShadow = false;
+        mesh.receiveShadow = false;
+      } else {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+
+      // Frustum culling: apenas SkinnedMesh com esqueleto flexível precisa de frustumCulled = false
       if ((mesh as THREE.SkinnedMesh).isSkinnedMesh) {
         const skinned = mesh as THREE.SkinnedMesh;
         skinned.frustumCulled = false;
         if (skinned.skeleton) {
           skinned.skeleton.update();
         }
+      } else {
+        mesh.frustumCulled = true;
       }
 
-      // Garante materiais com double-side e normais corretas se necessário
+      // Garante DoubleSide em materiais que exigem
       if (mesh.material) {
         if (Array.isArray(mesh.material)) {
           mesh.material.forEach(mat => {

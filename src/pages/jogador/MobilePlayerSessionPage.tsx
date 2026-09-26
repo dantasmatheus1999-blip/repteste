@@ -524,7 +524,10 @@ export const MobilePlayerSessionPage: React.FC<MobilePlayerSessionPageProps> = (
       {/* ========================================================================= */}
       {/* 6. DADO 3D REUTILIZADO DO SISTEMA — POSICIONADO ABAIXO DE CONFIGURAÇÕES   */}
       {/* ========================================================================= */}
-      <Floating3DDice className="fixed right-3 top-14 z-40 flex flex-col items-center gap-1 select-none pointer-events-auto" />
+      <Floating3DDice 
+        isVisible={activeTab !== 'map'}
+        className="fixed right-3 top-14 z-40 flex flex-col items-center gap-1 select-none pointer-events-auto" 
+      />
 
       {/* ========================================================================= */}
       {/* 2. ÁREA PRINCIPAL DO HERÓI (PALCO 3D CENTRAL + HUD FLUTUANTE)              */}

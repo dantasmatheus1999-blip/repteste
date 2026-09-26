@@ -237,12 +237,18 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
     const animate = () => {
       animationFrameId.current = requestAnimationFrame(animate);
 
+      if (!rendererRef.current) return;
+
       const canRender = isPropVisibleRef.current && isPageVisibleRef.current && isIntersectingRef.current;
 
       if (canRender && renderFramesLeftRef.current > 0) {
         renderFramesLeftRef.current--;
         controls.update();
-        renderer.render(scene, camera);
+        try {
+          renderer.render(scene, camera);
+        } catch {
+          // Previne erro se o contexto WebGL for alterado durante a desmontagem
+        }
       }
     };
     animate();
@@ -254,14 +260,19 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
         if (w > 0 && h > 0 && cameraRef.current && rendererRef.current) {
           cameraRef.current.aspect = w / h;
           cameraRef.current.updateProjectionMatrix();
-          rendererRef.current.setSize(w, h, false);
-          requestRender(30);
+          try {
+            rendererRef.current.setSize(w, h, false);
+            requestRender(30);
+          } catch {
+            // Ignora resize se o contexto estiver sendo desmontado
+          }
         }
       }
     });
     resizeObserver.observe(container);
 
     return () => {
+      rendererRef.current = null;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       intersectionObserver.disconnect();
       resizeObserver.disconnect();
@@ -274,19 +285,19 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
       controls.dispose();
 
       keyLight.shadow.map?.dispose();
-      scene.traverse((child: any) => {
-        if (child.isMesh) {
-          child.geometry?.dispose();
-          if (Array.isArray(child.material)) {
-            child.material.forEach((m: any) => m?.dispose?.());
-          } else {
-            child.material?.dispose?.();
-          }
-        }
-      });
+
+      // Limpa os componentes locais do pedestal sem destruir o cache compartilhado GLTF
+      baseGeo.dispose();
+      baseMat.dispose();
+      centerGeo.dispose();
+      centerMat.dispose();
+      outerRingGeo.dispose();
+      goldRingMat.dispose();
+      innerRingGeo.dispose();
+      shadowGeo.dispose();
+      shadowMat.dispose();
 
       renderer.dispose();
-      renderer.forceContextLoss();
       scene.clear();
     };
   }, [horizontalOnly, requestRender]);
@@ -302,19 +313,22 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
       setIsLoading(true);
       setLoadError(null);
 
-      // Limpa modelos anteriores
+      // Limpa modelos anteriores da cena sem destruir os recursos mantidos em cache
       while (modelGroup.children.length > 0) {
         const child = modelGroup.children[0];
         modelGroup.remove(child);
-        child.traverse((node: any) => {
-          if (node.isMesh && node.material) {
-            if (Array.isArray(node.material)) {
-              node.material.forEach((m: any) => m && m.dispose && m.dispose());
-            } else if (node.material.dispose) {
-              node.material.dispose();
+        if (child.name === 'procedural_statue_group') {
+          child.traverse((node: any) => {
+            if (node.isMesh) {
+              node.geometry?.dispose();
+              if (Array.isArray(node.material)) {
+                node.material.forEach((m: any) => m?.dispose?.());
+              } else {
+                node.material?.dispose?.();
+              }
             }
-          }
-        });
+          });
+        }
       }
 
       try {
@@ -470,6 +484,7 @@ export const CharacterSelectionStage3D: React.FC<CharacterSelectionStage3DProps>
 
 function createStageProceduralStatue(characterName: string): THREE.Group {
   const group = new THREE.Group();
+  group.name = 'procedural_statue_group';
 
   const isMage = characterName.toLowerCase().includes('arc') || characterName.toLowerCase().includes('mago');
   const isCleric = characterName.toLowerCase().includes('clér') || characterName.toLowerCase().includes('cler');

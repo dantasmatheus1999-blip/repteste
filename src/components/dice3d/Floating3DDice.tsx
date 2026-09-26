@@ -29,9 +29,10 @@ function getRollingDiceScale(width: number, height: number): number {
 
 export interface Floating3DDiceProps {
   className?: string;
+  isVisible?: boolean;
 }
 
-export const Floating3DDice: React.FC<Floating3DDiceProps> = ({ className }) => {
+export const Floating3DDice: React.FC<Floating3DDiceProps> = ({ className, isVisible = true }) => {
   const {
     activeDiceType,
     activeSkin,
@@ -139,7 +140,7 @@ export const Floating3DDice: React.FC<Floating3DDiceProps> = ({ className }) => 
       const animateIdle = () => {
         idleAnimFrameRef.current = requestAnimationFrame(animateIdle);
 
-        if (document.hidden) return;
+        if (document.hidden || !isVisible) return;
 
         const now = performance.now();
         if (now - lastTime < 32) return; // Cap idle die at ~30 FPS
@@ -156,13 +157,13 @@ export const Floating3DDice: React.FC<Floating3DDiceProps> = ({ className }) => 
       idleAnimFrameRef.current = requestAnimationFrame(animateIdle);
 
       return () => {
+        idleRendererRef.current = null;
         if (idleAnimFrameRef.current) cancelAnimationFrame(idleAnimFrameRef.current);
         if (diceInfo.mesh) {
           scene.remove(diceInfo.mesh);
           diceInfo.mesh.geometry?.dispose();
         }
         renderer.dispose();
-        renderer.forceContextLoss();
       };
     } else {
       // 2D Smooth Fallback rendering if WebGL is unavailable
